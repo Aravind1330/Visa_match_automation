@@ -1,0 +1,78 @@
+import pandas as pd
+
+# Read the rules from a text file
+with open("D:/Users/avasudevan/Desktop/APAC_Matching_automation/Rules.txt", 'r') as f:
+    rules = f.readlines()
+
+# Remove new line characters and empty lines
+rules = [r.strip() for r in rules if r.strip()]
+
+# Define a function to apply the rules to each row pair and return the rule index
+def match_row(row1, row2):
+    for i, rule in enumerate(rules):
+        if eval(rule):
+            return True, i+1
+    return False, "Unmatched"
+
+
+# Read in the first Excel sheet
+table1 = pd.read_excel('D:/Users/avasudevan/Desktop/APAC_Matching_automation/Sample3.1.xlsx')
+
+# Read in the second Excel sheet
+table2 = pd.read_excel('D:/Users/avasudevan/Desktop/APAC_Matching_automation/Sample4.1.xlsx')
+
+# Create an empty column for the match rule index
+table1['Match Rule'] = pd.Series(["Unmatched"]*len(table1))
+
+# Loop through each row in table1 and find a match in table2
+for i, row1 in table1.iterrows():
+    matched = False
+    for j, row2 in table2.iterrows():
+        matched, rule_index = match_row(row1, row2)
+        if matched:
+            table1.at[i, 'Match Rule'] = rule_index
+            break
+    if not matched:
+        table1.at[i, 'Match Rule'] = "Unmatched"
+
+# Create a dictionary to map rule index to description
+rule_description = {1: 'Invoice, Amount, Account no, Date and Transaction type should be same',
+                    2: 'Invoice, Amount, Account no, and Transaction type should be same',
+                    3:'Invoice, Amount, Account no should be same and Date can have 5 days Diffrence',
+                    4:'Invoice last 7 digits should be same and Amount,Account no should be same and Date can have 5 days diffrence',
+                    5:'Ticket number,amount and Acct number should be same',
+                    6:'Ticket number last 7 digits and amount should be same',
+                    7:'Invoice no last 13 or 12 or 11 or 10 or 7 digits shd be same,Amount and account no should be same',
+                    8:'Ticket number middle 5 digits shd be same,Amount and account no should be same',
+                    9:'PNR no,Amount and account no, date should be same or 5 days difference',
+                    10:'Auth no,Amount and account no, date should be same or 5 days difference',
+                    11:'PNR no,Amount and account no should be same',
+                    12:'Auth no,Amount and account no should be same',
+                    'Unmatched':'No patterns found'}
+
+# Create the "description" column based on the "Match Rule" column
+table1['description'] = table1['Match Rule'].map(rule_description)
+
+# Print the updated table
+# print(table1)
+table1.to_excel("D:/Users/avasudevan/Desktop/Visa_match_automation/visa_auto/output1.xlsx",index=False)
+
+
+
+row1["Supplier_name"] == row2["Invoice no"] and row1["Source_Amount"] == row2["Transaction_Amount"] and row1["Account_no"] == row2["Account_no"] and row1["Transaction_Date"] == row2["Date"] and row1["Transaction_Type"] == row2["Credit_debit_indicator"]
+row1["Supplier_name"] == row2["Invoice no"] and row1["Source_Amount"] == row2["Transaction_Amount"] and row1["Account_no"] == row2["Account_no"] and row1["Transaction_Type"] == row2["Credit_debit_indicator"]
+row1["Supplier_name"] == row2["Invoice no"] and row1["Source_Amount"] == row2["Transaction_Amount"] and row1["Account_no"] == row2["Account_no"] and abs((row1["Transaction_Date"] - row2["Date"]).days) <= 5
+row1["Supplier_name"][-7:] == row2["Invoice no"][-7:] and row1["Source_Amount"] == row2["Transaction_Amount"] and row1["Account_no"] == row2["Account_no"] and abs((row1["Transaction_Date"] - row2["Date"]).days) <= 5
+row1["Ticket_no"] == row2["Ticket_no"] and row1["Source_Amount"] == row2["Transaction_Amount"] and row1["Account_no"] == row2["Account_no"]
+str(row1["Ticket_no"])[-13:] == str(row2["Ticket_no"])[-13:] and row1["Source_Amount"] == row2["Transaction_Amount"]
+row1["Supplier_name"][-13:] == row2["Invoice no"][-13:] or row1["Supplier_name"][-12:] == row2["Invoice no"][-12:] or row1["Supplier_name"][-11:] == row2["Invoice no"][-11:] or row1["Supplier_name"][-10:] == row2["Invoice no"][-10:] or row1["Supplier_name"][-7:] == row2["Invoice no"][-7:] and row1["Source_Amount"] == row2["Transaction_Amount"] and row1["Account_no"] == row2["Account_no"] and row1["Transaction_Type"] == row2["Credit_debit_indicator"]
+row1["Ticket_no"][3:9] == row2["Ticket_no"] and row1["Source_Amount"] == row2["Transaction_Amount"] and row1["Account_no"] == row2["Account_no"] and row1["Transaction_Type"] == row2["Credit_debit_indicator"]
+row1["PNR"] == row2["PNR"] and row1["Source_Amount"] == row2["Transaction_Amount"] and row1["Account_no"] == row2["Account_no"] and row1["Transaction_Type"] == row2["Credit_debit_indicator"] and abs((row1["Transaction_Date"] - row2["Date"]).days) <= 5
+row1["Auth_no"] == row2["Auth_no"] and row1["Source_Amount"] == row2["Transaction_Amount"] and row1["Account_no"] == row2["Account_no"] and row1["Transaction_Type"] == row2["Credit_debit_indicator"] and abs((row1["Transaction_Date"] - row2["Date"]).days) <= 5
+row1["PNR"] == row2["PNR"] or str(row1["PNR"])[-7:] == str(row2["PNR"])[-7:] and row1["Source_Amount"] == row2["Transaction_Amount"] and row1["Account_no"] == row2["Account_no"] and row1["Transaction_Type"] == row2["Credit_debit_indicator"]
+row1["Auth_no"] == row2["Auth_no"] and row1["Source_Amount"] == row2["Transaction_Amount"] and row1["Account_no"] == row2["Account_no"] and row1["Transaction_Type"] == row2["Credit_debit_indicator"]
+
+
+
+
+
