@@ -1,0 +1,7 @@
+# Convert the Invoice and Ticket number columns to strings, if necessary
+table1['Supplier_name'] = table1['Supplier_name'].astype(str)
+table2['Invoice no'] = table2['Invoice no'].astype(str)
+table1['Ticket_no'] = table1['Ticket_no'].astype(str)
+table2['Ticket_no'] = table2['Ticket_no'].astype(str)
+table1['PNR'] = table1['PNR'].astype(str)
+table2['PNR'] = table2['PNR'].astype(str)
