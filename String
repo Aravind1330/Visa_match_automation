@@ -5,3 +5,14 @@ table1['Ticket_no'] = table1['Ticket_no'].astype(str)
 table2['Ticket_no'] = table2['Ticket_no'].astype(str)
 table1['PNR'] = table1['PNR'].astype(str)
 table2['PNR'] = table2['PNR'].astype(str)
+
+
+
+
+
+aggregated = table1.groupby(['Company', 'Match Rule']).size().reset_index(name='TRF')
+total = aggregated['TRF'].sum()
+aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated.columns), ignore_index=True)
+# Write the aggregated data to the second sheet of the Excel file
+with pd.ExcelWriter('D:/Users/avasudevan/Desktop/Visa_match_automation/visa_auto/output1.xlsx', mode='a') as writer:
+    aggregated.to_excel(writer, sheet_name='Aggregated', index=False)
