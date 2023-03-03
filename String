@@ -16,3 +16,12 @@ aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated
 # Write the aggregated data to the second sheet of the Excel file
 with pd.ExcelWriter('D:/Users/avasudevan/Desktop/Visa_match_automation/visa_auto/output1.xlsx', mode='a') as writer:
     aggregated.to_excel(writer, sheet_name='Aggregated', index=False)
+
+
+table1['Match Rule'] = table1.apply(lambda row1: next((i+1 for i, rule in enumerate(rules) if eval(rule)), 'Unmatched'), axis=1)
+
+
+
+
+merged_table = pd.merge(table1, table2, on=['Supplier_name', 'Ticket_no', 'PNR'], how='outer', suffixes=('_1', '_2'))
+merged_table['Match Rule'] = merged_table.apply(lambda row: next((i+1 for i, rule in enumerate(rules) if eval(rule)), 'Unmatched') if not pd.isnull(row['Supplier_name']) else 'Unmatched', axis=1)
