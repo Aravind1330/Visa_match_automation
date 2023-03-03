@@ -88,3 +88,64 @@ print(aggregated)
 # Write the data to an Excel file if necessary
 # merged.to_excel("D:/Users/avasudevan/Desktop/Visa_match_automation/visa_auto/output1.xlsx", index=False)
 # with pd.Excel
+
+
+
+import pandas as pd
+import numexpr as ne
+from multiprocessing import Pool, cpu_count
+
+# Read the rules from a text file
+with open("D:/Users/avasudevan/Desktop/APAC_Matching_automation/Rules.txt", 'r') as f:
+    rules = f.readlines()
+
+# Remove new line characters and empty lines
+rules = [r.strip() for r in rules if r.strip()]
+
+# Define a function to apply the rules to each row pair and return the rule index
+def match_row(args):
+    i, row1, row2 = args
+    expr = rules[i]
+    result = ne.evaluate(expr)
+    if result:
+        return i+1
+    else:
+        return 0
+
+# Read in the Excel sheets with specified data types
+table1 = pd.read_excel('D:/Users/avasudevan/Desktop/APAC_Matching_automation/Sample3.1.xlsx',
+                       dtype={'Supplier_name': str, 'Ticket_no': str, 'PNR': str})
+table2 = pd.read_excel('D:/Users/avasudevan/Desktop/APAC_Matching_automation/Sample4.1.xlsx',
+                       dtype={'Invoice no': str, 'Ticket_no': str, 'PNR': str})
+
+# Create an empty column for the match rule index
+table1['Match Rule'] = pd.Series([0]*len(table1))
+
+# Split the input data into chunks for parallel processing
+nchunks = cpu_count()
+chunks = [(i, row1, table2) for i, row1 in table1.iterrows()]
+chunks = [chunks[i::nchunks] for i in range(nchunks)]
+
+# Process each chunk in parallel using multiprocessing
+with Pool(processes=nchunks) as pool:
+    results = pool.map(match_row, chunks)
+
+# Combine the results and update the match rule index column
+table1['Match Rule'] = pd.Series(results).replace(0, "Unmatched")
+
+# Create a dictionary to map rule index to description
+rule_description = {1: 'Invoice, Amount, Account no, Date and Transaction type should be same',                   
+                    'Unmatched':'No patterns found'}
+
+# Create the "description" column based on the "Match Rule" column
+table1['description'] = table1['Match Rule'].map(rule_description)
+
+# Print the updated table
+print(table1)
+
+# Aggregate the data by company and match rule
+aggregated = table1.groupby(['Company', 'Match Rule']).size().reset_index(name='TRF')
+
+# Add a row for total count
+total = aggregated['TRF'].sum()
+aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated.columns), ignore_index
