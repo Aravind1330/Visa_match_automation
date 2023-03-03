@@ -25,3 +25,66 @@ table1['Match Rule'] = table1.apply(lambda row1: next((i+1 for i, rule in enumer
 
 merged_table = pd.merge(table1, table2, on=['Supplier_name', 'Ticket_no', 'PNR'], how='outer', suffixes=('_1', '_2'))
 merged_table['Match Rule'] = merged_table.apply(lambda row: next((i+1 for i, rule in enumerate(rules) if eval(rule)), 'Unmatched') if not pd.isnull(row['Supplier_name']) else 'Unmatched', axis=1)
+
+
+
+
+
+
+
+
+
+
+import pandas as pd
+
+# Read the rules from a text file
+with open("D:/Users/avasudevan/Desktop/APAC_Matching_automation/Rules.txt", 'r') as f:
+    rules = f.readlines()
+
+# Remove new line characters and empty lines
+rules = [r.strip() for r in rules if r.strip()]
+
+# Read in the first Excel sheet
+table1 = pd.read_excel('D:/Users/avasudevan/Desktop/APAC_Matching_automation/Sample3.1.xlsx')
+
+# Read in the second Excel sheet
+table2 = pd.read_excel('D:/Users/avasudevan/Desktop/APAC_Matching_automation/Sample4.1.xlsx')
+
+# Convert the Invoice and Ticket number columns to strings, if necessary
+table1['Supplier_name'] = table1['Supplier_name'].astype(str)
+table2['Invoice no'] = table2['Invoice no'].astype(str)
+table1['Ticket_no'] = table1['Ticket_no'].astype(str)
+table2['Ticket_no'] = table2['Ticket_no'].astype(str)
+table1['PNR'] = table1['PNR'].astype(str)
+table2['PNR'] = table2['PNR'].astype(str)
+
+# Merge the two tables on the common columns
+merged = pd.merge(table1, table2, how='outer', on=['Supplier_name', 'Invoice no', 'Source_Amount', 'Account_no', 'Transaction_Date', 'Transaction_Type'])
+
+# Apply the matching rules to each row and create the "Match Rule" column
+merged['Match Rule'] = merged.apply(lambda row: next((i+1 for i, rule in enumerate(rules) if eval(rule)), "Unmatched"), axis=1)
+
+# Create a dictionary to map rule index to description
+rule_description = {1: 'Invoice, Amount, Account no, Date and Transaction type should be same',
+                   
+                    'Unmatched':'No patterns found'}
+
+# Create the "description" column based on the "Match Rule" column
+merged['description'] = merged['Match Rule'].map(rule_description)
+
+# Group the data by company and match rule and count the number of transactions
+aggregated = merged.groupby(['Company', 'Match Rule']).size().reset_index(name='TRF')
+
+# Calculate the total number of transactions
+total = aggregated['TRF'].sum()
+
+# Append a row with the total number of transactions
+aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated.columns), ignore_index=True)
+
+# Print the updated table and the aggregated data
+print(merged)
+print(aggregated)
+
+# Write the data to an Excel file if necessary
+# merged.to_excel("D:/Users/avasudevan/Desktop/Visa_match_automation/visa_auto/output1.xlsx", index=False)
+# with pd.Excel
