@@ -153,113 +153,29 @@ aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated
 
 
 
-import pandas as pd
 
-# Read the rules from a CSV file
-rules_df = pd.read_csv("rules.csv")
+
+
+
+
+
+# Read the rules from a text file
+with open("D:/Users/avasudevan/Desktop/APAC_Matching_automation/Rules.txt", 'r') as f:
+    rule_strings = f.readlines()
+
+# Remove new line characters and empty lines, and convert to list of functions
+rules = []
+for rule_string in rule_strings:
+    rule_string = rule_string.strip()
+    if rule_string:
+        rule = eval(f"lambda row1, row2: {rule_string}")
+        rules.append(rule)
 
 # Define a function to apply the rules to each row pair and return the rule index
 def match_row(row1, row2):
-    for i, rule in rules_df.iterrows():
-        if eval(rule["Rule"]):
-            return True, rule["Index"]
+    for i, rule in enumerate(rules):
+        if rule(row1, row2):
+            return True, i+1
     return False, "Unmatched"
 
-
-# Read in the first Excel sheet
-table1 = pd.read_excel('Sample3.1.xlsx')
-
-# Read in the second Excel sheet
-table2 = pd.read_excel('Sample4.1.xlsx')
-
-# Convert the Invoice and Ticket number columns to strings, if necessary
-table1['Supplier_name'] = table1['Supplier_name'].astype(str)
-table2['Invoice no'] = table2['Invoice no'].astype(str)
-table1['Ticket_no'] = table1['Ticket_no'].astype(str)
-table2['Ticket_no'] = table2['Ticket_no'].astype(str)
-table1['PNR'] = table1['PNR'].astype(str)
-table2['PNR'] = table2['PNR'].astype(str)
-
-# Create an empty column for the match rule index
-table1['Match Rule'] = pd.Series(["Unmatched"]*len(table1))
-
-# Loop through each row in table1 and find a match in table2
-for i, row1 in table1.iterrows():
-    matched = False
-    for j, row2 in table2.iterrows():
-        matched, rule_index = match_row(row1, row2)
-        if matched:
-            table1.at[i, 'Match Rule'] = rule_index
-            break
-    if not matched:
-        table1.at[i, 'Match Rule'] = "Unmatched"
-
-# Create a dictionary to map rule index to description
-rule_description = dict(zip(rules_df["Index"], rules_df["Description"]))
-rule_description["Unmatched"] = "No patterns found"
-
-# Create the "description" column based on the "Match Rule" column
-table1['description'] = table1['Match Rule'].map(rule_description)
-
-# Print the updated table
-print(table1)
-
-# Group and aggregate the data
-aggregated = table1.groupby(['Company', 'Match Rule']).size().reset_index(name='TRF')
-total = aggregated['TRF'].sum()
-aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated.columns), ignore_index=True)
-
-# Print the aggregated table
-print(aggregated)
-
-# Write the updated table and aggregated table to separate sheets in the Excel file
-with pd.ExcelWriter('output.xlsx') as writer:
-    table1.to_excel(writer, sheet_name='Table1', index=False)
-    aggregated.to_excel(writer, sheet_name='Aggregated', index=False)
-    
-    
-    
-    
-
-
-
-
-import pandas as pd
-
-# Read the rules from a text file and store them in a list
-with open("D:/Users/avasudevan/Desktop/APAC_Matching_automation/Rules.txt", 'r') as f:
-    rules = [r.strip() for r in f.readlines() if r.strip()]
-
-# Define a dictionary to map rule index to the corresponding description
-rule_description = {1: 'Invoice, Amount, Account no, Date and Transaction type should be same',
-                    'Unmatched': 'No patterns found'}
-
-# Combine the two Excel sheets into a single dataframe
-table1 = pd.read_excel('D:/Users/avasudevan/Desktop/APAC_Matching_automation/Sample3.1.xlsx')
-table2 = pd.read_excel('D:/Users/avasudevan/Desktop/APAC_Matching_automation/Sample4.1.xlsx')
-df = pd.concat([table1, table2], ignore_index=True)
-
-# Convert the relevant columns to strings, if necessary
-df['Supplier_name'] = df['Supplier_name'].astype(str)
-df['Invoice no'] = df['Invoice no'].astype(str)
-df['Ticket_no'] = df['Ticket_no'].astype(str)
-df['PNR'] = df['PNR'].astype(str)
-
-# Apply the matching rules to each row pair and return the rule index
-df['Match Rule'] = df.apply(lambda row: next((i+1 for i, rule in enumerate(rules) if eval(rule)), 'Unmatched'), axis=1)
-
-# Map the rule index to the corresponding description
-df['description'] = df['Match Rule'].map(rule_description)
-
-# Group the dataframe by Company and Match Rule and compute the count of matches for each group
-aggregated = df.groupby(['Company', 'Match Rule']).size().reset_index(name='TRF')
-
-# Add a row to the aggregated dataframe with the total count of matches
-total = aggregated['TRF'].sum()
-aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated.columns), ignore_index=True)
-
-# Write the output to a new Excel file
-with pd.ExcelWriter('D:/Users/avasudevan/Desktop/APAC_Matching_automation/output.xlsx') as writer:
-    df.to_excel(writer, sheet_name='Matched', index=False)
-    aggregated.to_excel(writer, sheet_name='Aggregated', index=False)
 
