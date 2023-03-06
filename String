@@ -225,18 +225,17 @@ with pd.ExcelWriter('output.xlsx') as writer:
 
 
 import pandas as pd
-import re
 
-# Read the rules from a text file and compile them as regular expressions
+# Read the rules from a text file
 with open("D:/Users/avasudevan/Desktop/APAC_Matching_automation/Rules.txt", 'r') as f:
-    rules = [re.compile(line.strip()) for line in f if line.strip()]
+    rules = f.readlines()
+
+# Remove new line characters and empty lines
+rules = [r.strip() for r in rules if r.strip()]
 
 # Define a function to apply the rules to each row pair and return the rule index
-def match_row(row1, row2):
-    for i, rule in enumerate(rules):
-        if all(rule.search(str(row[col])) for col in ['Supplier_name', 'Source_Amount', 'Account_no', 'Transaction_Date', 'Transaction_Type']):
-            return True, i+1
-    return False, "Unmatched"
+def match_rows(row1, row2):
+    return [i+1 for i, rule in enumerate(rules) if eval(rule)]
 
 # Read in the first Excel sheet
 table1 = pd.read_excel('D:/Users/avasudevan/Desktop/APAC_Matching_automation/Sample3.1.xlsx')
@@ -244,7 +243,7 @@ table1 = pd.read_excel('D:/Users/avasudevan/Desktop/APAC_Matching_automation/Sam
 # Read in the second Excel sheet
 table2 = pd.read_excel('D:/Users/avasudevan/Desktop/APAC_Matching_automation/Sample4.1.xlsx')
 
-# Convert the Invoice and Ticket number columns to strings, if necessary
+# Convert the relevant columns to strings
 table1['Supplier_name'] = table1['Supplier_name'].astype(str)
 table2['Invoice no'] = table2['Invoice no'].astype(str)
 table1['Ticket_no'] = table1['Ticket_no'].astype(str)
@@ -252,23 +251,28 @@ table2['Ticket_no'] = table2['Ticket_no'].astype(str)
 table1['PNR'] = table1['PNR'].astype(str)
 table2['PNR'] = table2['PNR'].astype(str)
 
-# Create an empty column for the match rule index
-table1['Match Rule'] = pd.Series(["Unmatched"]*len(table1))
+# Evaluate the rules for all row pairs and create a DataFrame of the results
+results = pd.DataFrame({
+    'table1_index': row1_index,
+    'table2_index': row2_index,
+    'rule_index': match_rows(row1, row2)
+} for row1_index, row1 in table1.iterrows() for row2_index, row2 in table2.iterrows())
 
-# Loop through each row in table1 and find a match in table2
+# Create an empty column for the match rule index in table1
+table1['Match Rule'] = "Unmatched"
+
+# Find the best matching rule for each row in table1
 for i, row1 in table1.iterrows():
-    matched = False
-    for j, row2 in table2.iterrows():
-        matched, rule_index = match_row(row1, row2)
-        if matched:
-            table1.at[i, 'Match Rule'] = rule_index
-            break
-    if not matched:
-        table1.at[i, 'Match Rule'] = "Unmatched"
+    match_indices = results.loc[results['table1_index'] == i, 'rule_index']
+    if not match_indices.empty:
+        best_match = match_indices.value_counts().idxmax()
+        table1.at[i, 'Match Rule'] = best_match
 
 # Create a dictionary to map rule index to description
-rule_description = {i+1: rule.pattern for i, rule in enumerate(rules)}
-rule_description['Unmatched'] = 'No patterns found'
+rule_description = {
+    1: 'Invoice, Amount, Account no, Date and Transaction type should be same',
+    'Unmatched': 'No patterns found'
+}
 
 # Create the "description" column based on the "Match Rule" column
 table1['description'] = table1['Match Rule'].map(rule_description)
@@ -276,10 +280,10 @@ table1['description'] = table1['Match Rule'].map(rule_description)
 # Print the updated table
 print(table1)
 
-# Aggregate the data and write to an Excel file
+# Aggregate the data and calculate the total count
 aggregated = table1.groupby(['Company', 'Match Rule']).size().reset_index(name='TRF')
 total = aggregated['TRF'].sum()
 aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated.columns), ignore_index=True)
-aggregated.to_excel("D:/Users/avasudevan/Desktop/Visa_match_automation/visa_auto/output1.xlsx", index=False, sheet_name='Aggregated')
-print(aggregated)
 
+# Print the aggregated table
+print(aggregated)
