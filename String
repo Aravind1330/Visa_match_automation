@@ -149,3 +149,70 @@ aggregated = table1.groupby(['Company', 'Match Rule']).size().reset_index(name='
 # Add a row for total count
 total = aggregated['TRF'].sum()
 aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated.columns), ignore_index
+
+
+
+
+import pandas as pd
+
+# Read the rules from a CSV file
+rules_df = pd.read_csv("rules.csv")
+
+# Define a function to apply the rules to each row pair and return the rule index
+def match_row(row1, row2):
+    for i, rule in rules_df.iterrows():
+        if eval(rule["Rule"]):
+            return True, rule["Index"]
+    return False, "Unmatched"
+
+
+# Read in the first Excel sheet
+table1 = pd.read_excel('Sample3.1.xlsx')
+
+# Read in the second Excel sheet
+table2 = pd.read_excel('Sample4.1.xlsx')
+
+# Convert the Invoice and Ticket number columns to strings, if necessary
+table1['Supplier_name'] = table1['Supplier_name'].astype(str)
+table2['Invoice no'] = table2['Invoice no'].astype(str)
+table1['Ticket_no'] = table1['Ticket_no'].astype(str)
+table2['Ticket_no'] = table2['Ticket_no'].astype(str)
+table1['PNR'] = table1['PNR'].astype(str)
+table2['PNR'] = table2['PNR'].astype(str)
+
+# Create an empty column for the match rule index
+table1['Match Rule'] = pd.Series(["Unmatched"]*len(table1))
+
+# Loop through each row in table1 and find a match in table2
+for i, row1 in table1.iterrows():
+    matched = False
+    for j, row2 in table2.iterrows():
+        matched, rule_index = match_row(row1, row2)
+        if matched:
+            table1.at[i, 'Match Rule'] = rule_index
+            break
+    if not matched:
+        table1.at[i, 'Match Rule'] = "Unmatched"
+
+# Create a dictionary to map rule index to description
+rule_description = dict(zip(rules_df["Index"], rules_df["Description"]))
+rule_description["Unmatched"] = "No patterns found"
+
+# Create the "description" column based on the "Match Rule" column
+table1['description'] = table1['Match Rule'].map(rule_description)
+
+# Print the updated table
+print(table1)
+
+# Group and aggregate the data
+aggregated = table1.groupby(['Company', 'Match Rule']).size().reset_index(name='TRF')
+total = aggregated['TRF'].sum()
+aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated.columns), ignore_index=True)
+
+# Print the aggregated table
+print(aggregated)
+
+# Write the updated table and aggregated table to separate sheets in the Excel file
+with pd.ExcelWriter('output.xlsx') as writer:
+    table1.to_excel(writer, sheet_name='Table1', index=False)
+    aggregated.to_excel(writer, sheet_name='Aggregated', index=False)
