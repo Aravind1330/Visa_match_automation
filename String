@@ -226,64 +226,40 @@ with pd.ExcelWriter('output.xlsx') as writer:
 
 import pandas as pd
 
-# Read the rules from a text file
+# Read the rules from a text file and store them in a list
 with open("D:/Users/avasudevan/Desktop/APAC_Matching_automation/Rules.txt", 'r') as f:
-    rules = f.readlines()
+    rules = [r.strip() for r in f.readlines() if r.strip()]
 
-# Remove new line characters and empty lines
-rules = [r.strip() for r in rules if r.strip()]
+# Define a dictionary to map rule index to the corresponding description
+rule_description = {1: 'Invoice, Amount, Account no, Date and Transaction type should be same',
+                    'Unmatched': 'No patterns found'}
 
-# Define a function to apply the rules to each row pair and return the rule index
-def match_rows(row1, row2):
-    return [i+1 for i, rule in enumerate(rules) if eval(rule)]
-
-# Read in the first Excel sheet
+# Combine the two Excel sheets into a single dataframe
 table1 = pd.read_excel('D:/Users/avasudevan/Desktop/APAC_Matching_automation/Sample3.1.xlsx')
-
-# Read in the second Excel sheet
 table2 = pd.read_excel('D:/Users/avasudevan/Desktop/APAC_Matching_automation/Sample4.1.xlsx')
+df = pd.concat([table1, table2], ignore_index=True)
 
-# Convert the relevant columns to strings
-table1['Supplier_name'] = table1['Supplier_name'].astype(str)
-table2['Invoice no'] = table2['Invoice no'].astype(str)
-table1['Ticket_no'] = table1['Ticket_no'].astype(str)
-table2['Ticket_no'] = table2['Ticket_no'].astype(str)
-table1['PNR'] = table1['PNR'].astype(str)
-table2['PNR'] = table2['PNR'].astype(str)
+# Convert the relevant columns to strings, if necessary
+df['Supplier_name'] = df['Supplier_name'].astype(str)
+df['Invoice no'] = df['Invoice no'].astype(str)
+df['Ticket_no'] = df['Ticket_no'].astype(str)
+df['PNR'] = df['PNR'].astype(str)
 
-# Evaluate the rules for all row pairs and create a DataFrame of the results
-results = pd.DataFrame({
-    'table1_index': row1_index,
-    'table2_index': row2_index,
-    'rule_index': match_rows(row1, row2)
-} for row1_index, row1 in table1.iterrows() for row2_index, row2 in table2.iterrows())
+# Apply the matching rules to each row pair and return the rule index
+df['Match Rule'] = df.apply(lambda row: next((i+1 for i, rule in enumerate(rules) if eval(rule)), 'Unmatched'), axis=1)
 
-# Create an empty column for the match rule index in table1
-table1['Match Rule'] = "Unmatched"
+# Map the rule index to the corresponding description
+df['description'] = df['Match Rule'].map(rule_description)
 
-# Find the best matching rule for each row in table1
-for i, row1 in table1.iterrows():
-    match_indices = results.loc[results['table1_index'] == i, 'rule_index']
-    if not match_indices.empty:
-        best_match = match_indices.value_counts().idxmax()
-        table1.at[i, 'Match Rule'] = best_match
+# Group the dataframe by Company and Match Rule and compute the count of matches for each group
+aggregated = df.groupby(['Company', 'Match Rule']).size().reset_index(name='TRF')
 
-# Create a dictionary to map rule index to description
-rule_description = {
-    1: 'Invoice, Amount, Account no, Date and Transaction type should be same',
-    'Unmatched': 'No patterns found'
-}
-
-# Create the "description" column based on the "Match Rule" column
-table1['description'] = table1['Match Rule'].map(rule_description)
-
-# Print the updated table
-print(table1)
-
-# Aggregate the data and calculate the total count
-aggregated = table1.groupby(['Company', 'Match Rule']).size().reset_index(name='TRF')
+# Add a row to the aggregated dataframe with the total count of matches
 total = aggregated['TRF'].sum()
 aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated.columns), ignore_index=True)
 
-# Print the aggregated table
-print(aggregated)
+# Write the output to a new Excel file
+with pd.ExcelWriter('D:/Users/avasudevan/Desktop/APAC_Matching_automation/output.xlsx') as writer:
+    df.to_excel(writer, sheet_name='Matched', index=False)
+    aggregated.to_excel(writer, sheet_name='Aggregated', index=False)
+
