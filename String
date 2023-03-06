@@ -179,3 +179,33 @@ def match_row(row1, row2):
     return False, "Unmatched"
 
 
+
+
+def rule_expression(row1, row2):
+    supplier_name = str(row1["Supplier_name"])
+    invoice_no = str(row2["Invoice no"])
+    source_amount = float(row1["Source_Amount"])
+    transaction_amount = float(row2["Transaction_Amount"])
+    account_no = str(row1["Account_no"])
+    transaction_date = str(row2["Date"])
+    transaction_type = str(row2["Credit_debit_indicator"])
+    
+    return supplier_name == invoice_no and \
+           source_amount == transaction_amount and \
+           account_no == account_no and \
+           transaction_date == transaction_date and \
+           transaction_type == transaction_type
+    
+rules = []
+with open("D:/Users/avasudevan/Desktop/APAC_Matching_automation/Rules.txt", 'r') as f:
+    for line in f:
+        line = line.strip()
+        if line:
+            rule = eval(f"lambda row1, row2: {line}")
+            rules.append(rule)
+    
+def match_row(row1, row2):
+    for i, rule in enumerate(rules):
+        if rule(row1, row2):
+            return True, i+1
+    return False, "Unmatched"
