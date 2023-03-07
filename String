@@ -716,53 +716,51 @@ with pd.ExcelWriter('Z:/Desktop/output2.xlsx', mode='a') as writer:
 
 
 import pandas as pd
+import ast
 
 # Read the rules from a text file
-with open("Z:/Desktop/Rules_1.txt", 'r') as f:
-    rule_strings = f.readlines()
+with open("D:/Users/avasudevan/Desktop/APAC_Matching_automation/Rules.txt", 'r') as f:
+    rules = [ast.parse(line.strip()).body[0].value for line in f.readlines() if line.strip()]
 
-# Remove new line characters and empty lines, and convert to list of functions
-rules = []
-for rule_string in rule_strings:
-    rule_string = rule_string.strip()
-    if rule_string:
-        rule = eval(f"lambda row, rows: {rule_string}")
-        rules.append(rule)
+# Define a function to apply a rule to two rows and return a boolean value
+def apply_rule(rule, row1, row2):
+    return eval(compile(ast.Expression(rule), filename='<ast>', mode='eval'))    
 
-# Define a function to apply the rules to each row pair and return the rule index
-def match_row(row, rows):
-    result = pd.Series([False] * len(rows), index=rows.index)
-    for rule in rules:
-        result |= rows.apply(rule, axis=1, row=row)
-    match_index = result.idxmax()
-    if result[match_index]:
-        return True, match_index+1
-    else:
-        return False, "Unmatched"
+# Read in the first Excel sheet
+table1 = pd.read_excel('D:/Users/avasudevan/Desktop/APAC_Matching_automation/Sample3.1.xlsx')
 
-T5_table = pd.read_excel('Z:/Downloads/Unmatched_trans_Data_1.xlsx', dtype=str)
 # Read in the second Excel sheet
-Invoice_table = pd.read_excel('Z:/Downloads/Unmatched_Inv_Data_1.xlsx', dtype=str)
+table2 = pd.read_excel('D:/Users/avasudevan/Desktop/APAC_Matching_automation/Sample4.1.xlsx')
 
-# Convert float columns to strings
-T5_table['fin_source_amt'] = T5_table['fin_source_amt'].astype(str)
-Invoice_table['inv_match_source_amt'] = Invoice_table['inv_match_source_amt'].astype(str)
+# Convert the columns to strings using vectorized string operations
+table1['Supplier_name'] = table1['Supplier_name'].astype('string')
+table2['Invoice no'] = table2['Invoice no'].astype('string')
+table1['Ticket_no'] = table1['Ticket_no'].astype('string')
+table2['Ticket_no'] = table2['Ticket_no'].astype('string')
+table1['PNR'] = table1['PNR'].astype('string')
+table2['PNR'] = table2['PNR'].astype('string')
 
-# Create an empty column for the match rule index
-T5_table['Match Rule'] = pd.Series(["Unmatched"]*len(T5_table))
+# Join the two tables on the columns that you want to match on
+merged = pd.merge(table1, table2, how='outer', left_on=['Supplier_name', 'Ticket_no', 'PNR'], right_on=['Supplier_name', 'Ticket_no', 'PNR'], suffixes=('_left', '_right'))
 
-# Loop through each row in table1 and find a match in table2
-for i, T5 in T5_table.iterrows():
-    matched, rule_index = match_row(T5, Invoice_table)
-    if matched:
-        T5_table.at[i, 'Match Rule'] = rule_index
+# Apply the rules to each row pair and return the rule index
+merged['Match Rule'] = pd.Series(["Unmatched"]*len(merged))
+for i, rule in enumerate(rules):
+    mask = merged.apply(lambda x: apply_rule(rule, x[:len(table1.columns)], x[len(table1.columns):]), axis=1)
+    merged.loc[mask, 'Match Rule'] = i+1
 
-# Define rule descriptions
-rule_descriptions = {
-    1: 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same',
-    2: 'Ticket_no_right_of_12'
-}
+# Create a dictionary to map rule index to description
+rule_description = {1: 'Invoice, Amount, Account no, Date and Transaction type should be same',                   
+                    'Unmatched':'No patterns found'}
 
 # Create the "description" column based on the "Match Rule" column
-T5_table['description
+merged['description'] = merged['Match Rule'].map(rule_description)
 
+# Group by company and match rule and calculate the count
+aggregated = merged.groupby(['Company', 'Match Rule']).size().reset_index(name='TRF')
+
+# Calculate the total count
+total = aggregated['TRF'].sum()
+
+# Append the total row to the aggregated dataframe
+aggregated =
