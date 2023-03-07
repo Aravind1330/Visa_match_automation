@@ -485,6 +485,7 @@ def match_row(row1, row2):
 
 
 import pandas as pd
+import pandas as pd
 
 # Read the rules from a text file
 with open("Z:/Desktop/Rules_1.txt", 'r') as f:
@@ -495,14 +496,13 @@ rules = []
 for rule_string in rule_strings:
     rule_string = rule_string.strip()
     if rule_string:
-        # Use exec() to define the rule function
-        exec(f"def rule_{len(rules)}(row1, row2):\n    return {rule_string}\n")
-        rules.append(globals()[f"rule_{len(rules)-1}"])
+        rule = eval(f"lambda row, row2: {rule_string}")
+        rules.append(rule)
 
 # Define a function to apply the rules to each row pair and return the rule index
 def match_row(row1, row2):
     for i, rule in enumerate(rules):
-        if rule(row1, row2):
+        if rule(str(row1), str(row2)):
             return True, i+1
     return False, "Unmatched"
 
