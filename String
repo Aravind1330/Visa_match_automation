@@ -757,3 +757,62 @@ T5_table['rule_index'] = T5_table['rule_index'].fillna(0).astype(int)
 T5_table['description'] = T5_table['rule_index'].map(rule_descriptions)
 
 # Aggregate and write to Excel as before
+
+
+
+
+
+
+
+
+import pandas as pd
+
+# Read the rules from a text file
+with open("rules.txt", 'r') as f:
+    rule_strings = f.readlines()
+
+# Remove new line characters and empty lines, and convert to list of tuples
+rules = []
+for rule_string in rule_strings:
+    rule_string = rule_string.strip()
+    if rule_string:
+        rule = tuple(rule_string.split(","))
+        rules.append(rule)
+
+# Define a function to apply the rules to each row pair and return the rule index
+def match_row(row1, row2):
+    for i, rule in enumerate(rules):
+        if all(row1[k] == row2[v] for k, v in rule):
+            return True, i+1
+    return False, "Unmatched"
+
+# Define rule descriptions
+rule_descriptions = {
+    1: 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same',
+    2: 'Ticket_no_right_of_12'
+}
+
+# Read in the first Excel sheet and select necessary columns
+T5_table = pd.read_excel('Unmatched_trans_Data_1.xlsx', usecols=["Company ID & Name", "fin_orig_supplier_nm", "fin_source_amt"])
+
+# Read in the second Excel sheet and select necessary columns
+Invoice_table = pd.read_excel('Unmatched_Inv_Data_1.xlsx', usecols=["inv_ticket_num", "inv_match_source_amt"])
+
+# Rename columns for consistency
+Invoice_table.rename(columns={"inv_ticket_num": "fin_orig_supplier_nm", "inv_match_source_amt": "fin_source_amt"}, inplace=True)
+
+# Merge the two tables based on common columns
+merged_table = pd.merge(T5_table, Invoice_table, on=["fin_orig_supplier_nm", "fin_source_amt"])
+
+# Apply the matching rules to each row pair and add the rule index to the merged table
+matched_rows = []
+for i, row in merged_table.iterrows():
+    matched, rule_index = match_row(row[:2], row[2:])
+    if matched:
+        matched_rows.append((i, rule_index))
+
+# Create a new DataFrame with the matched rows and the corresponding rule index
+matched_table = pd.DataFrame(matched_rows, columns=["Index", "Match Rule"])
+
+# Merge the matched table with the original T5_table based on index
+final_table = pd.merge
