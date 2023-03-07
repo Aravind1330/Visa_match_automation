@@ -716,51 +716,44 @@ with pd.ExcelWriter('Z:/Desktop/output2.xlsx', mode='a') as writer:
 
 
 import pandas as pd
-import ast
 
 # Read the rules from a text file
-with open("D:/Users/avasudevan/Desktop/APAC_Matching_automation/Rules.txt", 'r') as f:
-    rules = [ast.parse(line.strip()).body[0].value for line in f.readlines() if line.strip()]
+with open("Z:/Desktop/Rules_1.txt", 'r') as f:
+    rule_strings = f.readlines()
 
-# Define a function to apply a rule to two rows and return a boolean value
-def apply_rule(rule, row1, row2):
-    return eval(compile(ast.Expression(rule), filename='<ast>', mode='eval'))    
+# Create a dictionary of rule functions
+rules = {}
+for i, rule_string in enumerate(rule_strings):
+    rule_string = rule_string.strip()
+    if rule_string:
+        rule = eval(f"lambda row, row2: {rule_string}")
+        rules[i+1] = rule
 
-# Read in the first Excel sheet
-table1 = pd.read_excel('D:/Users/avasudevan/Desktop/APAC_Matching_automation/Sample3.1.xlsx')
+# Define a function to apply the rules to each row pair and return the rule index
+def match_row(row1, row2):
+    for i, rule in rules.items():
+        if rule(row1, row2):
+            return True, i
+    return False, 0
 
-# Read in the second Excel sheet
-table2 = pd.read_excel('D:/Users/avasudevan/Desktop/APAC_Matching_automation/Sample4.1.xlsx')
+# Read in the tables using chunksize
+T5_chunks = pd.read_excel('Z:/Downloads/Unmatched_trans_Data_1.xlsx', dtype=str, chunksize=10000)
+Invoice_chunks = pd.read_excel('Z:/Downloads/Unmatched_Inv_Data_1.xlsx', dtype=str, chunksize=10000)
 
-# Convert the columns to strings using vectorized string operations
-table1['Supplier_name'] = table1['Supplier_name'].astype('string')
-table2['Invoice no'] = table2['Invoice no'].astype('string')
-table1['Ticket_no'] = table1['Ticket_no'].astype('string')
-table2['Ticket_no'] = table2['Ticket_no'].astype('string')
-table1['PNR'] = table1['PNR'].astype('string')
-table2['PNR'] = table2['PNR'].astype('string')
+# Loop through each chunk of T5_table and find matches in Invoice_table
+matches = []
+for T5_chunk in T5_chunks:
+    merged = pd.merge(T5_chunk, Invoice_chunks, how='inner', left_on=['fin_orig_supplier_nm', 'fin_source_amt'], right_on=['inv_ticket_num', 'inv_match_source_amt'])
+    for i, T5 in merged.iterrows():
+        matched, rule_index = match_row(T5.to_dict(), Invoice.to_dict())
+        matches.append((T5.name, rule_index))
 
-# Join the two tables on the columns that you want to match on
-merged = pd.merge(table1, table2, how='outer', left_on=['Supplier_name', 'Ticket_no', 'PNR'], right_on=['Supplier_name', 'Ticket_no', 'PNR'], suffixes=('_left', '_right'))
+# Create a DataFrame of matches
+matches_df = pd.DataFrame(matches, columns=['T5_index', 'rule_index'])
 
-# Apply the rules to each row pair and return the rule index
-merged['Match Rule'] = pd.Series(["Unmatched"]*len(merged))
-for i, rule in enumerate(rules):
-    mask = merged.apply(lambda x: apply_rule(rule, x[:len(table1.columns)], x[len(table1.columns):]), axis=1)
-    merged.loc[mask, 'Match Rule'] = i+1
+# Merge the matches back into the T5_table
+T5_table = T5_table.merge(matches_df, left_index=True, right_on='T5_index', how='left')
+T5_table['rule_index'] = T5_table['rule_index'].fillna(0).astype(int)
+T5_table['description'] = T5_table['rule_index'].map(rule_descriptions)
 
-# Create a dictionary to map rule index to description
-rule_description = {1: 'Invoice, Amount, Account no, Date and Transaction type should be same',                   
-                    'Unmatched':'No patterns found'}
-
-# Create the "description" column based on the "Match Rule" column
-merged['description'] = merged['Match Rule'].map(rule_description)
-
-# Group by company and match rule and calculate the count
-aggregated = merged.groupby(['Company', 'Match Rule']).size().reset_index(name='TRF')
-
-# Calculate the total count
-total = aggregated['TRF'].sum()
-
-# Append the total row to the aggregated dataframe
-aggregated =
+# Aggregate and write to Excel as before
