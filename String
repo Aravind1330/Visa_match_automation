@@ -441,3 +441,30 @@ aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated
 
 # Write the aggregated data to the second sheet of the Excel file
 with pd.ExcelWriter('Z:/Desktop/output2
+
+
+
+
+
+
+
+
+
+
+
+
+
+def match_row(row1, row2):
+    for i, rule in enumerate(rules):
+        try:
+            if rule(row1, row2):
+                return True, i+1
+        except TypeError as e:
+            if "float" in str(e):
+                row1 = {k: str(v) if isinstance(v, float) else v for k, v in row1.items()}
+                row2 = {k: str(v) if isinstance(v, float) else v for k, v in row2.items()}
+                if rule(row1, row2):
+                    return True, i+1
+            else:
+                raise e
+    return False, "Unmatched"
