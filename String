@@ -816,3 +816,17 @@ matched_table = pd.DataFrame(matched_rows, columns=["Index", "Match Rule"])
 
 # Merge the matched table with the original T5_table based on index
 final_table = pd.merge
+
+
+
+
+
+
+T5_table, matched_table, on="Index", how="left")
+final_table['Match Rule'].fillna("Unmatched", inplace=True)
+final_table['description'] = final_table['Match Rule'].map(rule_descriptions)
+aggregated = final_table.groupby(['Company ID & Name', 'Match Rule']).size().reset_index(name='TRF')
+total = len(final_table)
+total_row = pd.Series(['Total', '-', total], index=aggregated.columns)
+aggregated = aggregated.append(total_row, ignore_index=True)
+aggregated.to_excel("output.xlsx", index=False)
