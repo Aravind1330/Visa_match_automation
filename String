@@ -951,4 +951,15 @@ with pd.ExcelWriter("output.xlsx") as writer:
     T5_table.to_excel(writer, sheet_name="T5_Table", index=False)
     aggregated.to_excel(writer, sheet_name="Aggregated", index=False)
 
-#
+
+
+
+
+
+# Remove new line characters and empty lines, and convert to list of tuples
+rules = []
+for rule_string in rule_strings:
+    rule_string = rule_string.strip()
+    if rule_string:
+        rule = tuple(rule_string.split(",", maxsplit=1)) # modified this line
+        rules.append(rule)
