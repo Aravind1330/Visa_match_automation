@@ -1024,3 +1024,50 @@ total = aggregated["TRF"].sum()
 # Add a row for the total number of TRFs
 aggregated = aggregated.append(pd.Series
 
+
+
+
+Read the rules from a text file
+
+with open("D:/Users/avasudevan/Desktop/APAC_Matching_automation/Rules.txt", 'r') as f:
+rule_strings = f.readlines()
+Remove new line characters and empty lines, and convert to list of functions
+
+rules = []
+for rule_string in rule_strings:
+rule_string = rule_string.strip()
+if rule_string:
+rule = eval(f"lambda T5, Invoice: {rule_string}")
+rules.append(rule)
+Define a function to apply the rules to each row pair and return the rule index
+
+def match_row(T5, Invoice):
+for i, rule in enumerate(rules):
+if rule(T5, Invoice):
+return True, i+1
+return False, "Unmatched"
+Define rule descriptions
+
+rule_descriptions = {
+1: 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same',
+2: 'Ticket_no_right_of_12'
+}
+Read in the first Excel sheet and select necessary columns
+
+T5_table = pd.read_excel('Unmatched_trans_Data_1.xlsx', usecols=["Company ID & Name", "fin_orig_supplier_nm", "fin_source_amt"])
+Read in the second Excel sheet and select necessary columns
+
+Invoice_table = pd.read_excel('Unmatched_Inv_Data_1.xlsx', usecols=["inv_ticket_num", "inv_match_source_amt"])
+Rename columns for consistency
+
+Invoice_table.rename(columns={"inv_ticket_num": "fin_orig_supplier_nm", "inv_match_source_amt": "fin_source_amt"}, inplace=True)
+Combine the two tables based on common columns
+
+merged_table = pd.concat([T5_table, Invoice_table], ignore_index=True)
+Apply the matching rules to each row pair and add the rule index to the merged table
+
+matched_rows = []
+for i, row in merged_table.iterrows():
+matched, rule_index = match_row(row[:3], row[3:])
+if matched:
+matched_rows.append((i, rule_index))
