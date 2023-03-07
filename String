@@ -830,3 +830,38 @@ total = len(final_table)
 total_row = pd.Series(['Total', '-', total], index=aggregated.columns)
 aggregated = aggregated.append(total_row, ignore_index=True)
 aggregated.to_excel("output.xlsx", index=False)
+
+
+
+
+
+
+
+
+
+Merge the matched table with the original table to add the Match Rule column
+
+T5_table = pd.merge(T5_table, matched_table, left_index=True, right_on="Index", how="left")
+Replace NaN values in Match Rule column with "Unmatched"
+
+T5_table["Match Rule"].fillna("Unmatched", inplace=True)
+Add the rule descriptions to the Match Rule column
+
+T5_table["Match Rule"] = T5_table["Match Rule"].map(rule_descriptions)
+Group by Company ID & Name and Match Rule columns and count the number of occurrences
+
+aggregated = T5_table.groupby(["Company ID & Name", "Match Rule"]).size().reset_index(name="TRF")
+Calculate the total number of TRFs
+
+total = aggregated["TRF"].sum()
+Add a row for the total number of TRFs
+
+aggregated = aggregated.append(pd.Series(["Total", "-", total], index=aggregated.columns), ignore_index=True)
+Write the output to an Excel file
+
+with pd.ExcelWriter("output.xlsx") as writer:
+T5_table.to_excel(writer, sheet_name="T5_Table", index=False)
+aggregated.to_excel(writer, sheet_name="Aggregated", index=False)
+Print a message indicating that the code has finished running
+
+print("Processing complete.")
