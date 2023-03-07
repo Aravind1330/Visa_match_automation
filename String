@@ -485,7 +485,6 @@ def match_row(row1, row2):
 
 
 import pandas as pd
-import pandas as pd
 
 # Read the rules from a text file
 with open("Z:/Desktop/Rules_1.txt", 'r') as f:
@@ -502,7 +501,7 @@ for rule_string in rule_strings:
 # Define a function to apply the rules to each row pair and return the rule index
 def match_row(row1, row2):
     for i, rule in enumerate(rules):
-        if rule(str(row1), str(row2)):
+        if rule(row1, row2):
             return True, i+1
     return False, "Unmatched"
 
@@ -543,3 +542,4 @@ aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated
 # Write the aggregated data to the second sheet of the Excel file
 with pd.ExcelWriter('Z:/Desktop/output2.xlsx', mode='a') as writer:
     aggregated.to_excel(writer, sheet_name='Aggregated', index=False)
+
