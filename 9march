@@ -234,3 +234,23 @@ T5_table["Description"] = T5_table["Match Rule"].map(rule_descriptions)
 
 # Group the table by Company ID & Name and Match Rule, and count the number of occurrences
 grouped = T5_table.groupby(["Company ID & Name",
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Loop through each row in table1 and find a match in table2
+for i, T5 in T5_table.iterrows():
+    matched = False
+    for j, Invoice in Invoice_table.iterrows():
+        matched, rule_index = match_row(T5.astype(str).to_dict(), Invoice.astype(str).to_dict())
+        if matched:
+            T5_table.at[i, 'Match Rule'] = rule_index
