@@ -169,18 +169,68 @@ total = aggregated["TRF"].sum()
 
 
 
+import pandas as pd
 
+# Read the rules from a text file
+with open("rules.txt", 'r') as f:
+    rule_strings = f.readlines()
+
+# Remove new line characters and empty lines, and convert to list of tuples
+rules = []
+for rule_string in rule_strings:
+    rule_string = rule_string.strip()
+    if rule_string:
+        rule_values = rule_string.split(",")
+        if len(rule_values) == 2:
+            rule = tuple(rule_values)
+            rules.append(rule)
+
+# Define a function to apply the rules to each row pair and return the rule index
+def match_row(row1, row2):
+    for i, rule in enumerate(rules):
+        if all(row1[k] == row2[v] for k, v in rule):
+            return i+1
+    return "Unmatched"
+
+# Define rule descriptions
+rule_descriptions = {
+    1: 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same',
+    2: 'Ticket_no_right_of_12'
+}
+
+# Read in the first Excel sheet and select necessary columns
+T5_table = pd.read_excel('Unmatched_trans_Data_1.xlsx', usecols=["Company ID & Name", "fin_orig_supplier_nm", "fin_source_amt"])
+
+# Read in the second Excel sheet and select necessary columns
+Invoice_table = pd.read_excel('Unmatched_Inv_Data_1.xlsx', usecols=["inv_ticket_num", "inv_match_source_amt"])
+
+# Rename columns for consistency
+Invoice_table.rename(columns={"inv_ticket_num": "fin_orig_supplier_nm", "inv_match_source_amt": "fin_source_amt"}, inplace=True)
+
+# Combine the two tables based on common columns
+merged_table = pd.concat([T5_table, Invoice_table], ignore_index=True)
+
+# Apply the matching rules to each row pair and add the rule index to the matched table
 matched_rows = []
 matched_rules = []
-unmatched_rows = []
 for i, row1 in merged_table.iterrows():
-    matched = False
     for j, row2 in merged_table.iloc[i+1:].iterrows():
         rule_index = match_row(row1[:2], row2[:2])
         if rule_index != "Unmatched":
             matched_rows.extend([i, j])
             matched_rules.extend([rule_index]*2)
-            matched = True
-            break
-    if not matched:
-        unmatched_rows.append(i)
+
+# Create a new DataFrame with the matched rows and the corresponding rule index
+matched_table = pd.DataFrame({"Index": matched_rows, "Match Rule": matched_rules})
+
+# Merge the matched table with the original table to add the Match Rule column
+T5_table = pd.merge(T5_table, matched_table, left_index=True, right_on="Index", how="left")
+
+# Replace NaN values in the Match Rule column with "Unmatched"
+T5_table["Match Rule"].fillna("Unmatched", inplace=True)
+
+# Add the rule descriptions to the table
+T5_table["Description"] = T5_table["Match Rule"].map(rule_descriptions)
+
+# Group the table by Company ID & Name and Match Rule, and count the number of occurrences
+grouped = T5_table.groupby(["Company ID & Name",
