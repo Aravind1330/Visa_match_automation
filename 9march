@@ -328,11 +328,19 @@ print(float_cols)
 
 
 
+import pandas as pd
 
-def match_row(row1, row2):
-    row1 = {k: str(v) for k, v in row1.items()}
-    row2 = {k: str(v) for k, v in row2.items()}
-    for i, rule in enumerate(rules):
-        if rule(row1, row2):
-            return True, i+1
-    return False, "Unmatched"
+# create a sample DataFrame
+df = pd.DataFrame({
+    'col1': [1, 2, 3],
+    'col2': [4.0, 5.0, 6.0],
+    'col3': ['a', 'b', 'c']
+})
+
+# loop through each column in the DataFrame
+for col in df.columns:
+    # check if the column contains any float values
+    if df[col].dtype == 'float':
+        print(f"{col} contains float values.")
+    else:
+        print(f"{col} does not contain float values.")
