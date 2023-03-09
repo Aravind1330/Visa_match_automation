@@ -726,3 +726,77 @@ def match_row(row1, row2):
         except TypeError:
             pass
     return False, "Unmatched"
+
+
+
+
+
+import pandas as pd
+
+# Read the rules from a text file
+with open("Z:/Desktop/Rules_1.txt", 'r') as f:
+    rule_strings = f.readlines()
+
+# Remove new line characters and empty lines, and convert to list of functions
+rules = []
+for rule_string in rule_strings:
+    rule_string = rule_string.strip()
+    if rule_string:
+        rules.append(rule_string)
+
+# Define a function to apply the rules to each row pair and return the rule index
+def match_row(row1, row2):
+    for i, rule in enumerate(rules):
+        if eval(rule):
+            return True, i+1
+    return False, "Unmatched"
+
+# Read in the two CSV files
+T5_table = pd.read_csv('Z:/Downloads/Unmatched_trans_Data_1.csv', dtype=str)
+Invoice_table = pd.read_csv('Z:/Downloads/Unmatched_Inv_Data_1.csv', dtype=str)
+
+# Rename columns in T5_table
+T5_table = T5_table.rename(columns={
+    'Ticket_no_right': 'Ticket Number',
+    'Acct_no': 'Account Number',
+    'Amount': 'Amount (USD)',
+    'Currency': 'Currency Code',
+    'Date': 'Transaction Date',
+    'C&D indicator': 'Charge Code',
+    'RPIC': 'Reporting PC'
+})
+
+# Rename columns in Invoice_table
+Invoice_table = Invoice_table.rename(columns={
+    'Ticket_no_right': 'Ticket Number',
+    'Acct_no': 'Account Number',
+    'Amount': 'Amount (USD)',
+    'Currency': 'Currency Code',
+    'Date': 'Invoice Date',
+    'C&D indicator': 'Cost Center',
+    'RPIC': 'Profit Center'
+})
+
+# Merge the two DataFrames to find matches
+merged = pd.merge(T5_table, Invoice_table, on=['Ticket Number', 'Account Number', 'Amount (USD)', 'Currency Code', 'Charge Code', 'Reporting PC'], how='inner')
+
+# Apply the matching function to each pair of rows and add the match rule index as a column
+merged['Match Rule'] = merged.apply(lambda x: match_row(x[:len(T5_table.columns)], x[len(T5_table.columns):])[1], axis=1)
+
+# Define rule descriptions
+rule_descriptions = {
+    1: 'Ticket Number of 13 digits, Account Number, Amount (USD), Currency Code, Transaction Date, Charge Code, Reporting PC are same',
+    2: 'Ticket Number of 12 digits'
+}
+
+# Create the "description" column based on the "Match Rule" column
+merged['Description'] = merged['Match Rule'].map(rule_descriptions)
+
+# Write the merged and matched data to a CSV file
+merged.to_csv("Z:/Desktop/output2.csv", index=False)
+
+# Aggregate the data and write it to a second sheet in the same CSV file
+aggregated = merged.groupby(['Company ID & Name', 'Match Rule']).size().reset_index(name='TRF')
+total = aggregated['TRF'].sum()
+aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated.columns), ignore_index=True)
+aggregated.to_csv("Z:/Desktop/output2.csv", mode='a', index=False, header=False, sheet_name='Aggregated')
