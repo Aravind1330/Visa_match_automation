@@ -707,3 +707,22 @@ for i, T5 in T5_table.iterrows():
         matched, rule_index = match_row(T5.to_dict(), Invoice.to_dict())
         if matched:
             T5_table.at[i, 'Match Rule'] = rule_index
+
+
+
+
+
+
+
+
+
+
+
+def match_row(row1, row2):
+    for i, rule in enumerate(rules):
+        try:
+            if eval(rule, {'__builtins__': None}, {'row1': row1, 'row2': row2}):
+                return True, i+1
+        except TypeError:
+            pass
+    return False, "Unmatched"
