@@ -585,16 +585,54 @@ for i, T5 in T5_table.iterrows():
 
 
 
+import pandas as pd
+import numexpr as ne
 
+# Read the rules from a text file
+with open("Z:/Desktop/Rules_1.txt", 'r') as f:
+    rule_strings = f.readlines()
 
+# Remove new line characters and empty lines, and convert to list of compiled expressions
+rules = [ne.NumExpr(rule_string) for rule_string in rule_strings if rule_string.strip()]
 
+# Define a function to apply the rules to each row pair and return the rule index
+def match_row(row1, row2):
+    for i, rule in enumerate(rules):
+        if rule(x=row1, y=row2):
+            return True, i+1
+    return False, "Unmatched"
 
-rules = []
-for rule_string in rule_strings:
-    rule_string = rule_string.strip()
-    if rule_string:
-        try:
-            rule = eval(f"lambda row, row2: {rule_string}")
-            rules.append(rule)
-        except (SyntaxError, TypeError):
-            print(f"Invalid rule: {rule_string}")
+# Read in the first csv file
+T5_table = pd.read_csv('Z:/Downloads/Unmatched_trans_Data_1.csv', dtype=str)
+
+# Read in the second csv file
+Invoice_table = pd.read_csv('Z:/Downloads/Unmatched_Inv_Data_1.csv', dtype=str)
+
+# Merge the two tables based on the matching criteria
+merged_table = pd.merge(T5_table, Invoice_table, how='outer', on=['fin_account_code', 'fin_source_amt', 'fin_source_currency', 'fin_source_date', 'fin_c_d_ind', 'fin_rpic'])
+
+# Apply the matching rules to each row pair and create a "Match Rule" column
+merged_table['Match Rule'] = merged_table.apply(lambda row: match_row(row.iloc[:len(T5_table.columns)], row.iloc[len(T5_table.columns):])[1], axis=1)
+
+# Define rule descriptions
+rule_descriptions = {
+    1: 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same',
+    2: 'Ticket_no_right_of_12'
+}
+
+# Create the "description" column based on the "Match Rule" column
+merged_table['description'] = merged_table['Match Rule'].map(rule_descriptions)
+
+# Write the updated table to a csv file
+merged_table.to_csv("Z:/Desktop/output2.csv", index=False)
+
+# Group the data by Company ID & Name and Match Rule, and count the number of rows in each group
+aggregated = merged_table.groupby(['Company ID & Name', 'Match Rule']).size().reset_index(name='TRF')
+
+# Add a row for the total number of rows
+total = aggregated['TRF'].sum()
+aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated.columns), ignore_index=True)
+
+# Write the aggregated data to the second sheet of the csv file
+aggregated.to_csv("Z:/Desktop/output2.csv", mode='a', header=False, index=False)
+
