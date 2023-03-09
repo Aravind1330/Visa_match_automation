@@ -636,3 +636,39 @@ aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated
 # Write the aggregated data to the second sheet of the csv file
 aggregated.to_csv("Z:/Desktop/output2.csv", mode='a', header=False, index=False)
 
+
+
+
+
+# Remove new line characters and empty lines, and convert to list of functions
+rules = []
+for rule_string in rule_strings:
+    rule_string = rule_string.strip()
+    if rule_string:
+        rule = eval(f"lambda row, row2: {rule_string}")
+        rules.append(rule)
+
+# Create a dictionary of functions to evaluate the rules for all row pairs
+rule_evaluators = {}
+for i, rule in enumerate(rules):
+    rule_evaluators[i+1] = lambda t5_rows, inv_rows, rule=rule: pd.merge(t5_rows, inv_rows, how='inner', left_on=None, right_on=None, left_index=True, right_index=True)[pd.DataFrame([rule(t5_row, inv_row) for t5_row, inv_row in zip(t5_rows.to_dict('records'), inv_rows.to_dict('records')])]]
+
+T5_table = pd.read_excel('Z:/Downloads/Unmatched_trans_Data_1.xlsx', dtype=str)
+# Read in the second Excel sheet
+Invoice_table = pd.read_excel('Z:/Downloads/Unmatched_Inv_Data_1.xlsx', dtype=str)
+
+# Define rule descriptions
+rule_descriptions = {
+    1: 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same',
+    2: 'Ticket_no_right_of_12'
+}
+
+# Create an empty column for the match rule index
+T5_table['Match Rule'] = pd.Series(["Unmatched"]*len(T5_table))
+
+# Loop through each rule and find matches in the tables
+for rule_index, rule_evaluator in rule_evaluators.items():
+    matches = rule_evaluator(T5_table, Invoice_table)
+    if not matches.empty:
+        # Update the "Match Rule" column for the matching rows
+        T5_table.at[matches.index, 'Match Rule'] = rule_index
