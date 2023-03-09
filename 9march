@@ -317,3 +317,22 @@ df = pd.DataFrame({
 float_cols = [col for col in df.columns if df[col].dtype == 'float64']
 
 print(float_cols)
+
+
+
+
+
+
+
+
+
+
+
+
+def match_row(row1, row2):
+    row1 = {k: str(v) for k, v in row1.items()}
+    row2 = {k: str(v) for k, v in row2.items()}
+    for i, rule in enumerate(rules):
+        if rule(row1, row2):
+            return True, i+1
+    return False, "Unmatched"
