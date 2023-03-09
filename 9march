@@ -573,3 +573,28 @@ for i, T5 in T5_table.iterrows():
         matched, rule_index = match_row(T5.astype(str).to_dict(), Invoice.astype(str).to_dict())
         if matched:
             T5_table.at[i, 'Match Rule'] = rule_index
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+rules = []
+for rule_string in rule_strings:
+    rule_string = rule_string.strip()
+    if rule_string:
+        try:
+            rule = eval(f"lambda row, row2: {rule_string}")
+            rules.append(rule)
+        except (SyntaxError, TypeError):
+            print(f"Invalid rule: {rule_string}")
