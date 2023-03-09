@@ -516,3 +516,18 @@ for i, T5 in T5_table.iterrows():
         matched, rule_index = match_row(T5.astype(str).to_dict(), Invoice.astype(str).to_dict())
         if matched:
             T5_table.at[i, 'Match Rule'] = rule_index
+
+
+
+
+
+
+
+def match_row(row1, row2):
+    for i, rule in enumerate(rules):
+        # Convert any float values to numeric
+        row1_num = pd.to_numeric(row1, errors='coerce')
+        row2_num = pd.to_numeric(row2, errors='coerce')
+        if rule(row1_num.to_dict(), row2_num.to_dict()):  # convert back to dictionaries
+            return True, i+1
+    return False, "Unmatched"
