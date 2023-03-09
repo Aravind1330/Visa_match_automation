@@ -254,3 +254,48 @@ for i, T5 in T5_table.iterrows():
         matched, rule_index = match_row(T5.astype(str).to_dict(), Invoice.astype(str).to_dict())
         if matched:
             T5_table.at[i, 'Match Rule'] = rule_index
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Remove new line characters and empty lines, and convert to list of functions
+rules = []
+for rule_string in rule_strings:
+    rule_string = rule_string.strip()
+    if rule_string:
+        rule = eval(f"lambda row, row2: {rule_string}")
+        rules.append(rule)
+
+# Define a function to apply the rules to each row pair and return the rule index
+def match_row(row1, row2):
+    for i, rule in enumerate(rules):
+        try:
+            if rule(str(row1), str(row2)):
+                return True, i+1
+        except TypeError:
+            pass
+    return False, "Unmatched"
+
+T5_table = pd.read_excel('Z:/Downloads/Unmatched_trans_Data_1.xlsx', dtype=str)
+# Read in the second Excel sheet
+Invoice_table = pd.read_excel('Z:/Downloads/Unmatched_Inv_Data_1.xlsx', dtype=str)
+
+# Create an empty column for the match rule index
+T5_table['Match Rule'] = pd.Series(["Unmatched"]*len(T5_table))
+
+# Loop through each row in table1 and find a match in table2
+for i, T5 in T5_table.iterrows():
+    matched = False
+    for j, Invoice in Invoice_table.iterrows():
+        matched, rule_index = match_row(T5, Invoice)
+        if matched:
+            T5_table.at[i, 'Match Rule'] = rule_index
