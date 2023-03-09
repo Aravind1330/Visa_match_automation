@@ -299,3 +299,21 @@ for i, T5 in T5_table.iterrows():
         matched, rule_index = match_row(T5, Invoice)
         if matched:
             T5_table.at[i, 'Match Rule'] = rule_index
+
+
+
+
+
+import pandas as pd
+
+# create sample dataframe
+df = pd.DataFrame({
+    'col1': [1, 2, 3],
+    'col2': ['a', 'b', 'c'],
+    'col3': [1.1, 2.2, 3.3]
+})
+
+# check which columns have float values
+float_cols = [col for col in df.columns if df[col].dtype == 'float64']
+
+print(float_cols)
