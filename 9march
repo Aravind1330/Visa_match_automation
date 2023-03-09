@@ -427,3 +427,17 @@ aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated
 # Write the aggregated data to the second sheet of the Excel file
 with pd.ExcelWriter('Z:/Desktop/output2.xlsx', mode='a') as writer:
     aggregated
+
+
+
+
+
+
+
+
+
+
+
+def is_float_column(df, column_name):
+    return df[column_name].dtype == 'float64' or df[column_name].dtype == 'float32'
+float_columns = [column for column in row1 if is_float_column(df, column)]
