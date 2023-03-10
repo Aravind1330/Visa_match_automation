@@ -1,0 +1,9 @@
+# Define a function to apply the rules to each row pair and return the rule index
+def match_row(row1, row2):
+    for i, rule in enumerate(rules):
+        try:
+            if rule(row1, row2):
+                return True, i+1
+        except IndexError:
+            pass
+    return False, "Unmatched"
