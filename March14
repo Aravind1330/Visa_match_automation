@@ -757,3 +757,73 @@ aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated
 with pd.ExcelWriter('Z:/Desktop/output2.xlsx') as writer:
     T5_table.to_excel(writer, sheet_name='Matched', index=False)
     aggregated.to_excel(writer, sheet_name
+
+
+
+
+
+import pandas as pd
+import dask.dataframe as dd
+
+# Read the rules from a text file
+with open("Z:/Desktop/Rules_1.txt", 'r') as f:
+    rule_strings = f.readlines()
+
+# Remove new line characters and empty lines, and convert to list of functions
+rules = []
+for rule_string in rule_strings:
+    rule_string = rule_string.strip()
+    if rule_string:
+        rule = eval(f"lambda row, row2: {rule_string}")
+        rules.append(rule)
+
+# Define a function to apply the rules to each row pair and return the rule index
+def match_row(row1, row2):
+    for i, rule in enumerate(rules):
+        if rule(row1, row2):
+            return True, i+1
+    return False, "Unmatched"
+
+# Read in the first Excel sheet as a dask dataframe
+T5_table = dd.read_excel('Z:/Downloads/Unmatched_trans_Data_1.xlsx', dtype=str)
+
+# Read in the second Excel sheet as a dask dataframe
+Invoice_table = dd.read_excel('Z:/Downloads/Unmatched_Inv_Data_1.xlsx', dtype=str)
+
+# Create an empty column for the match rule index
+T5_table['Match Rule'] = dd.Series(["Unmatched"]*len(T5_table))
+
+# Define a function to find matches between two dataframes
+def find_matches(T5, Invoice):
+    matches = []
+    for _, T5_row in T5.iterrows():
+        for _, Invoice_row in Invoice.iterrows():
+            matched, rule_index = match_row(T5_row.to_dict(), Invoice_row.to_dict())
+            if matched:
+                matches.append((T5_row, Invoice_row, rule_index))
+    return matches
+
+# Find matches between T5_table and Invoice_table
+matches = dd.from_delayed([dask.delayed(find_matches)(T5, Invoice) for T5 in T5_table.to_delayed()], meta=('object', 'object', 'object'))
+
+# Concatenate the matched rows into a single dataframe
+matched_rows = dd.concat([dd.from_delayed([dask.delayed(row[0]), dask.delayed(row[1]), dask.delayed(row[2])] for row in rows) for rows in matches.to_delayed()])
+
+# Define rule descriptions
+rule_descriptions = {
+    1: 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same',
+    2: 'Ticket_no_right_of_12'
+}
+
+# Create the "description" column based on the "Match Rule" column
+matched_rows['description'] = matched_rows['Match Rule'].map(rule_descriptions)
+
+# Aggregate the matched rows by company and match rule
+aggregated = matched_rows.groupby(['Company ID & Name', 'Match Rule']).size().reset_index(name='TRF')
+total = aggregated['TRF'].sum()
+aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated.columns), ignore_index=True)
+
+# Write the matched rows and aggregated data to the output Excel file
+with pd.ExcelWriter('Z:/Desktop/output2.xlsx', mode='w') as writer:
+    matched_rows.compute().to_excel(writer, sheet_name='Matched', index=False)
+    aggregated.compute().to_excel(writer, sheet_name='Aggregated', index=False)
