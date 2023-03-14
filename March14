@@ -80,3 +80,8 @@ for _, row in T5_table.iterrows():
 
 # Create a pool of workers
 pool = mp.Pool(mp.cpu_count())
+
+
+# Close the multiprocessing pool
+pool.close()
+pool.join()
