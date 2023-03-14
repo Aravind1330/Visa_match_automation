@@ -66,3 +66,17 @@ aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated
 # Write the aggregated data to the second sheet of the Excel file
 with pd.ExcelWriter('Z:/Desktop/output2.xlsx', mode='a') as writer:
     aggregated.to_excel(writer, sheet_name='Aggregated', index=False)
+
+
+
+
+
+
+# Update the match rule column with the results
+results = []
+for _, row in T5_table.iterrows():
+    result = match_table_row(row)
+    results.append(result)
+
+# Create a pool of workers
+pool = mp.Pool(mp.cpu_count())
