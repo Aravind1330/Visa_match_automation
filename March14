@@ -216,3 +216,12 @@ T5_table['description'] = T5_table['Match Rule'].map(rule_descriptions)
 
 ## Convert to excel
 T5_table.to
+
+
+
+
+# Create a pool of workers
+pool = mp.Pool(mp.cpu_count())
+
+# Apply the matching function to each row in table1
+results = pool.map(match_table_row, [row for _, row in T5_table.iterrows()])
