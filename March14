@@ -243,3 +243,79 @@ def match_row(T5, Invoice):
             print(f"Index out of range: T5={T5}, Invoice={Invoice}")
             continue
     return False, "Unmatched"
+
+
+
+
+
+
+
+
+
+
+
+import pandas as pd
+import multiprocessing
+
+# Read the rules from a text file
+with open("Z:/Desktop/Rules_1.txt", 'r') as f:
+    rule_strings = f.readlines()
+
+# Remove new line characters and empty lines, and convert to list of functions
+rules = []
+for rule_string in rule_strings:
+    rule_string = rule_string.strip()
+    if rule_string:
+        rule = eval(f"lambda row, row2: {rule_string}")
+        rules.append(rule)
+
+# Define a function to apply the rules to each row pair and return the rule index
+def match_row(row1, row2):
+    for i, rule in enumerate(rules):
+        if rule(row1, row2):
+            return True, i+1
+    return False, "Unmatched"
+
+def process_rows(T5_rows, Invoice_table):
+    matched_rows = []
+    for i, T5 in T5_rows.iterrows():
+        for j, Invoice in Invoice_table.iterrows():
+            matched, rule_index = match_row(T5.to_dict(), Invoice.to_dict())
+            if matched:
+                T5.at['Match Rule'] = rule_index
+                matched_rows.append(T5)
+                break
+        else:
+            T5.at['Match Rule'] = "Unmatched"
+            matched_rows.append(T5)
+    return pd.concat(matched_rows, axis=1).T
+
+if __name__ == '__main__':
+    T5_table = pd.read_excel('Z:/Downloads/Unmatched_trans_Data_1.xlsx', dtype=str)
+    # Read in the second Excel sheet
+    Invoice_table = pd.read_excel('Z:/Downloads/Unmatched_Inv_Data_1.xlsx', dtype=str)
+
+    # Create an empty column for the match rule index
+    T5_table['Match Rule'] = pd.Series(["Unmatched"]*len(T5_table))
+
+    # Split the T5 table into chunks to be processed by multiple processes
+    num_processes = 4
+    chunk_size = len(T5_table) // num_processes
+    T5_chunks = [T5_table.iloc[i:i + chunk_size] for i in range(0, len(T5_table), chunk_size)]
+
+    # Create a multiprocessing pool and apply the process_rows function to each chunk of the T5 table
+    with multiprocessing.Pool(num_processes) as pool:
+        results = pool.starmap(process_rows, [(chunk, Invoice_table) for chunk in T5_chunks])
+
+    # Concatenate the results from each chunk and create the "description" column based on the "Match Rule" column
+    T5_table = pd.concat(results)
+    rule_descriptions = {
+        1: 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same',
+        2: 'Ticket_no_right_of_12'
+    }
+    T5_table['description'] = T5_table['Match Rule'].map(rule_descriptions)
+
+    # Write the updated table to Excel
+    T5_table.to_excel("Z:/Desktop/output2.xlsx", index=False)
+
+    # Aggregate the data by company and match rule, and write to the second sheet of the
