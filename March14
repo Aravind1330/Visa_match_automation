@@ -225,3 +225,21 @@ pool = mp.Pool(mp.cpu_count())
 
 # Apply the matching function to each row in table1
 results = pool.map(match_table_row, [row for _, row in T5_table.iterrows()])
+
+
+
+
+
+
+
+# Define a function to apply the rules to each row pair and return the rule index
+def match_row(T5, Invoice):
+    for i, rule in enumerate(rules):
+        try:
+            if rule(T5, Invoice):
+                return True, i+1
+        except IndexError:
+            # Handle the index out of range error
+            print(f"Index out of range: T5={T5}, Invoice={Invoice}")
+            continue
+    return False, "Unmatched"
