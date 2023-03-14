@@ -319,3 +319,91 @@ if __name__ == '__main__':
     T5_table.to_excel("Z:/Desktop/output2.xlsx", index=False)
 
     # Aggregate the data by company and match rule, and write to the second sheet of the
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import pandas as pd
+from multiprocessing import Pool
+
+# Read the rules from a text file
+with open("Z:/Desktop/Rules_1.txt", 'r') as f:
+    rule_strings = f.readlines()
+
+# Remove new line characters and empty lines, and convert to list of functions
+rules = []
+for rule_string in rule_strings:
+    rule_string = rule_string.strip()
+    if rule_string:
+        rule = eval(f"lambda row, row2: {rule_string}")
+        rules.append(rule)
+
+# Define a function to apply the rules to each row pair and return the rule index
+def match_row(row1, row2):
+    for i, rule in enumerate(rules):
+        if rule(row1, row2):
+            return True, i+1
+    return False, "Unmatched"
+
+def match_rows(T5, Invoice):
+    matched, rule_index = match_row(T5.to_dict(), Invoice.to_dict())
+    return matched, rule_index
+
+if __name__ == '__main__':
+    T5_table = pd.read_excel('Z:/Downloads/Unmatched_trans_Data_1.xlsx', dtype=str)
+    # Read in the second Excel sheet
+    Invoice_table = pd.read_excel('Z:/Downloads/Unmatched_Inv_Data_1.xlsx', dtype=str)
+
+    # Create an empty column for the match rule index
+    T5_table['Match Rule'] = pd.Series(["Unmatched"]*len(T5_table))
+
+    # Create a pool of worker processes
+    pool = Pool()
+
+    # Loop through each row in table1 and find a match in table2 using multiprocessing
+    results = []
+    for i, T5 in T5_table.iterrows():
+        for j, Invoice in Invoice_table.iterrows():
+            result = pool.apply_async(match_rows, args=(T5, Invoice))
+            results.append(result)
+
+    # Retrieve the results from the worker processes and update the table
+    for i, result in enumerate(results):
+        matched, rule_index = result.get()
+        if matched:
+            T5_table.at[i//len(Invoice_table), 'Match Rule'] = rule_index
+
+    # Define rule descriptions
+    rule_descriptions = {
+        1: 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same',
+        2: 'Ticket_no_right_of_12'
+    }
+
+    # Create the "description" column based on the "Match Rule" column
+    T5_table['description'] = T5_table['Match Rule'].map(rule_descriptions)
+
+    # Print the updated table
+    # print(T5_table)
+
+    ## Convert to excel
+    T5_table.to_excel("Z:/Desktop/output2.xlsx", index=False)
+
+    aggregated = T5_table.groupby(['Company ID & Name', 'Match Rule']).size().reset_index(name='TRF')
+    total = aggregated['TRF'].sum()
+    aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated.columns), ignore_index=True)
+
+    # Write the aggregated data to the second sheet of the Excel file
+    with pd.ExcelWriter('Z:/Desktop/output2.xlsx', mode='a') as writer:
+        aggregated.to_excel(writer, sheet_name='Aggregated', index=False)
