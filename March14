@@ -97,3 +97,27 @@ for rule_string in rule_strings:
 # Close the multiprocessing pool
 pool.close()
 pool.join()
+
+
+
+
+
+# Define the batch size
+batch_size = 10000
+
+# Write the output in batches
+with pd.ExcelWriter('Z:/Desktop/output2.xlsx') as writer:
+    for i in range(0, len(T5_table), batch_size):
+        batch = T5_table.iloc[i:i+batch_size]
+        results = [match_table_row(row) for _, row in batch.iterrows()]
+        batch['Match Rule'] = pd.Series(results)
+        batch['description'] = batch['Match Rule'].map(rule_descriptions)
+        batch.to_excel(writer, sheet_name='Sheet1', startrow=i, index=False)
+
+# Write the aggregated data to the second sheet of the Excel file
+aggregated = T5_table.groupby(['Company ID & Name', 'Match Rule']).size().reset_index(name='TRF')
+total = aggregated['TRF'].sum()
+aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated.columns), ignore_index=True)
+
+with pd.ExcelWriter('Z:/Desktop/output2.xlsx', mode='a') as writer:
+    aggregated.to_excel(writer, sheet_name='Aggregated', index=False)
