@@ -620,3 +620,72 @@ aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated
 # Write the aggregated data to the second sheet of the Excel file
 with pd.ExcelWriter('output.xlsx', mode='a') as writer:
     aggregated.to_excel(writer, sheet_name='Aggregated', index=False)
+
+
+
+
+
+
+
+
+
+import pandas as pd
+from multiprocessing import Pool
+
+def process_row(row):
+    # Your existing code to match the row and return the rule index
+    ...
+
+# Read in the tables as DataFrames
+T5_table = pd.read_excel('Z:/Downloads/Unmatched_trans_Data_1.xlsx', dtype=str)
+Invoice_table = pd.read_excel('Z:/Downloads/Unmatched_Inv_Data_1.xlsx', dtype=str)
+
+# Create an empty column for the match rule index
+T5_table['Match Rule'] = pd.Series(["Unmatched"]*len(T5_table))
+
+# Define the batch size
+batch_size = 10000
+
+# Split the T5 table into batches
+T5_batches = [T5_table[i:i+batch_size] for i in range(0, len(T5_table), batch_size)]
+
+# Define the function to process a batch
+def process_batch(T5_batch):
+    # Loop through each row in the batch and find a match in the Invoice table
+    for i, T5 in T5_batch.iterrows():
+        matched = False
+        for j, Invoice in Invoice_table.iterrows():
+            matched, rule_index = match_row(T5.to_dict(), Invoice.to_dict())
+            if matched:
+                T5_table.at[i, 'Match Rule'] = rule_index
+
+# Use multiprocessing to process each batch in parallel
+with Pool() as pool:
+    pool.map(process_batch, T5_batches)
+
+# Define rule descriptions
+rule_descriptions = {
+    1: 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same',
+    2: 'Ticket_no_right_of_12'
+}
+
+# Create the "description" column based on the "Match Rule" column
+T5_table['description'] = T5_table['Match Rule'].map(rule_descriptions)
+
+# Write the output to a CSV file in batches
+output_file = 'Z:/Desktop/output2.csv'
+with open(output_file, 'w') as f:
+    # Write the header
+    f.write('Company ID & Name, Match Rule, TRF, description\n')
+    
+    # Loop through each group and write the rows to the file
+    for group, data in T5_table.groupby(['Company ID & Name', 'Match Rule']):
+        trf = len(data)
+        description = rule_descriptions.get(group[1], '')
+        line = f'{group[0]}, {group[1]}, {trf}, {description}\n'
+        f.write(line)
+
+    # Write the total row
+    total = len(T5_table)
+    line = f'Total, -, {total}, \n'
+    f.write(line)
