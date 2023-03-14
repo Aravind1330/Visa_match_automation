@@ -82,6 +82,18 @@ for _, row in T5_table.iterrows():
 pool = mp.Pool(mp.cpu_count())
 
 
+# Remove new line characters and empty lines, and convert to list of functions
+rules = []
+for rule_string in rule_strings:
+    rule_string = rule_string.strip()
+    if rule_string:
+        # Add a check for empty rule strings
+        if len(rule_string) > 0:
+            rule = eval(f"lambda T5, Invoice: {rule_string}")
+            rules.append(rule)
+
+
+
 # Close the multiprocessing pool
 pool.close()
 pool.join()
