@@ -121,3 +121,98 @@ aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated
 
 with pd.ExcelWriter('Z:/Desktop/output2.xlsx', mode='a') as writer:
     aggregated.to_excel(writer, sheet_name='Aggregated', index=False)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import pandas as pd
+import multiprocessing as mp
+
+# Read the rules from a text file
+with open("Z:/Desktop/Rules_1.txt", 'r') as f:
+    rule_strings = f.readlines()
+
+# Remove new line characters and empty lines, and convert to list of functions
+rules = []
+for rule_string in rule_strings:
+    rule_string = rule_string.strip()
+    if rule_string:
+        rule = eval(f"lambda T5, Invoice: {rule_string}")
+        rules.append(rule)
+
+# Define a function to apply the rules to each row pair and return the rule index
+def match_row(T5, Invoice):
+    for i, rule in enumerate(rules):
+        if rule(T5, Invoice):
+            return True, i+1
+    return False, "Unmatched"
+
+def match_table_row(df_chunk):
+    matched = False
+    results = []
+    for _, row in df_chunk.iterrows():
+        for _, Invoice in Invoice_table.iterrows():
+            matched, rule_index = match_row(row.to_dict(), Invoice.to_dict())
+            if matched:
+                results.append(rule_index)
+                break
+        else:
+            results.append("Unmatched")
+    return results
+
+# Set the chunk size
+chunksize = 10000
+
+# Read in the Excel sheets in chunks
+T5_chunks = pd.read_excel('Z:/Downloads/Unmatched_trans_Data_1.xlsx', dtype=str, chunksize=chunksize)
+Invoice_chunks = pd.read_excel('Z:/Downloads/Unmatched_Inv_Data_1.xlsx', dtype=str, chunksize=chunksize)
+
+# Create an empty column for the match rule index
+T5_table = pd.concat(T5_chunks)
+T5_table['Match Rule'] = pd.Series(["Unmatched"]*len(T5_table))
+
+# Define rule descriptions
+rule_descriptions = {
+    1: 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same',
+    2: 'Ticket_no_right_of_12'
+}
+
+# Create a pool of workers
+pool = mp.Pool(mp.cpu_count())
+
+# Apply the matching function to each row in table1
+results = []
+for i, df_chunk in enumerate(T5_table.groupby(T5_table.index // chunksize)):
+    results_chunk = pool.apply_async(match_table_row, args=(df_chunk[1],))
+    results.append(results_chunk)
+
+# Get the results from the pool and combine them
+results_combined = []
+for results_chunk in results:
+    results_combined.extend(results_chunk.get())
+
+# Update the match rule column with the results
+T5_table['Match Rule'] = pd.Series(results_combined)
+
+# Create the "description" column based on the "Match Rule" column
+T5_table['description'] = T5_table['Match Rule'].map(rule_descriptions)
+
+# Print the updated table
+# print(T5_table)
+
+## Convert to excel
+T5_table.to
