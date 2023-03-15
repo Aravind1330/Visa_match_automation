@@ -898,3 +898,18 @@ aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated
 # Write the aggregated data to the second sheet of the Excel file
 with pd.ExcelWriter('Z:/Desktop/output2.xlsx', mode='a') as writer:
     aggregated.to_excel(writer, sheet_name='Aggregated', index=False)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ Use a machine learning-based approach, such as a classification or clustering algorithm, to automatically learn the matching patterns from the input data, instead of relying on manually written rules.
