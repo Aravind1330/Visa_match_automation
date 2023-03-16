@@ -244,3 +244,10 @@ with pd.ExcelWriter('output.xlsx') as writer:
         cell.font = font
     # Write the difference amount to a new sheet in the output file
     result.to_excel(writer, sheet_name='Difference', index=False)
+
+
+
+
+unmatched_rows = df['Invoice_no'].isnull()
+df_unmatched = df.loc[unmatched_rows, :]
+df_unmatched.loc[:, 'T4'] = df_unmatched['Amount']
