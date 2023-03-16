@@ -1,0 +1,56 @@
+import pandas as pd
+from openpyxl import load_workbook
+import numpy as np
+
+#### Converting text file to excel
+
+# df = pd.read_csv('D:/Users/avasudevan/Desktop/f1.txt', sep=",", header=None)
+df1 = pd.read_csv('D:/Users/avasudevan/Desktop/f1.txt', sep=",")
+
+# you might need: pip install openpyxl
+df1.to_excel('D:/Users/avasudevan/Desktop/f1.xlsx', 'Sheet1', index=False)
+
+### Filtering only 10 & 11 from transaction column
+
+df2 = pd.read_excel('D:/Users/avasudevan/Desktop/f1.xlsx', sheet_name=0) #reads the first sheet of your excel file
+df2 = df2[(df2['Tran']==10) | (df2['Tran']==11)]
+df2.to_excel('D:/Users/avasudevan/Desktop/f1.xlsx', sheet_name='Matched Transaction', index=False) #Saving to a new sheet called Filtered Data
+
+
+# Read data from the input sheet into a dataframe
+df = pd.read_excel('D:/Users/avasudevan/Desktop/f1.xlsx', sheet_name='Matched Transaction')
+
+# Create a new dataframe to store the non-blank rows
+non_blank_rows_df = df.dropna(how='any', subset=None)
+
+# Create a new dataframe to store the blank rows
+# blank_rows_df = df[df.isnull().any(axis=1)]
+blank_rows_df = df[df['Amount'].isnull()]
+
+
+#### Sum
+# Load the first Excel file
+df1 = pd.read_excel('D:/Users/avasudevan/Desktop/APAC_Matching_automation/Sample1.xlsx')
+
+# Sum the values in column 'A'
+sum1 = df1['Amount'].sum()
+
+# Load the second Excel file
+df2 = pd.read_excel('D:/Users/avasudevan/Desktop/output.xlsx')
+
+# Sum the values in column 'A'
+sum2 = df2['Amount'].sum()
+
+# Calculate the difference
+diff = sum2 - sum1
+
+# Create a new dataframe to hold the result
+result = pd.DataFrame({'Difference': [diff]})
+
+
+
+# Write the blank rows to a new sheet in the output file
+with pd.ExcelWriter('D:/Users/avasudevan/Desktop/output.xlsx') as writer:
+    non_blank_rows_df.to_excel(writer, sheet_name='Matched Transaction',index=False)
+    blank_rows_df.to_excel(writer, sheet_name='Unmatched Transaction',index=False)
+    result.to_excel(writer, sheet_name='Diffrence Amount', index=False)
