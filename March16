@@ -174,3 +174,73 @@ with pd.ExcelWriter('output.xlsx') as writer:
 
     # Write the difference amount to a new sheet in the output file
     result.to_excel(writer, sheet_name='Difference', index=False)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import pandas as pd
+from openpyxl import load_workbook
+from openpyxl.styles import Font, PatternFill
+
+# Read data from the input sheet into a dataframe
+df = pd.read_excel('input.xlsx', sheet_name='Sheet1')
+
+# Filter the dataframe by transaction type
+df_matched = df[df['Transaction'].isin([10, 11])]
+
+# Create a new dataframe to store the unmatched rows
+df_unmatched = df[df['Invoice_no'].isnull()]
+
+# Copy the values from the 'Amount' column of the unmatched rows to the 'T4' column
+df_unmatched['T4'] = df_unmatched['Amount']
+
+# Calculate the sum of the 'Amount' and 'T4' columns in the matched and unmatched dataframes
+sum_matched = df_matched['Amount'].sum()
+sum_unmatched = df_unmatched[['Amount', 'T4']].sum().sum()
+
+# Load the second Excel file
+df2 = pd.read_excel('amounts.xlsx')
+
+# Sum the values in column 'Amount1'
+sum2 = df2['Amount1'].sum()
+
+# Calculate the difference
+diff = sum2 - (sum_matched + sum_unmatched)
+
+# Create a new dataframe to hold the result
+result = pd.DataFrame({'Difference': [diff]})
+
+# Write the matched and unmatched rows to separate sheets in the output file
+with pd.ExcelWriter('output.xlsx') as writer:
+    df_matched.to_excel(writer, sheet_name='Matched', index=False)
+    df_unmatched.to_excel(writer, sheet_name='Unmatched', index=False)
+    # Set the header color of the matched sheet
+    wb = writer.book
+    ws = wb['Matched']
+    header = ws['1:1']
+    fill = PatternFill(start_color='00CCFF', end_color='00CCFF', fill_type='solid')
+    font = Font(color='FFFFFFFF', bold=True)
+    for cell in header:
+        cell.fill = fill
+        cell.font = font
+    # Write the difference amount to a new sheet in the output file
+    result.to_excel(writer, sheet_name='Difference', index=False)
