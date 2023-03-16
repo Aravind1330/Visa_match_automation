@@ -116,3 +116,61 @@ with pd.ExcelWriter('D:/Users/avasudevan/Desktop/APAC_Matching_automation/Sample
     result.to_excel(writer, sheet_name='Diffrence Amount', index=False)
 
 print(result)
+
+
+
+
+
+
+
+
+import pandas as pd
+from openpyxl import load_workbook
+from openpyxl.styles import Font, PatternFill
+
+# Read data from the input sheet into a dataframe
+df = pd.read_excel('input.xlsx', sheet_name='Transactions')
+
+# Filter the rows to only include transactions with type 10 or 11
+filtered_df = df[df['Transaction Type'].isin([10, 11])]
+
+# Create a new dataframe to store the non-blank rows
+matched_df = filtered_df.dropna(how='any', subset=['Amount'])
+
+# Create a new dataframe to store the blank rows
+unmatched_df = filtered_df[filtered_df['Amount'].isnull()]
+
+# Load the first Excel file
+df1 = pd.read_excel('amounts.xlsx')
+
+# Sum the values in column 'Amount1'
+sum1 = df1['Amount1'].sum()
+
+# Sum the values in column 'Amount' from the matched dataframe
+sum2 = matched_df['Amount'].sum()
+
+# Calculate the difference
+diff = sum2 - sum1
+
+# Create a new dataframe to hold the result
+result = pd.DataFrame({'Difference': [diff]})
+
+# Write the unmatched rows to a new sheet in the output file
+with pd.ExcelWriter('output.xlsx') as writer:
+    unmatched_df.to_excel(writer, sheet_name='Unmatched', index=False)
+
+    # Write the matched rows to a new sheet in the output file
+    matched_df.to_excel(writer, sheet_name='Matched', index=False)
+
+    # Set the header color of the matched sheet
+    wb = writer.book
+    ws = wb['Matched']
+    header = ws['1:1']
+    fill = PatternFill(start_color='00CCFF', end_color='00CCFF', fill_type='solid')
+    font = Font(color='FFFFFFFF', bold=True)
+    for cell in header:
+        cell.fill = fill
+        cell.font = font
+
+    # Write the difference amount to a new sheet in the output file
+    result.to_excel(writer, sheet_name='Difference', index=False)
