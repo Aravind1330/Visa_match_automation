@@ -315,3 +315,19 @@ with pd.ExcelWriter('output.xlsx') as writer:
 
     # Write the difference amount to a new sheet in the output file
     result.to_excel(writer, sheet_name='Difference', index=False)
+
+
+
+
+
+
+
+
+
+
+# Calculate the sum of the 'Amount' column in the matched and unmatched dataframes
+sum_matched = df_matched['Amount'].sum()
+sum_unmatched = df_unmatched['Amount'].sum()
+
+# Calculate the difference
+diff = sum2 - (sum_matched + sum_unmatched)
