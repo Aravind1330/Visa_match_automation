@@ -82,3 +82,53 @@ result = result.append({'Matched': '', 'Transaction': '', 'Invoice_no': '', 'Amo
 
 # Write the result to an Excel file
 result.to_excel('result.xlsx', index=False)
+
+
+
+
+
+
+
+
+import pandas as pd
+
+# read the input file
+df = pd.read_excel("input_file.xlsx")
+
+# filter transactions with codes 10 and 11 and with non-null invoice numbers
+matched_df = df[(df["Transaction"] == 10) | (df["Transaction"] == 11)]
+matched_df = matched_df[matched_df["Invoice_no"].notnull()]
+
+# add header for matched transactions
+matched_df = pd.concat([pd.DataFrame([[""] * len(matched_df.columns)], columns=matched_df.columns), matched_df])
+matched_df.iloc[0, 0] = "Matched transactions"
+
+# add 5-row gap and header for unmatched transactions
+unmatched_df = pd.concat([matched_df, pd.DataFrame([[""] * len(matched_df.columns)] * 5, columns=matched_df.columns)])
+unmatched_df.iloc[matched_df.shape[0] + 5, 0] = "Unmatched transactions"
+
+# add rows for unmatched transactions with null invoice numbers
+unmatched_rows = df[(df["Transaction"] == 10) | (df["Transaction"] == 11)]
+unmatched_rows = unmatched_rows[unmatched_rows["Invoice_no"].isnull()]
+unmatched_df = pd.concat([unmatched_df, unmatched_rows])
+
+# add minus sign to amount column for transactions with code 11 in matched transactions
+matched_df.loc[matched_df["Transaction"] == 11, "Amount"] = -matched_df.loc[matched_df["Transaction"] == 11, "Amount"]
+
+# copy amount column values to T4 column for unmatched transactions
+unmatched_df["T4"] = unmatched_df["Amount"]
+
+# sum T4 column from matched and unmatched parts
+t4_sum = matched_df["T4"].sum() + unmatched_df["T4"].sum()
+
+# calculate difference from another data source and add to the end of matched and unmatched parts
+diff = 1000  # replace with actual calculation of difference from another data source
+matched_df = pd.concat([matched_df, pd.DataFrame([[""] * len(matched_df.columns)], columns=matched_df.columns)])
+matched_df.iloc[matched_df.shape[0] - 1, 1] = "Difference from data source: {}".format(diff)
+unmatched_df = pd.concat([unmatched_df, pd.DataFrame([[""] * len(unmatched_df.columns)], columns=unmatched_df.columns)])
+unmatched_df.iloc[unmatched_df.shape[0] - 1, 1] = "Difference from data source: {}".format(diff)
+
+# save the output to file
+with pd.ExcelWriter("output_file.xlsx") as writer:
+    matched_df.to_excel(writer, sheet_name="Sheet1", index=False)
+    unmatched_df.to_excel(writer, sheet_name="Sheet1", startrow=matched_df.shape[0] + 6, index=False)
