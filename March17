@@ -183,3 +183,62 @@ unmatched_df.loc[unmatched_df.index[-1], "Transaction"] = "Difference from data 
 with pd.ExcelWriter("output_file.xlsx") as writer:
     matched_df.to_excel(writer, sheet_name="Sheet1", index=False)
     unmatched_df.to_excel(writer, sheet_name="Sheet1", startrow=matched_df.shape[0] + 6, index=False)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import pandas as pd
+from openpyxl import load_workbook
+from openpyxl.styles import Font, PatternFill
+
+# Read data from the input sheet into a dataframe
+df = pd.read_excel('input.xlsx', sheet_name='Sheet1')
+
+# Filter the dataframe by transaction type
+df_matched = df[df['Transaction'].isin([10, 11])]
+
+# Create a new dataframe to store the unmatched rows
+df_unmatched = df[df['Amount'].isnull()]
+
+# Load the second Excel file
+df2 = pd.read_excel('amounts.xlsx')
+
+# Sum the values in column 'Amount1'
+sum2 = df2['Amount1'].sum()
+
+# Calculate the sum of the 'Amount' column in the matched and unmatched dataframes
+sum_matched = df_matched['Amount'].sum()
+sum_unmatched = df_unmatched['Amount'].sum()
+
+# Calculate the difference
+diff = sum2 - (sum_matched + sum_unmatched)
+
+# Create a new dataframe to hold the result
+result = pd.DataFrame({'Difference': [diff]})
+
+# Write the matched, unmatched and difference rows to the output file
+with pd.ExcelWriter('output.xlsx') as writer:
+    # Write the matched rows
+    df_matched.to_excel(writer, sheet_name='Output', index=False)
+
+    # Add 5 empty rows
+    writer.sheets['Output'].row_dimensions[df_matched.shape[0]+1:df_matched.shape[0]+6] = None
+
+    # Write the unmatched rows after 5 empty rows
+    df_unmatched.to_excel(writer, sheet_name='Output', startrow=df_matched.shape[0]+6, index=False)
+
+    # Add 3 empty rows after the unmatched rows
+    writer.sheets['Output'].row_dimensions[df_matched.shape[0]+df_unmatched.shape[0]+7:df_matched.shape[0]+df_unmatched.shape[0]+10] = None
+
+    # Write the difference amount after 3 empty rows
+    result.to_excel(writer, sheet_name='Output', startrow=df_matched.shape[0]+df_unmatched.shape[0]+10, index=False)
