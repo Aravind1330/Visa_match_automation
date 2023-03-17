@@ -242,3 +242,30 @@ with pd.ExcelWriter('output.xlsx') as writer:
 
     # Write the difference amount after 3 empty rows
     result.to_excel(writer, sheet_name='Output', startrow=df_matched.shape[0]+df_unmatched.shape[0]+10, index=False)
+
+
+
+
+
+
+
+
+
+
+
+
+
+    # Write the matched rows
+    df_matched.to_excel(writer, sheet_name='Output', index=False)
+
+    # Add 5 empty rows
+    writer.sheets['Output'].row_dimensions[list(range(df_matched.shape[0]+1, df_matched.shape[0]+6))] = None
+
+    # Write the unmatched rows after 5 empty rows
+    df_unmatched.to_excel(writer, sheet_name='Output', startrow=df_matched.shape[0]+6, index=False)
+
+    # Add 3 empty rows after the unmatched rows
+    writer.sheets['Output'].row_dimensions[list(range(df_matched.shape[0]+df_unmatched.shape[0]+7, df_matched.shape[0]+df_unmatched.shape[0]+10))] = None
+
+    # Write the difference amount after 3 empty rows
+    result.to_excel(writer, sheet_name='Output', startrow=df_matched.shape[0]+df_unmatched.shape[0]+10, index=False)
