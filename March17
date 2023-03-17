@@ -34,3 +34,51 @@ result = result.append(pd.DataFrame({'Matched': '', 'Transaction': '', 'Invoice_
 
 # Save the result to Excel file
 result.to_excel('transactions.xlsx', index=False)
+
+
+
+
+
+
+
+
+
+
+
+
+import pandas as pd
+
+# Read the Excel file
+transactions = pd.read_excel('transactions.xlsx')
+
+# Filter rows with transaction types 10 and 11 and invoice numbers
+matched = transactions[(transactions['Transaction'] == 10) | (transactions['Transaction'] == 11)]
+matched['Amount'] = matched.apply(lambda row: -row['Amount'] if row['Transaction'] == 11 else row['Amount'], axis=1)
+matched.loc[matched['Invoice_no'].notnull(), 'Matched'] = 'Matched'
+
+# Filter rows with null invoice numbers
+unmatched = transactions[transactions['Invoice_no'].isnull()]
+unmatched['T4'] = unmatched['Amount']
+
+# Create header for matched rows
+matched_header = pd.DataFrame({'Matched': 'Matched', 'Transaction': '', 'Invoice_no': '', 'Amount': '', 'T4': '', 'Unmatched': ''}, index=[0])
+
+# Add 5 rows gap and create header for unmatched rows
+unmatched_header = pd.DataFrame({'Matched': '', 'Transaction': '', 'Invoice_no': '', 'Amount': '', 'T4': '', 'Unmatched': 'Unmatched'}, index=range(len(matched) + 5, len(matched) + len(unmatched) + 5, 5))
+
+# Concatenate matched and unmatched rows
+result = pd.concat([matched_header, matched, unmatched_header, unmatched])
+
+# Calculate the sum of T4 column from matched and unmatched parts
+t4_sum = result['T4'].sum()
+
+# Read the amount1 column from another Excel file
+diff_df = pd.read_excel('another_file.xlsx')
+diff_sum = diff_df['amount1'].sum()
+
+# Calculate the difference and add it to the end of the matched and unmatched parts
+diff = t4_sum - diff_sum
+result = result.append({'Matched': '', 'Transaction': '', 'Invoice_no': '', 'Amount': '', 'T4': '', 'Unmatched': 'Difference', 'T4': diff}, ignore_index=True)
+
+# Write the result to an Excel file
+result.to_excel('result.xlsx', index=False)
