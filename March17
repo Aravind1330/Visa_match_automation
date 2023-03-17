@@ -1,0 +1,36 @@
+import pandas as pd
+
+# Read the Excel file
+transactions = pd.read_excel('transactions.xlsx')
+
+# Filter rows with transaction types 10 and 11 and invoice numbers
+matched = transactions[(transactions['Transaction'] == 10) | (transactions['Transaction'] == 11)]
+matched['Matched'] = 'Matched'
+matched['Amount'] = matched.apply(lambda row: -row['Amount'] if row['Transaction'] == 11 else row['Amount'], axis=1)
+matched.loc[matched['Invoice_no'].notnull(), 'Unmatched'] = ''
+
+# Filter rows with null invoice numbers
+unmatched = transactions[transactions['Invoice_no'].isnull()]
+unmatched['Unmatched'] = 'Unmatched'
+unmatched['T4'] = unmatched['Amount']
+
+# Concatenate matched and unmatched dataframes
+result = pd.concat([matched, unmatched], axis=0)
+
+# Highlight every 5th row in the Unmatched column
+result.loc[result.index % 5 == 0, 'Unmatched'] = 'background-color: yellow'
+
+# Highlight matched rows in green and unmatched rows in red
+result = result.style.applymap(lambda x: 'background-color: green' if x == 'Matched' else 'background-color: red' if x == 'Unmatched' else '', subset=['Matched', 'Unmatched'])
+
+# Sum T4 column from matched and unmatched parts
+total = result['T4'].sum()
+
+# Calculate the difference between total and Amount1 sum
+diff = total - transactions['Amount1'].sum()
+
+# Add the difference at the end of the matched and unmatched parts
+result = result.append(pd.DataFrame({'Matched': '', 'Transaction': '', 'Invoice_no': '', 'Amount': '', 'T4': '', 'Unmatched': '', 'Total': 'Difference', 'Difference': diff}, index=[len(result)]))
+
+# Save the result to Excel file
+result.to_excel('transactions.xlsx', index=False)
