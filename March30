@@ -15,3 +15,17 @@ for i, T5 in T5_table.iterrows():
             break
     if not matched:
         T5_table.at[i, 'Match Rule'] = "Unmatched"
+
+
+
+
+
+for i, T5 in T5_table.iterrows():
+    matched = False
+    for j, Invoice in Invoice_table.iterrows():
+        matched, rule_index = match_row(T5.to_dict(), Invoice.to_dict())
+        if matched:
+            T5_table.at[i, 'Match Rule'] = rule_index
+            break
+    if not matched:
+        T5_table.at[i, 'Match Rule'] = "Unmatched"
