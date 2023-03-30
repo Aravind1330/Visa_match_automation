@@ -6,3 +6,12 @@ T5_table['Description'] = pd.Series([""]*len(T5_table))
 Change the line T5_table.to_excel("Z:/Desktop/output2.xlsx", index=False) to T5_table.to_excel("Z:/Desktop/output2.xlsx", index=False, columns=['Company ID & Name', 'fin_orig_supplier_nm', 'fin_source_amt', 'Match Rule', 'Description']) to select only the specified columns for the output file.
 
 Finally, change the line aggregated.to_excel(writer, sheet_name='Aggregated', index=False) to aggregated.to_excel(writer, sheet_name='Aggregated', index=False, columns=['Company ID & Name', 'Match Rule', 'Description', 'TRF']) to select only the specified columns for the aggregated data sheet in the output file.
+for i, T5 in T5_table.iterrows():
+    matched = False
+    for j, Invoice in Invoice_table.iterrows():
+        matched, rule_index = match_row(T5, Invoice)
+        if matched:
+            T5_table.at[i, 'Match Rule'] = rule_index
+            break
+    if not matched:
+        T5_table.at[i, 'Match Rule'] = "Unmatched"
