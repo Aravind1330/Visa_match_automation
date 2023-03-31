@@ -95,3 +95,93 @@ aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated
 with pd.ExcelWriter('Z:/Desktop/output2.xlsx') as writer:
     output_df.to_excel(writer, sheet_name='Output', index=False)
     aggregated.to_excel(writer, sheet_name='Aggregated', index=False)
+
+
+
+
+
+
+
+
+
+
+    Import the pandas library with an alias pd.
+
+python
+
+import pandas as pd
+
+    Open a text file containing the rules for matching.
+
+python
+
+with open("Z:/Desktop/Rules_1.txt", 'r') as f:
+    rule_strings = f.readlines()
+
+    Remove new line characters and empty lines from the rule strings, and convert them to a list of functions.
+
+python
+
+rules = []
+for rule_string in rule_strings:
+    rule_string = rule_string.strip()
+    if rule_string:
+        rule = eval(f"lambda row, row2: {rule_string}")
+        rules.append(rule)
+
+This step reads the rules from the text file, removes any new line characters and empty lines, and converts each rule string into a function using the eval function.
+
+    Define a function to apply the rules to each row pair and return the rule index.
+
+python
+
+def match_row(T5, Invoice):
+    for i, rule in enumerate(rules):
+        if rule(T5, Invoice):
+            return True, i+1
+    return False, "Unmatched"
+
+This function takes two rows as input, applies the rules to them one by one, and returns a Boolean value indicating whether a match was found and the index of the matching rule.
+
+    Read in the first Excel sheet into a pandas DataFrame called T5_table.
+
+python
+
+T5_table = pd.read_excel('Z:/Downloads/Unmatched_trans_Data_1.xlsx', dtype=str)
+
+    Read in the second Excel sheet into a pandas DataFrame called Invoice_table.
+
+python
+
+Invoice_table = pd.read_excel('Z:/Downloads/Unmatched_Inv_Data_1.xlsx', dtype=str)
+
+    Create an empty list called output_data to store the matched rows, and a dictionary called rule_descriptions to store the descriptions of the matching rules.
+
+python
+
+output_data = []
+rule_descriptions = {
+    1: 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same',
+    2: 'Ticket_no_right_of_12'
+}
+
+    Loop through each row in T5_table, find a match in Invoice_table using the match_row function, and append the matched row along with the rule index and description to the output_data list.
+
+python
+
+for i, T5 in T5_table.iterrows():
+    matched = False
+    for j, Invoice in Invoice_table.iterrows():
+        matched, rule_index = match_row(T5.to_dict(), Invoice.to_dict())
+        if matched:
+            description = rule_descriptions[rule_index]
+            output_data.append([T5['Company ID & Name'], rule_index, description, T5['fin_orig_supplier_nm'], T5['fin_source_amt'], Invoice['inv_match_source_amt'], Invoice['inv_erp_vend_no'], Invoice['inv_po_no']])
+            break
+
+    Create a pandas DataFrame called output_df from the output_data list, add a column called "TRF" to store the number of rows matched for each company and rule, and write the output to an Excel file called output2.xlsx.
+
+python
+
+output_columns = ['Company ID & Name', 'Match Rule', 'description', 'fin_orig_supplier_nm', 'fin_source_amt', 'inv_match_source_amt', 'inv_erp_vend_no', 'inv_po_no']
+output_df = pd.DataFrame(output_data, columns=output_columns)
+aggregated
