@@ -188,3 +188,22 @@ aggregated
 
 
 The code performs a matching process between two Excel tables, T5_table and Invoice_table, and generates an output file with the matched rows along with a rule index and description. Here is a step-by-step explanation of the code:
+
+
+
+
+
+    Test with sample input files: You can create small sample input Excel files with a few rows and columns and test the code to see if it produces the expected output.
+
+    Test with different rule sets: You can create different rule sets in a text file and test the code with each rule set to see if it produces the expected output.
+
+    Test with missing data: You can remove some data from the input files and test the code to see how it handles missing data.
+
+    Test with different data types: You can test the code with input files that have different data types (e.g., integers, floats, dates, strings) to see if it handles them correctly.
+
+    Test with larger input files: You can test the code with larger input files to see if it can handle them efficiently without crashing or running out of memory.
+
+    Test with edge cases: You can test the code with edge cases, such as input files that have many duplicates, or rules that match only a small subset of the data, to see if it produces the expected output.
+
+    Test with invalid input files: You can test the code with invalid input files, such as files that are not in the expected format, to see how it handles errors and exceptions.
+
