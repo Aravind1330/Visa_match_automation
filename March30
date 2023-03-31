@@ -185,3 +185,6 @@ python
 output_columns = ['Company ID & Name', 'Match Rule', 'description', 'fin_orig_supplier_nm', 'fin_source_amt', 'inv_match_source_amt', 'inv_erp_vend_no', 'inv_po_no']
 output_df = pd.DataFrame(output_data, columns=output_columns)
 aggregated
+
+
+The code performs a matching process between two Excel tables, T5_table and Invoice_table, and generates an output file with the matched rows along with a rule index and description. Here is a step-by-step explanation of the code:
