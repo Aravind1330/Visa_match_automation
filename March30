@@ -954,3 +954,34 @@ pool.join()
 
 # Get the results from the async results
 output_data = [result.get() for result in results]
+
+
+
+
+
+
+
+
+if __name__ == '__main__':
+    T5_table = pd.read_excel('Z:/Downloads/Unmatched_trans_Data_1.xlsx', dtype=str)
+    # Read in the second Excel sheet
+    Invoice_table = pd.read_excel('Z:/Downloads/Unmatched_Inv_Data_1.xlsx', dtype=str)
+
+    # Create an empty column for the match rule index and description in the output file
+    output_columns = ['Company ID & Name', 'Match Rule', 'description', 'fin_orig_supplier_nm', 'fin_source_amt', 'inv_match_source_amt', 'inv_erp_vend_no', 'inv_po_no']
+    rule_descriptions = {
+        1: 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same',
+        2: 'Ticket_no_right_of_12'
+    }
+
+    # Split the T5 table into chunks for multiprocessing
+    num_processes = mp.cpu_count()
+    chunks = [T5_table[i:i+num_processes] for i in range(0, len(T5_table), num_processes)]
+
+    # Process the chunks in parallel
+    pool = mp.Pool(num_processes)
+    results = pool.map(process_chunk, chunks)
+
+    # Close the pool of worker processes
+    pool.close()
+    pool.join()
