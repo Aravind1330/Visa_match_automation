@@ -1,5 +1,5 @@
 import pandas as pd
-import multiprocessing as mp
+import multiprocessing
 
 # Read the rules from a text file
 with open("Z:/Desktop/Rules_1.txt", 'r') as f:
@@ -20,9 +20,27 @@ def match_row(T5, Invoice):
             return True, i+1
     return False, "Unmatched"
 
+# Define a function to process a chunk of rows
+def process_chunk(T5_chunk, Invoice_chunk, output_queue):
+    output_data = []
+    for i, T5 in T5_chunk.iterrows():
+        matched = False
+        for j, Invoice in Invoice_chunk.iterrows():
+            matched, rule_index = match_row(T5.to_dict(), Invoice.to_dict())
+            if matched:
+                description = rule_descriptions[rule_index]
+                output_data.append([T5['Company ID & Name'], rule_index, description, T5['fin_orig_supplier_nm'], T5['fin_source_amt'], Invoice['inv_match_source_amt'], Invoice['inv_erp_vend_no'], Invoice['inv_po_no']])
+                break
+    output_queue.put(output_data)
+
 T5_table = pd.read_excel('Z:/Downloads/Unmatched_trans_Data_1.xlsx', dtype=str)
 # Read in the second Excel sheet
 Invoice_table = pd.read_excel('Z:/Downloads/Unmatched_Inv_Data_1.xlsx', dtype=str)
+
+# Split the data into four chunks
+num_chunks = 4
+T5_chunks = np.array_split(T5_table, num_chunks)
+Invoice_chunks = np.array_split(Invoice_table, num_chunks)
 
 # Create an empty column for the match rule index and description in the output file
 output_columns = ['Company ID & Name', 'Match Rule', 'description', 'fin_orig_supplier_nm', 'fin_source_amt', 'inv_match_source_amt', 'inv_erp_vend_no', 'inv_po_no']
@@ -32,27 +50,24 @@ rule_descriptions = {
     2: 'Ticket_no_right_of_12'
 }
 
-# Define a function to find a match for each row in T5_table
-def find_match(i):
-    T5 = T5_table.iloc[i]
-    for j, Invoice in Invoice_table.iterrows():
-        matched, rule_index = match_row(T5.to_dict(), Invoice.to_dict())
-        if matched:
-            description = rule_descriptions[rule_index]
-            return [T5['Company ID & Name'], rule_index, description, T5['fin_orig_supplier_nm'], T5['fin_source_amt'], Invoice['inv_match_source_amt'], Invoice['inv_erp_vend_no'], Invoice['inv_po_no']]
-    return None
+# Run the processing function in parallel for each chunk
+output_queue = multiprocessing.Queue()
+processes = []
+for i in range(num_chunks):
+    process = multiprocessing.Process(target=process_chunk, args=(T5_chunks[i], Invoice_chunks[i], output_queue))
+    process.start()
+    processes.append(process)
 
-# Use multiprocessing to find matches for each row in T5_table in parallel
-with mp.Pool() as pool:
-    output_data = pool.map(find_match, range(len(T5_table)))
-    output_data = [data for data in output_data if data is not None]
+# Collect the output data from the processes
+for i in range(num_chunks):
+    output_data += output_queue.get()
+
+# Join the processes
+for process in processes:
+    process.join()
 
 # Write the output data to an Excel file
 output_df = pd.DataFrame(output_data, columns=output_columns)
 aggregated = output_df.groupby(['Company ID & Name', 'Match Rule']).size().reset_index(name='TRF')
 total = aggregated['TRF'].sum()
-aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated.columns), ignore_index=True)
-
-with pd.ExcelWriter('Z:/Desktop/output2.xlsx') as writer:
-    output_df.to_excel(writer, sheet_name='Output', index=False)
-    aggregated.to_excel(writer, sheet_name='Aggregated', index=False)
+aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated.columns), ignore_index=True
