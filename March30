@@ -369,12 +369,14 @@ print("Runtime: {} seconds".format(end_time - start_time))
 
 
 
+def match_row(T5, Invoice):
+    for i, rule in rules.items():
+        if rule(T5, Invoice):
+            return True, i
+    return False, 0
 
-for i, T5_row in T5_table.iterrows():
-    T5 = T5_row.to_dict()
-    matches = Invoice_table.apply(lambda row: match_row(T5, row.to_dict()), axis=1)
-    matched_indices = matches[matches.apply(lambda x: x[0])].index.tolist()
-    for index in matched_indices:
-        Invoice = Invoice_table.loc[index].to_dict()
-        rule_index = matches.loc[index][1]
-        description = rule_descriptions[rule_index]
+Then, you can modify the line where you're calling the lambda function to pass both rows as arguments:
+
+less
+
+matches = Invoice_table.apply(lambda row: match_row(T5, row.to_dict()), axis=1)
