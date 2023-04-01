@@ -1007,3 +1007,71 @@ def process_chunk(chunk, Invoice_table):
                 output_data.append([T5['Company ID & Name'], rule_index, description, T5['fin_orig_supplier_nm'], T5['fin_source_amt'], Invoice['inv_match_source_amt'], Invoice['inv_erp_vend_no'], Invoice['inv_po_no']])
                 break
     return output_data
+
+
+
+
+
+
+
+
+
+
+
+import pandas as pd
+
+# Read the rules from a text file
+with open("Z:/Desktop/Rules_1.txt", 'r') as f:
+    rule_strings = f.readlines()
+
+# Remove new line characters and empty lines, and convert to list of functions
+rules = []
+for rule_string in rule_strings:
+    rule_string = rule_string.strip()
+    if rule_string:
+        rule = eval(f"lambda row, row2: {rule_string}")
+        rules.append(rule)
+
+# Define a function to apply the rules to each row pair and return the rule index
+def match_row(T5, Invoice):
+    for i, rule in enumerate(rules):
+        if rule(T5, Invoice):
+            return True, i+1
+    return False, "Unmatched"
+
+# Read in the first Excel sheet as a generator to save memory
+T5_table = pd.read_excel('Z:/Downloads/Unmatched_trans_Data_1.xlsx', dtype=str, chunksize=10000)
+
+# Create an empty column for the match rule index and description in the output file
+output_columns = ['Company ID & Name', 'Match Rule', 'description', 'fin_orig_supplier_nm', 'fin_source_amt', 'inv_match_source_amt', 'inv_erp_vend_no', 'inv_po_no']
+output_data = []
+rule_descriptions = {
+    1: 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same',
+    2: 'Ticket_no_right_of_12'
+}
+
+# Loop through each chunk of rows in table1 and find a match in table2
+for T5_chunk in T5_table:
+    # Read in the second Excel sheet as a generator to save memory
+    Invoice_table = pd.read_excel('Z:/Downloads/Unmatched_Inv_Data_1.xlsx', dtype=str, chunksize=10000)
+    for i, T5 in T5_chunk.iterrows():
+        matched = False
+        for Invoice_chunk in Invoice_table:
+            for j, Invoice in Invoice_chunk.iterrows():
+                matched, rule_index = match_row(T5.to_dict(), Invoice.to_dict())
+                if matched:
+                    description = rule_descriptions[rule_index]
+                    output_data.append([T5['Company ID & Name'], rule_index, description, T5['fin_orig_supplier_nm'], T5['fin_source_amt'], Invoice['inv_match_source_amt'], Invoice['inv_erp_vend_no'], Invoice['inv_po_no']])
+                    break
+            if matched:
+                break
+
+# Write the output data to an Excel file
+output_df = pd.DataFrame(output_data, columns=output_columns)
+aggregated = output_df.groupby(['Company ID & Name', 'Match Rule']).size().reset_index(name='TRF')
+total = aggregated['TRF'].sum()
+aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated.columns), ignore_index=True)
+
+with pd.ExcelWriter('Z:/Desktop/output2.xlsx') as writer:
+    output_df.to_excel(writer, sheet_name='Output', index=False)
+    aggregated.to_excel(writer, sheet_name='Aggregated', index=False)
