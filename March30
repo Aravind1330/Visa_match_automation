@@ -342,3 +342,17 @@ aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated
 
 # Write the output data to an Excel file
 with pd.ExcelWriter
+
+
+
+
+
+import time
+
+start_time = time.time()
+
+# Your code goes here
+
+end_time = time.time()
+
+print("Runtime: {} seconds".format(end_time - start_time))
