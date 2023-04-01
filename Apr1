@@ -159,3 +159,70 @@ aggregated = aggregated.union(spark.createDataFrame([('Total', '-', total)], ['C
 
 # Write the aggregated data to a separate sheet in the output file
 aggregated.toPandas().to_excel('Z:/Desktop/output2.xlsx', sheet_name='Aggregated', index=False)
+
+
+
+
+
+
+
+
+
+
+
+
+
+import pandas as pd
+
+# Read the rules from a text file
+with open("Z:/Desktop/Rules_1.txt", 'r') as f:
+    rule_strings = f.readlines()
+
+# Remove new line characters and empty lines, and convert to list of functions
+rules = []
+for rule_string in rule_strings:
+    rule_string = rule_string.strip()
+    if rule_string:
+        rule = eval(f"lambda row, row2: {rule_string}")
+        rules.append(rule)
+
+# Define a function to apply the rules to each row pair and return the rule index
+def match_row(T5, Invoice):
+    for i, rule in enumerate(rules):
+        if rule(T5, Invoice):
+            return True, i+1
+    return False, "Unmatched"
+
+# Read in the two Excel sheets as dictionaries
+T5_table = pd.read_excel('Z:/Downloads/Unmatched_trans_Data_1.xlsx', dtype=str).to_dict(orient='records')
+Invoice_table = pd.read_excel('Z:/Downloads/Unmatched_Inv_Data_1.xlsx', dtype=str).to_dict(orient='records')
+
+# Create an empty list for the output data
+output_data = []
+
+# Define a dictionary for rule descriptions
+rule_descriptions = {
+    1: 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same',
+    2: 'Ticket_no_right_of_12'
+}
+
+# Loop through each row in table1 and find a match in table2
+for T5 in T5_table:
+    matched = False
+    for Invoice in Invoice_table:
+        matched, rule_index = match_row(T5, Invoice)
+        if matched:
+            description = rule_descriptions[rule_index]
+            output_data.append({'Company ID & Name': T5['Company ID & Name'], 'Match Rule': rule_index, 'description': description, 'fin_orig_supplier_nm': T5['fin_orig_supplier_nm'], 'fin_source_amt': T5['fin_source_amt'], 'inv_match_source_amt': Invoice['inv_match_source_amt'], 'inv_erp_vend_no': Invoice['inv_erp_vend_no'], 'inv_po_no': Invoice['inv_po_no']})
+            break
+
+# Write the output data to an Excel file
+output_columns = ['Company ID & Name', 'Match Rule', 'description', 'fin_orig_supplier_nm', 'fin_source_amt', 'inv_match_source_amt', 'inv_erp_vend_no', 'inv_po_no']
+output_df = pd.DataFrame(output_data, columns=output_columns)
+aggregated = output_df.groupby(['Company ID & Name', 'Match Rule']).size().reset_index(name='TRF')
+total = aggregated['TRF'].sum()
+aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated.columns), ignore_index=True)
+
+with pd.ExcelWriter('Z:/Desktop/output2.xlsx') as writer:
+    output_df.to_excel(writer, sheet_name='Output', index=False)
+    aggregated.to_excel(writer, sheet_name='Aggregated', index=False)
