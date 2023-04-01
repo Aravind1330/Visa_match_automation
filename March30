@@ -926,3 +926,22 @@ aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated
 with pd.ExcelWriter('Z:/Desktop/output2.xlsx') as writer:
     output_df.to_excel(writer, sheet_name='Output', index=False)
     aggregated.to_excel(writer, sheet_name='Aggregated', index=False)
+
+
+
+
+
+
+
+# Process the chunks in parallel
+pool = mp.Pool(num_processes)
+results = pool.imap(process_chunk, chunks)
+
+# Concatenate the results and write the output data to an Excel file
+output_df = pd.DataFrame(columns=output_columns)
+for result in results:
+    output_df = pd.concat([output_df, pd.DataFrame(result, columns=output_columns)], ignore_index=True)
+
+# Close the pool of worker processes
+pool.close()
+pool.join()
