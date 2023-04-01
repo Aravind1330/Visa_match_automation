@@ -278,3 +278,67 @@ total = aggregated["TRF"].sum()
 
 # Add a row for the total
 aggregated = aggregated.append(pd.Series(["Total", "-", total], index=
+
+
+
+
+
+
+
+
+
+
+import pandas as pd
+
+# Read the rules from a text file
+with open("Z:/Desktop/Rules_1.txt", 'r') as f:
+    rule_strings = f.readlines()
+
+# Remove new line characters and empty lines, and convert to dictionary of functions
+rules = {}
+for rule_string in rule_strings:
+    rule_string = rule_string.strip()
+    if rule_string:
+        rule = eval(f"lambda row, row2: {rule_string}")
+        rules[len(rules) + 1] = rule
+
+# Define a function to apply the rules to each row pair and return the rule index
+def match_row(T5, Invoice):
+    for i, rule in rules.items():
+        if rule(T5, Invoice):
+            return True, i
+    return False, 0
+
+# Define the columns that are required for the matching and output
+T5_columns = ['Company ID & Name', 'fin_orig_supplier_nm', 'fin_source_amt']
+Invoice_columns = ['inv_match_source_amt', 'inv_erp_vend_no', 'inv_po_no']
+
+# Read in the Excel sheets and select the required columns
+T5_table = pd.read_excel('Z:/Downloads/Unmatched_trans_Data_1.xlsx', dtype=str, usecols=T5_columns)
+Invoice_table = pd.read_excel('Z:/Downloads/Unmatched_Inv_Data_1.xlsx', dtype=str, usecols=Invoice_columns)
+
+# Loop through each row in table1 and find a match in table2
+output_data = []
+rule_descriptions = {
+    1: 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same',
+    2: 'Ticket_no_right_of_12'
+}
+
+for i, T5_row in T5_table.iterrows():
+    T5 = T5_row.to_dict()
+    matches = Invoice_table.apply(lambda row: match_row(T5, row.to_dict()), axis=1)
+    matched_indices = matches[matches.apply(lambda x: x[0])].index.tolist()
+    for index in matched_indices:
+        Invoice = Invoice_table.loc[index].to_dict()
+        rule_index = matches.loc[index][1]
+        description = rule_descriptions[rule_index]
+        output_data.append([T5['Company ID & Name'], rule_index, description, T5['fin_orig_supplier_nm'], T5['fin_source_amt'], Invoice['inv_match_source_amt'], Invoice['inv_erp_vend_no'], Invoice['inv_po_no']])
+
+# Create a data frame from the output data and group by company and rule
+output_df = pd.DataFrame(output_data, columns=['Company ID & Name', 'Match Rule', 'description', 'fin_orig_supplier_nm', 'fin_source_amt', 'inv_match_source_amt', 'inv_erp_vend_no', 'inv_po_no'])
+aggregated = output_df.groupby(['Company ID & Name', 'Match Rule']).size().reset_index(name='TRF')
+total = aggregated['TRF'].sum()
+aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated.columns), ignore_index=True)
+
+# Write the output data to an Excel file
+with pd.ExcelWriter
