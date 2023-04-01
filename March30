@@ -985,3 +985,25 @@ if __name__ == '__main__':
     # Close the pool of worker processes
     pool.close()
     pool.join()
+
+
+
+
+
+
+
+
+
+
+
+def process_chunk(chunk, Invoice_table):
+    output_data = []
+    for i, T5 in chunk.iterrows():
+        matched = False
+        for j, Invoice in Invoice_table.iterrows():
+            matched, rule_index = match_row(T5.to_dict(), Invoice.to_dict())
+            if matched:
+                description = rule_descriptions[rule_index]
+                output_data.append([T5['Company ID & Name'], rule_index, description, T5['fin_orig_supplier_nm'], T5['fin_source_amt'], Invoice['inv_match_source_amt'], Invoice['inv_erp_vend_no'], Invoice['inv_po_no']])
+                break
+    return output_data
