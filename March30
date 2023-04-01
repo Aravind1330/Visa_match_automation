@@ -421,3 +421,65 @@ aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated
 with pd.ExcelWriter('Z:/Desktop/output2.xlsx') as writer:
     output_df.to_excel(writer, sheet_name='Output', index=False)
     aggregated.to_excel(writer, sheet_name='Aggregated', index=False)
+
+
+
+
+
+import pandas as pd
+
+# Read the rules from a text file
+rules = {}
+with open("Z:/Desktop/Rules_1.txt", 'r') as f:
+    for i, rule_string in enumerate(f):
+        rule_string = rule_string.strip()
+        if rule_string:
+            rule = eval(f"lambda row, row2: {rule_string}")
+            rules[i+1] = {'rule': rule, 'description': rule_string}
+
+# Define a function to apply the rules to each row pair and return the rule index
+def match_row(T5, Invoice):
+    for i, rule_data in rules.items():
+        if rule_data['rule'](T5, Invoice):
+            return True, i, rule_data['description']
+    return False, 0, "Unmatched"
+
+T5_table = pd.read_excel('Z:/Downloads/Unmatched_trans_Data_1.xlsx', dtype=str)
+# Read in the second Excel sheet
+Invoice_table = pd.read_excel('Z:/Downloads/Unmatched_Inv_Data_1.xlsx', dtype=str)
+
+# Create an empty column for the match rule index and description in the output file
+output_columns = ['Company ID & Name', 'Match Rule', 'description', 'fin_orig_supplier_nm', 'fin_source_amt', 'inv_match_source_amt', 'inv_erp_vend_no', 'inv_po_no']
+output_data = []
+
+# Loop through each row in table1 and find a match in table2
+for i, T5 in T5_table.iterrows():
+    matched = False
+    for j, Invoice in Invoice_table.iterrows():
+        matched, rule_index, description = match_row(T5.to_dict(), Invoice.to_dict())
+        if matched:
+            output_data.append([T5['Company ID & Name'], rule_index, description, T5['fin_orig_supplier_nm'], T5['fin_source_amt'], Invoice['inv_match_source_amt'], Invoice['inv_erp_vend_no'], Invoice['inv_po_no']])
+            break
+
+# Write the output data to an Excel file
+output_df = pd.DataFrame(output_data, columns=output_columns)
+aggregated = output_df.groupby(['Company ID & Name', 'Match Rule']).size().reset_index(name='TRF')
+total = aggregated['TRF'].sum()
+aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated.columns), ignore_index=True)
+
+with pd.ExcelWriter('Z:/Desktop/output2.xlsx') as writer:
+    output_df.to_excel(writer, sheet_name='Output', index=False)
+    aggregated.to_excel(writer, sheet_name='Aggregated', index=False)
+
+
+
+
+
+# Loop through each row in table1 and find a match in table2
+for T5 in T5_table.itertuples(index=False):
+    matched = False
+    for Invoice in Invoice_table.itertuples(index=False):
+        matched, rule_index, description = match_row(T5._asdict(), Invoice._asdict())
+        if matched:
+            output_data.append([T5[0], rule_index, description, T5[3], T5[4], Invoice[2], Invoice[3], Invoice[1]])
+            break
