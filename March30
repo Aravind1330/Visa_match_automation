@@ -368,15 +368,56 @@ print("Runtime: {} seconds".format(end_time - start_time))
 
 
 
+import pandas as pd
 
-def match_row(T5, Invoice):
-    for i, rule in rules.items():
-        if rule(T5, Invoice):
-            return True, i
-    return False, 0
+# Read the rules from a text file
+with open("Z:/Desktop/Rules_1.txt", 'r') as f:
+    rule_strings = f.readlines()
 
-Then, you can modify the line where you're calling the lambda function to pass both rows as arguments:
+# Remove new line characters and empty lines, and convert to list of functions
+rules = []
+for rule_string in rule_strings:
+    rule_string = rule_string.strip()
+    if rule_string:
+        rule = eval(f"lambda row, row2: {rule_string}")
+        rules.append(rule)
 
-less
+# Define a function to apply the rules to each row pair and return the rule index
+def match_rows(T5, Invoice):
+    return [rule(T5, Invoice) for rule in rules]
 
-matches = Invoice_table.apply(lambda row: match_row(T5, row.to_dict()), axis=1)
+T5_table = pd.read_excel('Z:/Downloads/Unmatched_trans_Data_1.xlsx', dtype=str)
+# Read in the second Excel sheet
+Invoice_table = pd.read_excel('Z:/Downloads/Unmatched_Inv_Data_1.xlsx', dtype=str)
+
+# Create an empty column for the match rule index and description in the output file
+output_columns = ['Company ID & Name', 'Match Rule', 'description', 'fin_orig_supplier_nm', 'fin_source_amt', 'inv_match_source_amt', 'inv_erp_vend_no', 'inv_po_no']
+output_data = []
+rule_descriptions = {
+    1: 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same',
+    2: 'Ticket_no_right_of_12'
+}
+
+# Apply the matching function to all row pairs using vectorization
+matched = pd.DataFrame(index=T5_table.index, columns=Invoice_table.index)
+for i, T5 in T5_table.iterrows():
+    matched.iloc[i] = match_rows(T5.to_dict(), Invoice_table.to_dict(orient='records'))
+
+# Find the first matching rule index for each T5 row
+match_indices = matched.idxmax(axis=1).astype(int)
+
+# Create the output data by combining T5 and Invoice data based on the matching indices
+matched_rows = pd.concat([T5_table, Invoice_table.iloc[match_indices]], axis=1)
+matched_rows['Match Rule'] = match_indices.apply(lambda x: x if x>0 else 'Unmatched')
+matched_rows['description'] = matched_rows['Match Rule'].map(rule_descriptions)
+output_data = matched_rows[output_columns].values.tolist()
+
+# Write the output data to an Excel file
+output_df = pd.DataFrame(output_data, columns=output_columns)
+aggregated = output_df.groupby(['Company ID & Name', 'Match Rule']).size().reset_index(name='TRF')
+total = aggregated['TRF'].sum()
+aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated.columns), ignore_index=True)
+
+with pd.ExcelWriter('Z:/Desktop/output2.xlsx') as writer:
+    output_df.to_excel(writer, sheet_name='Output', index=False)
+    aggregated.to_excel(writer, sheet_name='Aggregated', index=False)
