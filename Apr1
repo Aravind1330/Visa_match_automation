@@ -86,3 +86,76 @@ def process_chunk(T5, Invoice_chunk, output_queue):
                 output_data.append([row['Company ID & Name'], rule_index, description, row['fin_orig_supplier_nm'], row['fin_source_amt'], Invoice['inv_match_source_amt'], Invoice['inv_erp_vend_no'], Invoice['inv_po_no']])
                 break
     output_queue.put(output_data)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import pyspark.sql.functions as F
+from pyspark.sql import SparkSession
+
+# Create a SparkSession
+spark = SparkSession.builder.appName('Matching').getOrCreate()
+
+# Read the rules from a text file
+with open("Z:/Desktop/Rules_1.txt", 'r') as f:
+    rule_strings = f.readlines()
+
+# Remove new line characters and empty lines, and convert to list of functions
+rules = []
+for rule_string in rule_strings:
+    rule_string = rule_string.strip()
+    if rule_string:
+        rule = eval(f"lambda row, row2: {rule_string}")
+        rules.append(rule)
+
+# Define a function to apply the rules to each row pair and return the rule index
+def match_row(T5, Invoice):
+    for i, rule in enumerate(rules):
+        if rule(T5, Invoice):
+            return i+1
+    return 0
+
+# Read the data into Spark DataFrames
+T5_df = spark.read.format('csv').option('header', True).option('inferSchema', True).load('Z:/Downloads/Unmatched_trans_Data_1.xlsx')
+Invoice_df = spark.read.format('csv').option('header', True).option('inferSchema', True).load('Z:/Downloads/Unmatched_Inv_Data_1.xlsx')
+
+# Add a column to T5_df for each rule, indicating whether the row matches the rule
+for i, rule in enumerate(rules):
+    udf_match_row = F.udf(lambda row: match_row(row, Invoice_df.collect()), returnType=IntegerType())
+    T5_df = T5_df.withColumn(f'rule_{i+1}', udf_match_row(F.struct([T5_df[col] for col in T5_df.columns])))
+
+# Join T5_df and Invoice_df on the rule columns
+join_cols = [f'rule_{i+1}' for i in range(len(rules))]
+joined_df = T5_df.join(Invoice_df, join_cols)
+
+# Filter out rows where no rule matches
+matched_df = joined_df.filter(F.col('rule_1') + F.col('rule_2') > 0)
+
+# Add columns for the rule index and description to the matched DataFrame
+udf_rule_description = F.udf(lambda rule_index: rule_descriptions.get(rule_index, 'Unmatched'), returnType=StringType())
+matched_df = matched_df.withColumn('Match Rule', F.greatest(*join_cols)).withColumn('description', udf_rule_description(F.greatest(*join_cols)))
+
+# Select the columns we want in the output DataFrame
+output_df = matched_df.select('Company ID & Name', 'Match Rule', 'description', 'fin_orig_supplier_nm', 'fin_source_amt', 'inv_match_source_amt', 'inv_erp_vend_no', 'inv_po_no')
+
+# Write the output data to an Excel file
+output_df.toPandas().to_excel('Z:/Desktop/output2.xlsx', index=False)
+
+# Aggregate the output data by Company ID & Name and Match Rule
+aggregated = output_df.groupBy('Company ID & Name', 'Match Rule').count().withColumnRenamed('count', 'TRF')
+total = aggregated.agg(F.sum('TRF')).collect()[0][0]
+aggregated = aggregated.union(spark.createDataFrame([('Total', '-', total)], ['Company ID & Name', 'Match Rule', 'TRF']))
+
+# Write the aggregated data to a separate sheet in the output file
+aggregated.toPandas().to_excel('Z:/Desktop/output2.xlsx', sheet_name='Aggregated', index=False)
