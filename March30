@@ -933,15 +933,24 @@ with pd.ExcelWriter('Z:/Desktop/output2.xlsx') as writer:
 
 
 
-# Process the chunks in parallel
-pool = mp.Pool(num_processes)
-results = pool.imap(process_chunk, chunks)
+# Split the T5 table into chunks for multiprocessing
+num_processes = mp.cpu_count()
+chunks = [T5_table[i:i+num_processes] for i in range(0, len(T5_table), num_processes)]
 
-# Concatenate the results and write the output data to an Excel file
-output_df = pd.DataFrame(columns=output_columns)
-for result in results:
-    output_df = pd.concat([output_df, pd.DataFrame(result, columns=output_columns)], ignore_index=True)
+# Create the pool of worker processes
+pool = mp.Pool(num_processes)
+
+# Process the chunks in parallel
+results = []
+for chunk in chunks:
+    result = pool.apply_async(process_chunk, args=(chunk, Invoice_table, rule_descriptions))
+    results.append(result)
 
 # Close the pool of worker processes
 pool.close()
+
+# Wait for all processes to finish
 pool.join()
+
+# Get the results from the async results
+output_data = [result.get() for result in results]
