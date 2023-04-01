@@ -71,3 +71,18 @@ output_df = pd.DataFrame(output_data, columns=output_columns)
 aggregated = output_df.groupby(['Company ID & Name', 'Match Rule']).size().reset_index(name='TRF')
 total = aggregated['TRF'].sum()
 aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated.columns), ignore_index=True
+
+
+
+
+def process_chunk(T5, Invoice_chunk, output_queue):
+    output_data = []
+    for i, row in T5.iterrows():
+        matched = False
+        for j, Invoice in Invoice_chunk.iterrows():
+            matched, rule_index = match_row(row.to_dict(), Invoice.to_dict())
+            if matched:
+                description = rule_descriptions[rule_index]
+                output_data.append([row['Company ID & Name'], rule_index, description, row['fin_orig_supplier_nm'], row['fin_source_amt'], Invoice['inv_match_source_amt'], Invoice['inv_erp_vend_no'], Invoice['inv_po_no']])
+                break
+    output_queue.put(output_data)
