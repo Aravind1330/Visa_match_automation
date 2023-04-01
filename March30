@@ -483,3 +483,62 @@ for T5 in T5_table.itertuples(index=False):
         if matched:
             output_data.append([T5[0], rule_index, description, T5[3], T5[4], Invoice[2], Invoice[3], Invoice[1]])
             break
+
+
+
+
+# Import required libraries and create SparkSession object
+from pyspark.sql.functions import udf
+from pyspark.sql.types import *
+from pyspark.sql import SparkSession
+
+spark = SparkSession.builder.appName("MatchData").getOrCreate()
+
+# Read input Excel files as Spark dataframes and create temporary views
+T5_table = spark.read.format('excel').option('header', 'true').load('Z:/Downloads/Unmatched_trans_Data_1.xlsx')
+T5_table.createOrReplaceTempView("T5_table")
+
+Invoice_table = spark.read.format('excel').option('header', 'true').load('Z:/Downloads/Unmatched_Inv_Data_1.xlsx')
+Invoice_table.createOrReplaceTempView("Invoice_table")
+
+# Define UDF to implement matching rules
+def match_row_udf(T5_dict, Invoice_dict):
+    # Define matching rules using T5_dict and Invoice_dict
+    # Return match rule index or 'Unmatched' string
+    for i, rule in enumerate(rules):
+        if rule(T5_dict, Invoice_dict):
+            return i+1
+    return 'Unmatched'
+
+# Convert UDF to Spark UDF and register with Spark
+match_row_spark_udf = udf(match_row_udf, StringType())
+spark.udf.register("match_row", match_row_spark_udf)
+
+# Perform join operation using UDF and select required columns
+output_df = spark.sql("""
+    SELECT 
+        T5_table.`Company ID & Name`, 
+        match_row(T5_table, Invoice_table) as `Match Rule`, 
+        CASE match_row(T5_table, Invoice_table)
+            WHEN 1 THEN 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same'
+            WHEN 2 THEN 'Ticket_no_right_of_12'
+            ELSE 'Unmatched'
+        END as `description`,
+        T5_table.`fin_orig_supplier_nm`, 
+        T5_table.`fin_source_amt`, 
+        Invoice_table.`inv_match_source_amt`, 
+        Invoice_table.`inv_erp_vend_no`, 
+        Invoice_table.`inv_po_no`
+    FROM T5_table 
+    JOIN Invoice_table 
+    WHERE match_row(T5_table, Invoice_table) != 'Unmatched'
+""")
+
+# Aggregate output dataframe and write to Excel file
+aggregated = output_df.groupBy('Company ID & Name', 'Match Rule').count().withColumnRenamed('count', 'TRF')
+total = aggregated.select('TRF').rdd.map(lambda x: x[0]).sum()
+aggregated = aggregated.union(spark.createDataFrame([['Total', '-', total]], output_columns))
+aggregated = aggregated.withColumn('Match Rule', aggregated['Match Rule'].cast(StringType()))
+output_df = output_df.withColumn('Match Rule', output_df['Match Rule'].cast(StringType()))
+
+output_df.write.format('excel').option('header', 'true').save('Z:/Desktop/output
