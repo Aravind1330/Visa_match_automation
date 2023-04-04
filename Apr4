@@ -27,3 +27,8 @@ for T5 in T5_table:
 
 This code loops through each row in T5_table, and for each row, it loops through each row in Invoice_table to find a match using the match_row() function. 
 If a match is found, the metadata for the matched rows is appended
+
+
+
+
+abs((row1["Transaction_Date"] - row2["Date"]).days) <= 5
