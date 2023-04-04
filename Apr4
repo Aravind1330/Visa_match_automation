@@ -37,3 +37,8 @@ from datetime import datetime
 # assuming row1["Transaction_Date"] and row2["Date"] are strings in the format "YYYY-MM-DD"
 transaction_date = datetime.strptime(row1["Transaction_Date"], "%Y-%m-%d")
 date = datetime.strptime(row2["Date"], "%Y-%m-%d")
+
+
+
+
+   abs((datetime.strptime(row1["Transaction_Date"], "%Y-%m-%d") - datetime.strptime(row2["Date"], "%Y-%m-%d")).days) <= 5:
