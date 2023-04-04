@@ -1,0 +1,29 @@
+def match_row(T5, Invoice, used_invoice_ids):
+    for i, rule in enumerate(rules):
+        if rule(T5, Invoice):
+            if Invoice['Invoice ID'] not in used_invoice_ids:
+                return True, i+1
+    return False, "Unmatched"
+
+
+This function takes two rows (one from each table), applies each of the rules to the pair of rows, and returns the index of the first rule that matches the pair. 
+It also keeps track of which invoice IDs have already been used, to prevent multiple matches for the same invoice.
+
+
+
+
+used_invoice_ids = []
+
+for T5 in T5_table:
+    matched = False
+    for Invoice in Invoice_table:
+        matched, rule_index = match_row(T5, Invoice, used_invoice_ids)
+        if matched:
+            description = rule_descriptions[rule_index]
+            output_data.append({'Company ID & Name': T5['Company ID & Name'], 'Match Rule': rule_index, 'description': description, 'fin_orig_supplier_nm': T5['fin_orig_supplier_nm'], 'fin_source_amt': T5['fin_source_amt'], 'inv_match_source_amt': Invoice['inv_match_source_amt'], 'inv_erp_vend_no': Invoice['inv_erp_vend_no'], 'inv_po_no': Invoice['inv_po_no']})
+            used_invoice_ids.append(Invoice['Invoice ID'])
+            break
+
+
+This code loops through each row in T5_table, and for each row, it loops through each row in Invoice_table to find a match using the match_row() function. 
+If a match is found, the metadata for the matched rows is appended
