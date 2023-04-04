@@ -34,6 +34,21 @@ If a match is found, the metadata for the matched rows is appended
 abs((row1["Transaction_Date"] - row2["Date"]).days) <= 5
 from datetime import datetime
 
+
+
+
+
+
+
+# Define a function to apply the rules to each row pair and return the rule index
+def match_row(T5, Invoice, used_invoice_ids):
+    for i, rule in enumerate(rules):
+        if rule(T5, Invoice):
+            # Check if the invoice ID has already been used
+            if Invoice['Invoice ID'] not in used_invoice_ids:
+                return True, i+1
+    return False, "Unmatched"
+
 # assuming row1["Transaction_Date"] and row2["Date"] are strings in the format "YYYY-MM-DD"
 transaction_date = datetime.strptime(row1["Transaction_Date"], "%Y-%m-%d")
 date = datetime.strptime(row2["Date"], "%Y-%m-%d")
