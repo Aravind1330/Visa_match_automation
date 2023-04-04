@@ -32,3 +32,8 @@ If a match is found, the metadata for the matched rows is appended
 
 
 abs((row1["Transaction_Date"] - row2["Date"]).days) <= 5
+from datetime import datetime
+
+# assuming row1["Transaction_Date"] and row2["Date"] are strings in the format "YYYY-MM-DD"
+transaction_date = datetime.strptime(row1["Transaction_Date"], "%Y-%m-%d")
+date = datetime.strptime(row2["Date"], "%Y-%m-%d")
