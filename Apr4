@@ -134,3 +134,8 @@ output_df = T5_df.crossJoin(Invoice_df) \
                  .withColumn('matched_rule', match_row_udf('T5', 'Invoice', 'used_invoice_ids')) \
                  .select('Company ID & Name', 'matched_rule.rule_index', 'rule_descriptions.description', 'fin_orig_supplier_nm', 'fin_source_amt', 'inv_match_source_amt', 'inv_erp_vend_no', 'inv_po_no') \
                  .withColumnRenamed('matched_rule.rule_index', 'Match Rule
+
+
+
+
+(abs(pd.to_datetime(row['Date']) - pd.to_datetime(row2['inv_match_date'])).days) <= 15
