@@ -69,3 +69,68 @@ def match_row(T5, Invoice, used_invoice_ids):
             if Invoice['Invoice ID'] not in used_invoice_ids:
                 return True, i+1
     return False, "Unmatched"
+
+
+
+
+
+
+
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import udf
+from pyspark.sql.types import *
+
+# Initialize SparkSession
+spark = SparkSession.builder.appName('Row Matching').getOrCreate()
+
+# Read the rules from a text file
+with open("Z:/Desktop/Rules_1.txt", 'r') as f:
+    rule_strings = f.readlines()
+
+# Remove new line characters and empty lines, and convert to list of functions
+rules = []
+for rule_string in rule_strings:
+    rule_string = rule_string.strip()
+    if rule_string:
+        rule = eval(f"lambda T5, Invoice: {rule_string}")
+        rules.append(rule)
+
+# Define a UDF to apply the rules to each row pair and return the rule index
+match_row_udf = udf(lambda T5, Invoice, used_invoice_ids: (False, 'Unmatched'),
+                    StructType([
+                        StructField('matched', BooleanType()),
+                        StructField('rule_index', StringType())
+                    ]))
+for i, rule in enumerate(rules):
+    match_row_udf = udf(lambda T5, Invoice, used_invoice_ids, i=i, rule=rule: (rule(T5, Invoice) and Invoice['Invoice ID'] not in used_invoice_ids, str(i+1)),
+                        StructType([
+                            StructField('matched', BooleanType()),
+                            StructField('rule_index', StringType())
+                        ]))
+
+# Read in the two Excel sheets as Spark dataframes
+T5_df = spark.read.format('com.crealytics.spark.excel') \
+                  .option('dataAddress', "'Sheet1'!") \
+                  .option('header', 'true') \
+                  .option('inferSchema', 'true') \
+                  .load('Z:/Downloads/Unmatched_trans_Data_1.xlsx')
+Invoice_df = spark.read.format('com.crealytics.spark.excel') \
+                      .option('dataAddress', "'Sheet1'!") \
+                      .option('header', 'true') \
+                      .option('inferSchema', 'true') \
+                      .load('Z:/Downloads/Unmatched_Inv_Data_1.xlsx')
+
+# Define a dataframe for rule descriptions
+rule_descriptions_df = spark.createDataFrame([(1, 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same'),
+                                              (2, 'Ticket_no_right_of_12')],
+                                             ['rule_index', 'description'])
+
+# Define a UDF to calculate the total
+total_udf = udf(lambda counts: sum(counts),
+                IntegerType())
+
+# Apply the rules to each row pair
+output_df = T5_df.crossJoin(Invoice_df) \
+                 .withColumn('matched_rule', match_row_udf('T5', 'Invoice', 'used_invoice_ids')) \
+                 .select('Company ID & Name', 'matched_rule.rule_index', 'rule_descriptions.description', 'fin_orig_supplier_nm', 'fin_source_amt', 'inv_match_source_amt', 'inv_erp_vend_no', 'inv_po_no') \
+                 .withColumnRenamed('matched_rule.rule_index', 'Match Rule
