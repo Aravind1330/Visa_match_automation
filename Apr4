@@ -57,3 +57,15 @@ date = datetime.strptime(row2["Date"], "%Y-%m-%d")
 
 
    abs((datetime.strptime(row1["Transaction_Date"], "%Y-%m-%d") - datetime.strptime(row2["Date"], "%Y-%m-%d")).days) <= 5:
+
+
+
+
+# Define a function to apply the rules to each row pair and return the rule index
+def match_row(T5, Invoice, used_invoice_ids):
+    for i, rule in enumerate(rules):
+        if rule(T5, Invoice):
+            # Check if the invoice ID has already been used
+            if Invoice['Invoice ID'] not in used_invoice_ids:
+                return True, i+1
+    return False, "Unmatched"
