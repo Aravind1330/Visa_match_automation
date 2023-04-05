@@ -145,3 +145,129 @@ for T5_row in T5_df.rdd.toLocalIterator():
         break
 output_df = spark.createDataFrame(output_data)
 output_df.write.format("excel").option("header", "true").save("Z:/Downloads/Output_Data_1.xlsx")
+
+
+
+
+
+
+
+
+
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import udf
+from pyspark.sql.types import BooleanType, StringType, IntegerType, StructType, StructField
+import os
+
+# Initialize a Spark session
+spark = SparkSession.builder.appName("Invoice Matching").getOrCreate()
+
+# Define the schema for T5 and Invoice dataframes
+t5_schema = StructType([
+    StructField("Company ID & Name", StringType(), True),
+    StructField("fin_orig_supplier_nm", StringType(), True),
+    StructField("fin_source_amt", StringType(), True),
+    StructField("Ticket_no", StringType(), True),
+    StructField("Acct_no", StringType(), True),
+    StructField("Amount", StringType(), True),
+    StructField("Currency", StringType(), True),
+    StructField("Date", StringType(), True),
+    StructField("C&D indicator", StringType(), True),
+    StructField("RPIC", StringType(), True)
+])
+
+invoice_schema = StructType([
+    StructField("inv_erp_vend_no", StringType(), True),
+    StructField("inv_po_no", StringType(), True),
+    StructField("inv_match_source_amt", StringType(), True),
+    StructField("Invoice ID", StringType(), True)
+])
+
+# Define the function to apply the rules to each row pair
+def match_row(t5_row, invoice_row, used_invoice_ids):
+    for i, rule in enumerate(rules):
+        if rule(t5_row, invoice_row):
+            # Check if the invoice ID has already been used
+            if invoice_row['Invoice ID'] not in used_invoice_ids:
+                return True, i+1
+    return False, "Unmatched"
+
+# Register the match_row function as a UDF
+match_row_udf = udf(match_row, returnType=StructType([
+    StructField("matched", BooleanType()),
+    StructField("rule_index", StringType())
+]))
+
+# Read the rules from a text file
+with open("Z:/Desktop/Rules_1.txt", 'r') as f:
+    rule_strings = f.readlines()
+
+# Remove new line characters and empty lines, and convert to list of functions
+rules = []
+for rule_string in rule_strings:
+    rule_string = rule_string.strip()
+    if rule_string:
+        rule = eval(f"lambda row, row2: {rule_string}")
+        rules.append(rule)
+
+# Read in the two Excel sheets as dataframes
+t5_df = spark.read.format("com.crealytics.spark.excel") \
+            .option("header", "true") \
+            .option("treatEmptyValuesAsNulls", "true") \
+            .option("inferSchema", "false") \
+            .option("schema", t5_schema.json()) \
+            .load("Z:/Downloads/Unmatched_trans_Data_1.xlsx")
+
+invoice_df = spark.read.format("com.crealytics.spark.excel") \
+            .option("header", "true") \
+            .option("treatEmptyValuesAsNulls", "true") \
+            .option("inferSchema", "false") \
+            .option("schema", invoice_schema.json()) \
+            .load("Z:/Downloads/Unmatched_Inv_Data_1.xlsx")
+
+# Create an empty list for the output data
+output_data = []
+
+# Define a dictionary for rule descriptions
+rule_descriptions = {
+    1: 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same',
+    2: 'Ticket_no_right_of_12'
+}
+
+# Create a list of used invoice IDs
+used_invoice_ids
+
+matched_rows_df = t5_df.crossJoin(invoice_df)
+.withColumn("match_result", match_row_udf(t5_df.colRegex(".*"), invoice_df.colRegex(".*"), used_invoice_ids))
+Filter for only the matched rows
+
+matched_rows_df = matched_rows_df.filter(matched_rows_df['match_result']['matched'])
+Loop through the matched rows and add them to the output data list
+
+for row in matched_rows_df.collect():
+output_data.append({
+'Company ID & Name': row['Company ID & Name'],
+'fin_orig_supplier_nm': row['fin_orig_supplier_nm'],
+'fin_source_amt': row['fin_source_amt'],
+'Ticket_no': row['Ticket_no'],
+'Acct_no': row['Acct_no'],
+'Amount': row['Amount'],
+'Currency': row['Currency'],
+'Date': row['Date'],
+'C&D indicator': row['C&D indicator'],
+'RPIC': row['RPIC'],
+'inv_erp_vend_no': row['inv_erp_vend_no'],
+'inv_po_no': row['inv_po_no'],
+'inv_match_source_amt': row['inv_match_source_amt'],
+'Invoice ID': row['Invoice ID'],
+'rule': rule_descriptions[int(row['match_result']['rule_index'])]
+})
+Create a dataframe from the output data list
+
+output_df = spark.createDataFrame(output_data)
+Write the output dataframe to a CSV file
+
+output_df.coalesce(1).write.csv("Z:/Desktop/Invoice_Matching_Output", header=True, mode="overwrite")
+Stop the Spark session
+
+spark.stop()
