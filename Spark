@@ -60,3 +60,88 @@ aggregated = aggregated.union(spark.createDataFrame([('Total', '-', total)], ['C
 aggregated.toPandas().to_excel('Z:/Desktop/output2.xlsx', sheet_name='Aggregated', index=False)    
    
     
+
+
+
+
+
+from pyspark.sql.functions import expr
+from pyspark.sql import SparkSession
+from pyspark.sql.types import StructType, StructField, StringType
+
+# Create a SparkSession
+spark = SparkSession.builder.appName('Rule Matching').getOrCreate()
+
+# Define the schema for the input tables
+T5_schema = StructType([
+    StructField('Company ID & Name', StringType(), True),
+    StructField('fin_orig_supplier_nm', StringType(), True),
+    StructField('fin_source_amt', StringType(), True),
+    StructField('Ticket_no', StringType(), True),
+    StructField('Acct_no', StringType(), True),
+    StructField('Amount', StringType(), True),
+    StructField('Currency', StringType(), True),
+    StructField('Date', StringType(), True),
+    StructField('C&D indicator', StringType(), True),
+    StructField('RPIC', StringType(), True)
+])
+
+Invoice_schema = StructType([
+    StructField('Invoice ID', StringType(), True),
+    StructField('inv_match_source_amt', StringType(), True),
+    StructField('inv_erp_vend_no', StringType(), True),
+    StructField('inv_po_no', StringType(), True)
+])
+
+# Read the rules from a text file
+with open("Z:/Desktop/Rules_1.txt", 'r') as f:
+    rule_strings = f.readlines()
+
+# Remove new line characters and empty lines, and convert to list of functions
+rules = []
+for rule_string in rule_strings:
+    rule_string = rule_string.strip()
+    if rule_string:
+        rule = expr(f"CASE WHEN {rule_string} THEN 1 ELSE 0 END")
+        rules.append(rule)
+
+# Define a function to apply the rules to each row pair and return the rule index
+def match_row(T5, Invoice, used_invoice_ids):
+    for i, rule in enumerate(rules):
+        if rule(T5, Invoice):
+            # Check if the invoice ID has already been used
+            if Invoice['Invoice ID'] not in used_invoice_ids:
+                return True, i+1
+    return False, "Unmatched"
+
+# Read in the two Excel sheets as Spark DataFrames
+T5_df = spark.read.format("excel").option("header", "true").option("inferSchema", "false").schema(T5_schema).load("Z:/Downloads/Unmatched_trans_Data_1.xlsx")
+Invoice_df = spark.read.format("excel").option("header", "true").option("inferSchema", "false").schema(Invoice_schema).load("Z:/Downloads/Unmatched_Inv_Data_1.xlsx")
+
+# Create an empty list for the output data
+output_data = []
+
+# Define a dictionary for rule descriptions
+rule_descriptions = {
+    1: 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same',
+    2: 'Ticket_no_right_of_12'
+}
+
+# Create a list of used invoice IDs
+used_invoice_ids = []
+
+# Loop through each row in table1 and find a match in table2
+for T5_row in T5_df.rdd.toLocalIterator():
+    matched = False
+    for Invoice_row in Invoice_df.rdd.toLocalIterator():
+        matched, rule_index = match_row(T5_row, Invoice_row, used_invoice_ids)
+        if matched:
+            description = rule_descriptions[rule_index]
+            output_data.append({'Company ID & Name': T5_row['Company ID & Name'], 'Match Rule': rule_index, 'description': description, 'fin_orig_supplier_nm': T5_row['fin_orig_supplier_nm'], 'fin_source_amt': T5_row['fin_source_amt'],
+
+
+        'Ticket_no': T5_row['Ticket_no'], 'Acct_no': T5_row['Acct_no'], 'Amount': T5_row['Amount'], 'Currency': T5_row['Currency'], 'Date': T5_row['Date'], 'C&D indicator': T5_row['C&D indicator'], 'RPIC': T5_row['RPIC'], 'Invoice ID': Invoice_row['Invoice ID'], 'inv_match_source_amt': Invoice_row['inv_match_source_amt'], 'inv_erp_vend_no': Invoice_row['inv_erp_vend_no'], 'inv_po_no': Invoice_row['inv_po_no']})
+        used_invoice_ids.append(Invoice_row['Invoice ID'])
+        break
+output_df = spark.createDataFrame(output_data)
+output_df.write.format("excel").option("header", "true").save("Z:/Downloads/Output_Data_1.xlsx")
