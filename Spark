@@ -760,3 +760,94 @@ output_df = T5_table.crossJoin(Invoice_table) \
         col("Invoice.inv_erp_vend_no").alias("inv_erp_vend_no"),
         col("Invoice.inv_po_no").alias("inv_po_no")
     )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import pyspark.sql.functions as F
+from pyspark.sql.types import *
+from pyspark.sql import SparkSession
+Create SparkSession
+
+spark = SparkSession.builder.appName("Matching").getOrCreate()
+Read the rules from a text file
+
+with open("Z:/Desktop/Rules_1.txt", 'r') as f:
+rule_strings = f.readlines()
+Remove new line characters and empty lines, and convert to list of functions
+
+rules = []
+for rule_string in rule_strings:
+rule_string = rule_string.strip()
+if rule_string:
+rule = eval(f"lambda row, row2: {rule_string}")
+rules.append(rule)
+Define a function to apply the rules to each row pair and return the rule index
+
+def match_row(T5, Invoice):
+for i, rule in enumerate(rules):
+if rule(T5, Invoice):
+return True, i+1
+return False, "Unmatched"
+Define schema for input data
+
+schema = StructType([
+StructField("Company ID & Name", StringType(), True),
+StructField("fin_orig_supplier_nm", StringType(), True),
+StructField("fin_source_amt", StringType(), True),
+StructField("Currency", StringType(), True),
+StructField("Date", StringType(), True),
+StructField("C&D indicator", StringType(), True),
+StructField("RPIC", StringType(), True)
+])
+Read in the two Excel sheets as DataFrames
+
+T5_table = spark.read.format("com.crealytics.spark.excel")
+.option("dataAddress", "'Sheet1'!")
+.option("header", True)
+.option("inferSchema", False)
+.option("schema", schema)
+.load("Z:/Downloads/Unmatched_trans_Data_1.xlsx")
+
+Invoice_table = spark.read.format("com.crealytics.spark.excel")
+.option("dataAddress", "'Sheet1'!")
+.option("header", True)
+.option("inferSchema", False)
+.option("schema", schema)
+.load("Z:/Downloads/Unmatched_Inv_Data_1.xlsx")
+Define a function to apply the matching logic and return a DataFrame with the matched data
+
+def match_data(T5_table, Invoice_table):
+output_data = []
+rule_descriptions = {
+1: 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same',
+2: 'Ticket_no_right_of_12'
+}
+for T5_row in T5_table.rdd.toLocalIterator():
+matched = False
+for Invoice_row in Invoice_table.rdd.toLocalIterator():
+matched, rule_index = match_row(T5_row, Invoice_row)
+if matched:
+description = rule_descriptions[rule_index]
+output_data.append((T5_row["Company ID & Name"], rule_index, description, T5_row["fin_orig_supplier_nm"], T5_row["fin_source_amt"], Invoice_row["fin_source_amt"], Invoice_row["inv_erp_vend_no"], Invoice_row["inv_po_no"]))
+break
+output_columns = ['Company ID & Name', 'Match Rule', 'description', 'fin_orig_supplier_nm', 'fin_source_amt', 'inv_match_source_amt', 'inv_erp_vend_no', 'inv_po_no']
+output_df = spark.createDataFrame(output_data, output_columns)
+return output_df
+Call the match_data function to get the matched data
+
+matched_data = match_data(T5_table, Invoice_table)
+Aggregate the data and add a total row
+
+aggregated = matched_data.groupby(['Company ID & Name',
