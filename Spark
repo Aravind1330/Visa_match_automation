@@ -472,3 +472,7 @@ Write the aggregated data to an Excel file
 
 aggregated.select(['Company ID & Name', 'Match Rule', 'Match Count']).write.format("excel").option("header", "true").option("dateFormat", "yyyy-mm-dd").option("timestampFormat", "yyyy-mm-dd hh:mm:ss").save("Z:/Desktop/aggregated_output2.xlsx")
 
+
+
+T5_df = T5_df.withColumn("fin_orig_supplier_nm", F.col("fin_orig_supplier_nm").cast("string"))
+
