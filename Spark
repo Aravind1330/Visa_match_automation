@@ -536,3 +536,73 @@ for T5_row in T5_df.rdd.collect():
 
 
 
+
+
+
+
+
+
+
+
+
+
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, lit
+
+# Create a SparkSession
+spark = SparkSession.builder.appName("MatchingData").getOrCreate()
+
+# Read the rules from a text file
+rule_strings = spark.read.text("Z:/Desktop/Rules_1.txt").rdd.map(lambda row: row[0]).collect()
+
+# Remove new line characters and empty lines, and convert to list of functions
+rules = []
+for rule_string in rule_strings:
+    rule_string = rule_string.strip()
+    if rule_string:
+        rule = eval(f"lambda T5, Invoice: {rule_string}")
+        rules.append(rule)
+
+# Define a function to apply the rules to each row pair and return the rule index
+def match_row(T5, Invoice):
+    for i, rule in enumerate(rules):
+        if rule(T5, Invoice):
+            return True, i+1
+    return False, "Unmatched"
+
+# Read in the two Excel sheets as dataframes
+T5_table = spark.read.format("excel").option("header", "true").load("Z:/Downloads/Unmatched_trans_Data_1.xlsx")
+Invoice_table = spark.read.format("excel").option("header", "true").load("Z:/Downloads/Unmatched_Inv_Data_1.xlsx")
+
+# Create an empty list for the output data
+output_data = []
+
+# Define a dictionary for rule descriptions
+rule_descriptions = {
+    1: 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same',
+    2: 'Ticket_no_right_of_12'
+}
+
+# Loop through each row in table1 and find a match in table2
+for T5 in T5_table.collect():
+    matched = False
+    for Invoice in Invoice_table.collect():
+        matched, rule_index = match_row(T5, Invoice)
+        if matched:
+            description = rule_descriptions[rule_index]
+            output_data.append({'Company ID & Name': T5['Company ID & Name'], 'Match Rule': rule_index, 'description': description, 'fin_orig_supplier_nm': T5['fin_orig_supplier_nm'], 'fin_source_amt': T5['fin_source_amt'], 'inv_match_source_amt': Invoice['inv_match_source_amt'], 'inv_erp_vend_no': Invoice['inv_erp_vend_no'], 'inv_po_no': Invoice['inv_po_no']})
+            break
+
+# Convert the output data to a Spark dataframe
+output_df = spark.createDataFrame(output_data)
+
+# Write the output data to an Excel file
+output_columns = ['Company ID & Name', 'Match Rule', 'description', 'fin_orig_supplier_nm', 'fin_source_amt', 'inv_match_source_amt', 'inv_erp_vend_no', 'inv_po_no']
+output_df = output_df.select([col(c) for c in output_columns])
+aggregated = output_df.groupBy('Company ID & Name', 'Match Rule').agg({'Match Rule': 'count'}).withColumnRenamed('count(Match Rule)', 'TRF')
+total = aggregated.agg({"TRF": "sum"}).collect()[0][0]
+aggregated = aggregated.withColumn('Company ID & Name', lit('-')).withColumn('description', lit('-')).withColumn('TRF', lit(total)).union(aggregated)
+
+output_df.write.format("excel").option("header", "true").mode("overwrite").save("Z:/Desktop/output2.xlsx", sheet_name="Output")
+aggregated.write
+
