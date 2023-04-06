@@ -1089,3 +1089,28 @@ total = output_df.count()
 output_df = output_df.withColumn("TRF", lit(1))
 
 # Aggregate the data by Company ID & Name and Match Rule, and add a
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Invoice_table['inv_match_source_amt'] = Invoice_table['inv_match_source_amt'].str.replace('-', '')
+
+# Convert the modified invoice data to a dictionary
+Invoice_table = Invoice_table.to_dict(orient='records')
