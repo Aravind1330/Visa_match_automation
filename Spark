@@ -654,3 +654,19 @@ output_columns = ['Company ID & Name', 'Match Rule', 'description', 'fin_orig_su
 aggregated = output_df.groupBy('Company ID & Name', 'Match Rule').agg(count('*').alias('TRF')).withColumn('Match Rule', when(col('Match Rule') == 1, 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same').when(col('Match Rule') == 2, 'Ticket_no_right_of_12')).orderBy('Company ID & Name', 'Match Rule')
 total = aggregated.select(sum('TRF')).collect()[0][0]
 aggregated = aggregated.union(spark.createDataFrame([('Total',
+
+
+
+
+
+
+
+
+
+def match_row(T5_cols, Invoice_cols):
+    T5 = tuple(T5_cols)
+    Invoice = tuple(Invoice_cols)
+    for i, rule in enumerate(rules):
+        if rule(T5, Invoice):
+            return True, i+1
+    return False, "Unmatched"
