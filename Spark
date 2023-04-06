@@ -710,3 +710,22 @@ aggregated = output_df.groupBy('Company ID & Name', 'Match Rule').agg
 output_df.write.format("com.databricks.spark.csv").
 
 joined_df = T5_df.crossJoin(Invoice_df).withColumn("matched_rule", match_row_udf(array([col("T5_df."+c) for c in T5_df.columns]), array([col("Invoice_df."+c) for c in Invoice_df.columns])))
+
+
+
+
+
+
+
+
+
+
+# Define a UDF to apply the match_row function to each row pair
+match_row_udf = spark.udf.register("match_row", match_row)
+
+# Create a new DataFrame by applying the UDF to each row pair
+joined_df = T5_table.crossJoin(Invoice_table)
+matched_df = joined_df.select("*", match_row_udf(col("T5"), col("Invoice")).alias("matched"))
+
+# Filter out the unmatched rows and add a column for the rule index
+matched_rows = matched_df.filter(col("matched")[0]).withColumn("Match Rule", col("matched")[1])
