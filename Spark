@@ -271,3 +271,88 @@ output_df.coalesce(1).write.csv("Z:/Desktop/Invoice_Matching_Output", header=Tru
 Stop the Spark session
 
 spark.stop()
+
+
+
+
+
+
+from pyspark.sql.functions import col, lit, when
+from pyspark.sql import SparkSession
+
+# Create SparkSession
+spark = SparkSession.builder.appName("Rule Matching").getOrCreate()
+
+# Read the rules from a text file
+with open("Z:/Desktop/Rules_1.txt", 'r') as f:
+    rule_strings = f.readlines()
+
+# Remove new line characters and empty lines, and convert to list of functions
+rules = []
+for rule_string in rule_strings:
+    rule_string = rule_string.strip()
+    if rule_string:
+        rule = eval(f"lambda T5, Invoice: {rule_string}")
+        rules.append(rule)
+
+# Define a function to apply the rules to each row pair and return the rule index
+def match_row(T5, Invoice, used_invoice_ids):
+    for i, rule in enumerate(rules):
+        if rule(T5, Invoice):
+            # Check if the invoice ID has already been used
+            if Invoice['Invoice ID'] not in used_invoice_ids:
+                return True, i+1
+    return False, "Unmatched"
+
+# Read in the two Excel sheets as DataFrames
+T5_df = spark.read.format("com.crealytics.spark.excel") \
+            .option("dataAddress", "'Sheet1'!") \
+            .option("header", "true") \
+            .option("inferSchema", "true") \
+            .load("Z:/Downloads/Unmatched_trans_Data_1.xlsx") \
+            .select([col(c).cast("string") for c in ["Company ID & Name", "fin_orig_supplier_nm", "fin_source_amt"]])
+
+Invoice_df = spark.read.format("com.crealytics.spark.excel") \
+                .option("dataAddress", "'Sheet1'!") \
+                .option("header", "true") \
+                .option("inferSchema", "true") \
+                .load("Z:/Downloads/Unmatched_Inv_Data_1.xlsx") \
+                .select([col(c).cast("string") for c in ["Invoice ID", "inv_match_source_amt", "inv_erp_vend_no", "inv_po_no"]])
+
+# Create an empty list for the output data
+output_data = []
+
+# Define a dictionary for rule descriptions
+rule_descriptions = {
+    1: 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same',
+    2: 'Ticket_no_right_of_12'
+}
+
+# Create a list of used invoice IDs
+used_invoice_ids = []
+
+# Loop through each row in table1 and find a match in table2
+for T5_row in T5_df.collect():
+    matched = False
+    for Invoice_row in Invoice_df.collect():
+        matched, rule_index = match_row(T5_row.asDict(), Invoice_row.asDict(), used_invoice_ids)
+        if matched:
+            description = rule_descriptions[rule_index]
+            output_data.append({'Company ID & Name': T5_row['Company ID & Name'], 'Match Rule': rule_index, 'description': description, 'fin_orig_supplier_nm': T5_row['fin_orig_supplier_nm'], 'fin_source_amt': T5_row['fin_source_amt'], 'inv_match_source_amt': Invoice_row['inv_match_source_amt'], 'inv_erp_vend_no': Invoice_row['inv_erp_vend_no'], 'inv_po_no': Invoice_row['inv_po_no']})
+            used_invoice_ids.append(Invoice_row['Invoice ID'])
+            break
+
+# Convert output_data to a DataFrame
+output_df = spark.createDataFrame(output_data)
+
+# Write the output data to an Excel file
+output_df.select(col('Company
+ID & Name').alias('Company ID and Name'), col('Match Rule'), col('description'), col('fin_orig_supplier_nm').alias('Financial Orig. Supplier Name'), col('fin_source_amt').alias('Financial Source Amount'), col('inv_match_source_amt').alias('Invoice Matched Source Amount'), col('inv_erp_vend_no').alias('Invoice ERP Vendor Number'), col('inv_po_no').alias('Invoice PO Number'))
+.write.format('com.crealytics.spark.excel')
+.option('header', 'true')
+.option('dataAddress', "'Sheet1'!")
+.mode('overwrite')
+.save('Z:/Downloads/Matched_Data_1.xlsx')
+Stop SparkSession
+
+spark.stop()
