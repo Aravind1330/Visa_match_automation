@@ -851,3 +851,34 @@ matched_data = match_data(T5_table, Invoice_table)
 Aggregate the data and add a total row
 
 aggregated = matched_data.groupby(['Company ID & Name',
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def match_data(T5_table, Invoice_table):
+    output_data = []
+    rule_descriptions = {
+        1: 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same',
+        2: 'Ticket_no_right_of_12'
+    }
+    for T5_row in T5_table.collect():
+        matched = False
+        for Invoice_row in Invoice_table.collect():
+            matched, rule_index = match_row(T5_row, Invoice_row)
+            if matched:
+                description = rule_descriptions[rule_index]
+                output_data.append((T5_row["Company ID & Name"], rule_index, description, T5_row["fin_orig_supplier_nm"], T5_row["fin_source_amt"], Invoice_row["fin_source_amt"], Invoice_row["inv_erp_vend_no"], Invoice_row["inv_po_no"]))
+                break
+        if not matched:
+            output_data.append((T5_row["Company ID & Name"], "Unmatched", "", T5_row["fin_orig_supplier_nm"], T5_row["fin_source_amt"], "", "", ""))
+  
