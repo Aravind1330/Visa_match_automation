@@ -356,3 +356,44 @@ ID & Name').alias('Company ID and Name'), col('Match Rule'), col('description'),
 Stop SparkSession
 
 spark.stop()
+
+
+
+
+
+
+
+
+
+from pyspark.sql.functions import col
+
+def match_row(T5, Invoice, used_invoice_ids):
+    for i, rule in enumerate(rules):
+        # Join T5 and Invoice dataframes on common column
+        joined_df = T5.join(Invoice, T5.fin_orig_supplier_nm[-13:] == Invoice.inv_ticket_num[-13:], 'inner')
+        
+        # Apply the rule function to the joined dataframe
+        matched_df = joined_df.filter(rule(col('T5'), col('Invoice')))
+        
+        # Check if any rows matched the rule
+        if matched_df.count() > 0:
+            # Check if the invoice ID has already been used
+            if Invoice['Invoice ID'] not in used_invoice_ids:
+                return True, i+1
+    return False, "Unmatched"
+
+
+
+
+from pyspark.sql import SparkSession
+
+# Create a Spark session
+spark = SparkSession.builder.appName("InvoiceMatching").getOrCreate()
+
+# Read in the two Excel sheets as Spark dataframes
+T5_table = spark.read.format("com.crealytics.spark.excel").option("header", "true").load("Z:/Downloads/Unmatched_trans_Data_1.xlsx")
+Invoice_table = spark.read.format("com.crealytics.spark.excel").option("header", "true").load("Z:/Downloads/Unmatched_Inv_Data_1.xlsx")
+
+# Convert data types to string
+T5_table = T5_table.select([col(c).cast("string") for c in T5_table.columns])
+Invoice_table = Invoice_table.select([col(c).cast("string") for c in Invoice_table.columns])
