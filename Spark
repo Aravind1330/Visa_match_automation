@@ -882,3 +882,42 @@ def match_data(T5_table, Invoice_table):
         if not matched:
             output_data.append((T5_row["Company ID & Name"], "Unmatched", "", T5_row["fin_orig_supplier_nm"], T5_row["fin_source_amt"], "", "", ""))
   
+
+
+
+
+
+
+
+
+
+
+# Define a function to apply the matching logic and return a DataFrame with the matched data
+def match_data(T5_table, Invoice_table):
+    output_data = []
+    rule_descriptions = {
+        1: 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same',
+        2: 'Ticket_no_right_of_12'
+    }
+    for T5_row in T5_table.collect():
+        output_row = None
+        matched = False
+        for Invoice_row in Invoice_table.collect():
+            matched, rule_index = match_row(T5_row, Invoice_row)
+            if matched:
+                description = rule_descriptions[rule_index]
+                output_row = (T5_row["Company ID & Name"], rule_index, description, T5_row["fin_orig_supplier_nm"], T5_row["fin_source_amt"], Invoice_row["fin_source_amt"], Invoice_row["inv_erp_vend_no"], Invoice_row["inv_po_no"])
+                break
+        if not matched:
+            output_row = (T5_row["Company ID & Name"], "Unmatched", "", T5_row["fin_orig_supplier_nm"], T5_row["fin_source_amt"], "", "", "")
+        output_data.append(output_row)
+    
+    output_columns = ['Company ID & Name', 'Match Rule',
+                      'Match Rule Description', 'Supplier Name',
+                      'T5 Amount', 'Invoice Amount',
+                      'ERP Vendor Number', 'PO Number']
+    
+    # Convert the output data to a DataFrame
+    output_df = spark.createDataFrame(output_data, output_columns)
+    
+    return output_df
