@@ -729,3 +729,34 @@ matched_df = joined_df.select("*", match_row_udf(col("T5"), col("Invoice")).alia
 
 # Filter out the unmatched rows and add a column for the rule index
 matched_rows = matched_df.filter(col("matched")[0]).withColumn("Match Rule", col("matched")[1])
+
+
+
+
+
+
+
+
+
+
+
+
+# Define a UDF for applying the matching rules
+match_row_udf = spark.udf.register("match_row", match_row)
+
+# Apply the matching rules to each row pair and create a new dataframe with the results
+output_df = T5_table.crossJoin(Invoice_table) \
+    .withColumn("matched", match_row_udf(col("T5"), col("Invoice"))) \
+    .filter(col("matched")[0]) \
+    .select(
+        col("T5.Company ID & Name").alias("Company ID & Name"),
+        when(col("matched")[1] == 1, "Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same")
+        .when(col("matched")[1] == 2, "Ticket_no_right_of_12")
+        .otherwise("Unmatched").alias("description"),
+        col("matched")[1].alias("Match Rule"),
+        col("T5.fin_orig_supplier_nm").alias("fin_orig_supplier_nm"),
+        col("T5.fin_source_amt").alias("fin_source_amt"),
+        col("Invoice.inv_match_source_amt").alias("inv_match_source_amt"),
+        col("Invoice.inv_erp_vend_no").alias("inv_erp_vend_no"),
+        col("Invoice.inv_po_no").alias("inv_po_no")
+    )
