@@ -684,3 +684,28 @@ output_df = joined_df.filter(col("matched_rule.matched") == True).select(col("T5
 output_columns = ['Company ID & Name', 'Match Rule', 'description', 'fin_orig_supplier_nm', 'fin_source_amt', 'inv_match_source_amt', 'inv_erp_vend_no', 'inv_po_no']
 aggregated = output_df.groupBy('Company ID & Name', 'Match Rule').agg
 
+
+
+
+
+
+
+
+
+
+
+
+# Define a UDF to apply the match_row function to each row pair
+match_row_udf = udf(lambda T5_cols, Invoice_cols: match_row(T5_cols, Invoice_cols), StructType([StructField("matched", BooleanType()), StructField("rule_index", StringType())]))
+
+# Join the two dataframes and apply the match_row UDF
+joined_df = T5_df.crossJoin(Invoice_df).withColumn("matched_rule", match_row_udf(array([col("T5_df."+c) for c in T5_df.columns]), array([col("Invoice_df."+c) for c in Invoice_df.columns])))
+
+# Extract the matched rows and add rule descriptions
+output_df = joined_df.filter(col("matched_rule.matched") == True).select(col("T5_df.Company ID & Name"), col("matched_rule.rule_index"), when(col("matched_rule.rule_index") == 1, "Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same").when(col("matched_rule.rule_index") == 2, "Ticket_no_right_of_12").alias("description"), col("T5_df.fin_orig_supplier_nm"), col("T5_df.fin_source_amt"), col("Invoice_df.inv_match_source_amt"), col("Invoice_df.inv_erp_vend_no"), col("Invoice_df.inv_po_no"))
+
+# Write the output data to an Excel file
+output_columns = ['Company ID & Name', 'Match Rule', 'description', 'fin_orig_supplier_nm', 'fin_source_amt', 'inv_match_source_amt', 'inv_erp_vend_no', 'inv_po_no']
+aggregated = output_df.groupBy('Company ID & Name', 'Match Rule').agg
+output_df.write.format("com.databricks.spark.csv").
+
