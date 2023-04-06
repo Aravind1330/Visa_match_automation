@@ -476,3 +476,31 @@ aggregated.select(['Company ID & Name', 'Match Rule', 'Match Count']).write.form
 
 T5_df = T5_df.withColumn("fin_orig_supplier_nm", F.col("fin_orig_supplier_nm").cast("string"))
 
+
+
+
+
+# Define a function to apply the rules to each row pair and return the rule index
+def match_row(T5, Invoice, used_invoice_ids):
+    for i, rule in enumerate(rules):
+        if rule(T5, Invoice):
+            # Check if the invoice ID has already been used
+            if Invoice['Invoice ID'] not in used_invoice_ids:
+                return True, i+1
+    return False, None  # return None instead of "Unmatched"
+
+# ...
+
+# Loop through each row in table1 and find a match in table2
+for T5_row in T5_df.rdd.collect():
+    matched = False
+    for Invoice_row in Invoice_df.rdd.collect():
+        matched, rule_index = match_row(T5_row, Invoice_row, used_invoice_ids)
+        if matched:
+            description = rule_descriptions[rule_index]
+            invoice_id = Invoice_row['Invoice ID']
+            if invoice_id is not None:  # check if Invoice ID is None
+                output_data.append({'Company ID & Name': T5_row['Company ID & Name'], 'Match Rule': rule_index, 'description': description, 'fin_orig_supplier_nm': T5_row['fin_orig_supplier_nm'], 'fin_source_amt': T5_row['fin_source_amt'], 'inv_match_source_amt': Invoice_row['inv_match_source_amt'], 'inv_erp_vend_no': Invoice_row['inv_erp_vend_no'], 'inv_po_no': Invoice_row['inv_po_no'], 'Invoice ID': invoice_id})
+                used_invoice_ids.append(invoice_id)
+            break
+
