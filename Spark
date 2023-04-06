@@ -467,5 +467,8 @@ output_columns = ['Company ID & Name', 'Match Rule', 'description', 'fin_orig_su
 output_df.select(output_columns).write.format("excel").option("header", "true").option("dateFormat", "yyyy-mm-dd").option("timestampFormat", "yyyy-mm-dd hh:mm:ss").save("Z:/Desktop/output2.xlsx")
 
 # Calculate the total number of matches for each company and rule
-aggregated = output_df.groupBy(['Company ID & Name', 'Match Rule
+aggregated = output_df.groupBy(['Company ID & Name', 'Match Rule']).agg(F.count('*').alias('Match Count'))
+Write the aggregated data to an Excel file
+
+aggregated.select(['Company ID & Name', 'Match Rule', 'Match Count']).write.format("excel").option("header", "true").option("dateFormat", "yyyy-mm-dd").option("timestampFormat", "yyyy-mm-dd hh:mm:ss").save("Z:/Desktop/aggregated_output2.xlsx")
 
