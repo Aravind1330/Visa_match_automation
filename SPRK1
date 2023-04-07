@@ -129,3 +129,14 @@ aggregated = aggregated.union(total_df)
 
 # Write the aggregated data to a separate csv file
 aggregated.write.format('com.databricks.spark.csv').options(header='true
+
+
+
+
+
+
+# Find a match for each row in T5 and update the "Match Rule" column
+joined_df = T5_df.crossJoin(Invoice_df)
+matched_df = joined_df.filter(match_row_udf(col('T5_df.*'), col('Invoice_df.*')))
+rule_index_udf = udf(lambda T5, Invoice: match_row(T5, Invoice)[1])
+T5_df = T5_df.join(matched_df, ['T5_no']).withColumn('Match Rule', rule_index_udf(col('T5_df.*'), col('Invoice_df.*')))
