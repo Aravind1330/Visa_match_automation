@@ -140,3 +140,71 @@ joined_df = T5_df.crossJoin(Invoice_df)
 matched_df = joined_df.filter(match_row_udf(col('T5_df.*'), col('Invoice_df.*')))
 rule_index_udf = udf(lambda T5, Invoice: match_row(T5, Invoice)[1])
 T5_df = T5_df.join(matched_df, ['T5_no']).withColumn('Match Rule', rule_index_udf(col('T5_df.*'), col('Invoice_df.*')))
+
+
+
+
+
+
+
+
+
+
+from pyspark.sql.functions import udf
+from pyspark.sql.types import BooleanType, IntegerType, StringType, StructType, StructField
+
+# Define the schema for the input data
+schema = StructType([
+    StructField("fin_orig_supplier_nm", StringType()),
+    StructField("fin_source_amt", StringType()),
+    StructField("Company ID & Name", StringType()),
+    StructField("Match Rule", StringType()),
+    StructField("description", StringType())
+])
+
+# Read the rules from a text file
+with open("Z:/Desktop/Rules_1.txt", 'r') as f:
+    rule_strings = f.readlines()
+
+# Remove new line characters and empty lines, and convert to list of functions
+rules = []
+for rule_string in rule_strings:
+    rule_string = rule_string.strip()
+    if rule_string:
+        rule = udf(eval(f"lambda T5, Invoice: {rule_string}"), BooleanType())
+        rules.append(rule)
+
+# Define a function to apply the rules to each row pair and return the rule index
+def match_row(T5, Invoice):
+    for i, rule in enumerate(rules):
+        if rule(T5, Invoice):
+            return True, i+1
+    return False, "Unmatched"
+
+# Read in the first Excel sheet
+T5_df = spark.read.format("excel").option("header", "true").option("inferSchema", "true").load("Z:/Downloads/Unmatched_trans_Data_1.xlsx")
+# Read in the second Excel sheet
+Invoice_df = spark.read.format("excel").option("header", "true").option("inferSchema", "true").load("Z:/Downloads/Unmatched_Inv_Data_1.xlsx")
+
+# Define the UDF to match each row in table1 with table2
+match_row_udf = udf(lambda T5, Invoice: match_row(T5, Invoice), StructType([
+    StructField("matched", BooleanType()),
+    StructField("rule_index", IntegerType())
+]))
+
+# Join the two dataframes and apply the match_row_udf to each row pair
+matched_df = T5_df.crossJoin(Invoice_df).withColumn("match_result", match_row_udf(T5_df, Invoice_df))
+
+# Extract the columns of interest and filter the matched rows
+matched_df = matched_df.select("fin_orig_supplier_nm", "fin_source_amt", "Company ID & Name", "match_result.rule_index.alias('Match Rule')", "description").filter("match_result.matched")
+
+# Write the matched data to an Excel file
+matched_df.write.format("excel").option("header", "true").save("Z:/Desktop/output2.xlsx")
+
+# Aggregate the matched data and compute the total count
+aggregated_df = matched_df.groupBy("Company ID & Name", "Match Rule").count().withColumnRenamed("count", "TRF")
+total_count = aggregated_df.agg({"TRF": "sum"}).collect()[0][0]
+
+# Append the total row to the aggregated data and write to the same Excel file
+aggregated_df = aggregated_df.unionAll(spark.createDataFrame([["Total", "-", total_count]], schema))
+aggregated_df.write.format("excel").option("header", "true").mode("append").save("Z:/Desktop/output2.xlsx")
