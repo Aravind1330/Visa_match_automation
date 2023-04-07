@@ -1,0 +1,76 @@
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import udf
+from pyspark.sql.types import BooleanType, IntegerType, StringType, StructField, StructType
+
+# Create SparkSession
+spark = SparkSession.builder.appName("Matching").getOrCreate()
+
+# Define schema for the input data
+input_schema = StructType([
+    StructField("Company ID & Name", StringType(), True),
+    StructField("fin_orig_supplier_nm", StringType(), True),
+    StructField("fin_source_amt", StringType(), True),
+    StructField("Currency", StringType(), True),
+    StructField("Date", StringType(), True),
+    StructField("C&D indicator", StringType(), True),
+    StructField("RPIC", StringType(), True)
+])
+
+# Read the input data from Excel sheets
+t5_table = spark.read.format("com.crealytics.spark.excel").option("header", "true").schema(input_schema).load("Z:/Downloads/Unmatched_trans_Data_1.xlsx")
+invoice_table = spark.read.format("com.crealytics.spark.excel").option("header", "true").schema(input_schema).load("Z:/Downloads/Unmatched_Inv_Data_1.xlsx")
+
+# Read the rules from a text file
+with open("Z:/Desktop/Rules_1.txt", 'r') as f:
+    rule_strings = f.readlines()
+
+# Remove new line characters and empty lines, and convert to list of functions
+rules = []
+for rule_string in rule_strings:
+    rule_string = rule_string.strip()
+    if rule_string:
+        rule = eval(f"lambda row, row2: {rule_string}")
+        rules.append(rule)
+
+# Define a UDF to apply the rules to each row pair and return the rule index
+match_row_udf = udf(lambda t5, invoice: match_row(t5, invoice), BooleanType())
+rule_index_udf = udf(lambda t5, invoice: get_rule_index(t5, invoice), IntegerType())
+
+def match_row(t5, invoice):
+    for i, rule in enumerate(rules):
+        if rule(t5, invoice):
+            return True
+    return False
+
+def get_rule_index(t5, invoice):
+    for i, rule in enumerate(rules):
+        if rule(t5, invoice):
+            return i+1
+    return -1
+
+# Join the tables using a cross join, apply the matching rules, and select the relevant columns
+matched_data = t5_table.crossJoin(invoice_table).filter(match_row_udf(t5_table, invoice_table))
+output_data = matched_data.select(
+    t5_table["Company ID & Name"],
+    rule_index_udf(t5_table, invoice_table).alias("Match Rule"),
+    "fin_orig_supplier_nm",
+    "fin_source_amt",
+    "inv_match_source_amt",
+    "inv_erp_vend_no",
+    "inv_po_no"
+)
+
+# Define a dictionary for rule descriptions
+rule_descriptions = {
+    1: 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same',
+    2: 'Ticket_no_right_of_12'
+}
+
+# Add a column for the rule description
+output_data = output_data.withColumn("description", rule_descriptions[output_data["Match Rule"]])
+
+# Write the output data to an Excel file
+output_data.write.format("com.crealytics.spark.excel").option("header", "true").option("dataAddress", "'Output'!A1").save("Z:/Desktop/output2.xlsx")
+
+# Aggregate the data by Company ID & Name and Match Rule, and add a row for the total count
+aggregated
