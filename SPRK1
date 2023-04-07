@@ -208,3 +208,79 @@ total_count = aggregated_df.agg({"TRF": "sum"}).collect()[0][0]
 # Append the total row to the aggregated data and write to the same Excel file
 aggregated_df = aggregated_df.unionAll(spark.createDataFrame([["Total", "-", total_count]], schema))
 aggregated_df.write.format("excel").option("header", "true").mode("append").save("Z:/Desktop/output2.xlsx")
+
+
+
+
+
+
+
+from pyspark.sql.functions import udf
+from pyspark.sql.types import StringType, BooleanType, IntegerType
+from pyspark.sql import SparkSession
+
+# Create a SparkSession
+spark = SparkSession.builder.appName("matching").getOrCreate()
+
+# Read the rules from a text file
+with open("Z:/Desktop/Rules_1.txt", 'r') as f:
+    rule_strings = f.readlines()
+
+# Remove new line characters and empty lines, and convert to list of functions
+rules = []
+for rule_string in rule_strings:
+    rule_string = rule_string.strip()
+    if rule_string:
+        rule = udf(lambda row, row2: eval(rule_string), BooleanType())
+        rules.append(rule)
+
+# Define a function to apply the rules to each row pair and return the rule index
+def match_row(T5, Invoice):
+    for i, rule in enumerate(rules):
+        if rule(T5, Invoice):
+            return True, i+1
+    return False, "Unmatched"
+
+# Read in the two Excel sheets as Spark DataFrames
+T5_df = spark.read.format('com.databricks.spark.csv').options(header='true', inferschema='true').load('Z:/Downloads/Unmatched_trans_Data_1.xlsx')
+Invoice_df = spark.read.format('com.databricks.spark.csv').options(header='true', inferschema='true').load('Z:/Downloads/Unmatched_Inv_Data_1.xlsx')
+
+# Define a UDF for rule descriptions
+rule_descriptions = {
+    1: 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same',
+    2: 'Ticket_no_right_of_12'
+}
+get_description = udf(lambda rule_index: rule_descriptions.get(rule_index, ''), StringType())
+
+# Define UDFs to convert column types
+to_str = udf(lambda x: str(x), StringType())
+to_float = udf(lambda x: float(x) if x is not None else None, FloatType())
+
+# Apply UDFs to convert column types
+T5_df = T5_df.withColumn('fin_source_amt', to_float('fin_source_amt'))
+Invoice_df = Invoice_df.withColumn('inv_match_source_amt', to_float('inv_match_source_amt'))
+
+# Create an empty list for the output data
+output_data = []
+
+# Loop through each row in table1 and find a match in table2
+for T5_row in T5_df.collect():
+    matched = False
+    for Invoice_row in Invoice_df.collect():
+        matched, rule_index = match_row(T5_row, Invoice_row)
+        if matched:
+            description = get_description(rule_index)
+            output_data.append({'Company ID & Name': T5_row['Company ID & Name'], 'Match Rule': rule_index, 'description': description, 'fin_orig_supplier_nm': T5_row['fin_orig_supplier_nm'], 'fin_source_amt': T5_row['fin_source_amt'], 'inv_match_source_amt': Invoice_row['inv_match_source_amt']})
+            break
+
+# Convert output data to a Spark DataFrame
+output_df = spark.createDataFrame(output_data)
+
+# Aggregate output data
+aggregated = output_df.groupBy('Company ID & Name', 'Match Rule').count()
+total = aggregated.selectExpr('sum(count)').collect()[0][0]
+aggregated = aggregated.union(spark.createDataFrame([('Total', '-', total)], ['Company ID & Name', 'Match Rule', 'count']))
+
+# Write the output data to an Excel file
+output_columns = ['Company ID & Name', 'Match Rule', 'description', 'fin_orig_supplier_nm', 'fin_source_amt', 'inv_match_source
+
