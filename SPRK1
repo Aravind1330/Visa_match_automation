@@ -284,3 +284,4 @@ aggregated = aggregated.union(spark.createDataFrame([('Total', '-', total)], ['C
 # Write the output data to an Excel file
 output_columns = ['Company ID & Name', 'Match Rule', 'description', 'fin_orig_supplier_nm', 'fin_source_amt', 'inv_match_source
 
+output_df.select(output_columns).coalesce(1).write.format('com.databricks.spark.csv').options(header='true').save('Z:/Desktop/matching_output.csv')
