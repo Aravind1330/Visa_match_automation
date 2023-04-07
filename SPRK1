@@ -56,3 +56,76 @@ total_row = spark.createDataFrame([("Total", "-", total,)], output_df.columns)
 
 # Union the aggregated data with the total row and write to an Excel file
 aggregated.union(total_row).write.format("com.databricks.spark.csv").option("header", "true").option("delimiter", "\t").mode("overwrite").save("Z:/Desktop/output2.csv")
+
+
+
+
+
+from pyspark.sql.functions import col, udf
+from pyspark.sql.types import StringType, BooleanType
+
+# Read the rules from a text file
+with open("Z:/Desktop/Rules_1.txt", 'r') as f:
+    rule_strings = f.readlines()
+
+# Remove new line characters and empty lines, and convert to list of functions
+rules = []
+for rule_string in rule_strings:
+    rule_string = rule_string.strip()
+    if rule_string:
+        rule = eval(f"lambda T5, Invoice: {rule_string}")
+        rules.append(rule)
+
+# Define a function to apply the rules to each row pair and return the rule index
+def match_row(T5, Invoice):
+    for i, rule in enumerate(rules):
+        if rule(T5, Invoice):
+            return True, i+1
+    return False, "Unmatched"
+
+# Define UDFs for applying the match_row function and getting the rule description
+match_row_udf = udf(lambda T5, Invoice: match_row(T5.asDict(), Invoice.asDict()), BooleanType())
+rule_description_udf = udf(lambda rule_index: rule_descriptions.get(rule_index, '-'), StringType())
+
+# Read in the T5 and Invoice data as Spark dataframes
+T5_df = spark.read.format('com.databricks.spark.csv').options(header='true', inferschema='true', delimiter=',', quote='"').load('Z:/Downloads/Unmatched_trans_Data_1.csv')
+Invoice_df = spark.read.format('com.databricks.spark.csv').options(header='true', inferschema='true', delimiter=',', quote='"').load('Z:/Downloads/Unmatched_Inv_Data_1.csv')
+
+# Create an empty column for the match rule index in the T5 dataframe
+T5_df = T5_df.withColumn('Match Rule', lit("Unmatched"))
+
+# Loop through each row in T5 and find a match in Invoice
+for i, T5_row in T5_df.iterrows():
+    matched = False
+    for j, Invoice_row in Invoice_df.iterrows():
+        matched, rule_index = match_row_udf(T5_row, Invoice_row)
+        if matched:
+            T5_df = T5_df.withColumn('Match Rule', lit(rule_index))
+            break
+
+# Define rule descriptions
+rule_descriptions = {
+    1: 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same',
+    2: 'Ticket_no_right_of_12'
+}
+
+# Create the "description" column based on the "Match Rule" column
+T5_df = T5_df.withColumn('description', rule_description_udf(col('Match Rule')))
+
+# Print the updated dataframe
+# T5_df.show()
+
+## Convert to csv
+T5_df.write.format('com.databricks.spark.csv').options(header='true', delimiter=',', quote='"').mode('overwrite').save('Z:/Desktop/output2.csv')
+
+# Aggregate the data by Company ID & Name and Match Rule
+aggregated = T5_df.groupBy('Company ID & Name', 'Match Rule').count().withColumnRenamed('count', 'TRF')
+
+# Add a row for the total count
+total_count = aggregated.select('TRF').agg({'TRF': 'sum'}).collect()[0][0]
+total_row = ('Total', '-', total_count)
+total_df = spark.createDataFrame([total_row], ['Company ID & Name', 'Match Rule', 'TRF'])
+aggregated = aggregated.union(total_df)
+
+# Write the aggregated data to a separate csv file
+aggregated.write.format('com.databricks.spark.csv').options(header='true
