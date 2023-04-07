@@ -1,8 +1,8 @@
+from pyspark.sql.functions import col, lit, when
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, lit, when, expr, count
 
 # Create SparkSession
-spark = SparkSession.builder.appName('rule_matching').getOrCreate()
+spark = SparkSession.builder.appName("Matching Data").getOrCreate()
 
 # Read the rules from a text file
 with open("Z:/Desktop/Rules_1.txt", 'r') as f:
@@ -13,22 +13,22 @@ rules = []
 for rule_string in rule_strings:
     rule_string = rule_string.strip()
     if rule_string:
-        rule = expr(rule_string)
+        rule = eval(f"lambda row, row2: {rule_string}")
         rules.append(rule)
 
 # Define a function to apply the rules to each row pair and return the rule index
 def match_row(T5, Invoice):
     for i, rule in enumerate(rules):
-        if rule:
-            return (True, i+1)
-    return (False, "Unmatched")
+        if rule(T5, Invoice):
+            return True, i+1
+    return False, "Unmatched"
 
-# Read in the two Excel sheets as Spark dataframes
-T5_df = spark.read.format('com.databricks.spark.csv').options(header='true', inferSchema='true').load('Z:/Downloads/Unmatched_trans_Data_1.xlsx')
-Invoice_df = spark.read.format('com.databricks.spark.csv').options(header='true', inferSchema='true').load('Z:/Downloads/Unmatched_Inv_Data_1.xlsx')
+# Read in the two Excel sheets as Spark DataFrames
+T5_table = spark.read.format("com.databricks.spark.csv").option("header", "true").option("inferSchema", "true").load("Z:/Downloads/Unmatched_trans_Data_1.xlsx")
+Invoice_table = spark.read.format("com.databricks.spark.csv").option("header", "true").option("inferSchema", "true").load("Z:/Downloads/Unmatched_Inv_Data_1.xlsx")
 
-# Create an empty dataframe for the output data
-output_df = spark.createDataFrame([], ['Company ID & Name', 'Match Rule', 'description', 'fin_orig_supplier_nm', 'fin_source_amt', 'inv_match_source_amt', 'inv_erp_vend_no', 'inv_po_no'])
+# Create an empty list for the output data
+output_data = []
 
 # Define a dictionary for rule descriptions
 rule_descriptions = {
@@ -37,21 +37,22 @@ rule_descriptions = {
 }
 
 # Loop through each row in table1 and find a match in table2
-for T5_row in T5_df.rdd.collect():
+for T5 in T5_table.collect():
     matched = False
-    for Invoice_row in Invoice_df.rdd.collect():
-        matched, rule_index = match_row(T5_row, Invoice_row)
+    for Invoice in Invoice_table.collect():
+        matched, rule_index = match_row(T5, Invoice)
         if matched:
             description = rule_descriptions[rule_index]
-            output_row = (T5_row['Company ID & Name'], rule_index, description, T5_row['fin_orig_supplier_nm'], T5_row['fin_source_amt'], Invoice_row['inv_match_source_amt'], Invoice_row['inv_erp_vend_no'], Invoice_row['inv_po_no'])
-            output_df = output_df.union(spark.createDataFrame([output_row], ['Company ID & Name', 'Match Rule', 'description', 'fin_orig_supplier_nm', 'fin_source_amt', 'inv_match_source_amt', 'inv_erp_vend_no', 'inv_po_no']))
+            output_data.append({'Company ID & Name': T5['Company ID & Name'], 'Match Rule': rule_index, 'description': description, 'fin_orig_supplier_nm': T5['fin_orig_supplier_nm'], 'fin_source_amt': T5['fin_source_amt'], 'inv_match_source_amt': Invoice['inv_match_source_amt'], 'inv_erp_vend_no': Invoice['inv_erp_vend_no'], 'inv_po_no': Invoice['inv_po_no']})
             break
 
-# Aggregate the output data
-aggregated_df = output_df.groupby('Company ID & Name', 'Match Rule').agg(count('*').alias('TRF'))
-total_df = spark.createDataFrame([('Total', '-', aggregated_df.groupBy().agg(count('*').alias('total_trf')).collect()[0]['total_trf'])], ['Company ID & Name', 'Match Rule', 'TRF'])
-aggregated_df = aggregated_df.union(total_df)
+# Create a Spark DataFrame from the output data list
+output_df = spark.createDataFrame(output_data)
 
-# Write the output data to an Excel file
-output_df.toPandas().to_excel('Z:/Desktop/output2.xlsx', sheet_name='Output', index=False)
-aggregated_df.toPandas().to_excel('Z:/Desktop/output2.xlsx', sheet_name='Aggregated', index=False)
+# Add a column for Total Rows Found (TRF) and calculate the total rows found
+aggregated = output_df.groupBy(['Company ID & Name', 'Match Rule']).count().withColumnRenamed("count", "TRF")
+total = output_df.count()
+total_row = spark.createDataFrame([("Total", "-", total,)], output_df.columns)
+
+# Union the aggregated data with the total row and write to an Excel file
+aggregated.union(total_row).write.format("com.databricks.spark.csv").option("header", "true").option("delimiter", "\t").mode("overwrite").save("Z:/Desktop/output2.csv")
