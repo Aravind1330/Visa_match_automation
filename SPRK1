@@ -1096,3 +1096,67 @@ T5_table = T5_table.withColumn('description', udf(lambda rule: rule_descriptions
 # T5_table.show()
 
 ## Convert to CSV
+
+
+
+
+
+
+
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import lit, udf
+from pyspark.sql.types import StringType, IntegerType
+
+# Start a SparkSession
+spark = SparkSession.builder.appName('Matching Data').getOrCreate()
+
+# Read the rules from a text file
+with open("Z:/Desktop/Rules_1.txt", 'r') as f:
+    rule_strings = f.readlines()
+
+# Remove new line characters and empty lines, and convert to list of functions
+rules = []
+for rule_string in rule_strings:
+    rule_string = rule_string.strip()
+    if rule_string:
+        def rule_func(row, row2, rule_string=rule_string):
+            return eval(rule_string)
+        rules.append(rule_func)
+
+# Define a function to apply the rules to each row pair and return the rule index
+def match_row(T5, Invoice):
+    for i, rule in enumerate(rules):
+        if rule(T5, Invoice):
+            return True, i+1
+    return False, "Unmatched"
+
+# Read in the first CSV file
+T5_table = spark.read.format('com.databricks.spark.csv').option('header', 'true').option('inferSchema', 'true').load('Z:/Downloads/Unmatched_trans_Data_1.csv')
+
+# Read in the second CSV file
+Invoice_table = spark.read.format('com.databricks.spark.csv').option('header', 'true').option('inferSchema', 'true').load('Z:/Downloads/Unmatched_Inv_Data_1.csv')
+
+# Create an empty column for the match rule index
+T5_table = T5_table.withColumn('Match Rule', lit('Unmatched'))
+
+# Loop through each row in table1 and find a match in table2
+def find_match(T5):
+    for Invoice in Invoice_table.rdd.collect():
+        matched, rule_index = match_row(T5, Invoice)
+        if matched:
+            return rule_index
+    return "Unmatched"
+
+# Define UDFs to apply the find_match and rule_descriptions functions to the appropriate columns
+find_match_udf = udf(find_match, StringType())
+rule_descriptions_udf = udf(lambda rule: rule_descriptions.get(rule, '-'), StringType())
+
+# Apply the UDFs to the T5_table DataFrame
+T5_table = T5_table.withColumn('Match Rule', find_match_udf('T5'))
+T5_table = T5_table.withColumn('description', rule_descriptions_udf('Match Rule'))
+
+# Print the updated table
+# T5_table.show()
+
+## Convert to CSV
+# T5_table.write.csv("Z:/Desktop/output2.csv", header=True, mode='overwrite')
