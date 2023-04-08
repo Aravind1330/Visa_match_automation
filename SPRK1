@@ -835,3 +835,65 @@ total = aggregated.agg(F.sum('TRF').alias('Total')).select(F.lit('Total').alias(
 
 output_df.write.format('com.databricks.spark.csv').option('header', 'true').option('delimiter', ',').mode('overwrite').save('Z:/Desktop/output2.csv')
 aggregated.write.format('com.databricks.spark.csv').option('header', 'true').option('delimiter', ',').mode('overwrite').save('Z:/Desktop/aggregated.csv')
+
+
+
+
+
+
+
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, lit, when
+
+# Create a SparkSession
+spark = SparkSession.builder.appName("Match Rows").getOrCreate()
+
+# Read in the T5 and Invoice tables
+T5_table = spark.read.format("com.databricks.spark.csv").option("header", "true").option("inferSchema", "true").load("Z:/Downloads/Unmatched_trans_Data_1.csv")
+Invoice_table = spark.read.format("com.databricks.spark.csv").option("header", "true").option("inferSchema", "true").load("Z:/Downloads/Unmatched_Inv_Data_1.csv")
+
+# Define UDFs for the match rules
+rule1 = lambda T5, Invoice: T5.fin_orig_supplier_nm[-13:] == Invoice.inv_ticket_num[-13:] and T5.fin_source_amt == Invoice.inv_match_source_amt
+rule2 = lambda T5, Invoice: T5.fin_orig_supplier_nm[-12:] == Invoice.inv_ticket_num[-12:] and T5.fin_source_amt == Invoice.inv_match_source_amt
+rule3 = lambda T5, Invoice: T5.fin_orig_supplier_nm[-11:] == Invoice.inv_ticket_num[-11:]
+
+# Define a UDF to apply the rules to each row pair and return the rule index
+match_row_udf = udf(lambda T5, Invoice: \
+                    when(rule1(T5, Invoice), lit(1)) \
+                    .when(rule2(T5, Invoice), lit(2)) \
+                    .when(rule3(T5, Invoice), lit(3)) \
+                    .otherwise(lit(0)), IntegerType())
+
+# Join the T5 and Invoice tables on the Company ID & Name column
+joined_table = T5_table.join(Invoice_table, on=["Company ID & Name"], how="inner")
+
+# Add a column for the match rule index
+joined_table = joined_table.withColumn("Match Rule", match_row_udf(col("T5"), col("Invoice")))
+
+# Define rule descriptions
+rule_descriptions = {
+    1: 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same',
+    2: 'Ticket_no_right_of_12',
+    3: 'Ticket_no_right_of_11'
+}
+
+# Add a column for the description of the match rule
+joined_table = joined_table.withColumn("description", when(col("Match Rule") > 0, rule_descriptions[col("Match Rule")]).otherwise("Unmatched"))
+
+# Write the output to an Excel file
+joined_table.write.format("com.crealytics.spark.excel") \
+    .option("header", "true") \
+    .option("dataAddress", "'Sheet1'!A1") \
+    .save("Z:/Desktop/output2.xlsx")
+
+# Aggregate the data by Company ID & Name and Match Rule
+aggregated = joined_table.groupBy("Company ID & Name", "Match Rule").count().withColumnRenamed("count", "TRF")
+
+# Compute the total count and append it to the aggregated data
+total_count = aggregated.select("TRF").agg({"TRF": "sum"}).collect()[0]["sum(TRF)"]
+total_row = spark.createDataFrame([("Total", "-", total_count)], schema=["Company ID & Name", "Match Rule", "TRF"])
+aggregated = aggregated.union(total_row)
+
+# Write the aggregated data to a separate sheet in the Excel file
+aggregated.write.format("com.crealytics.spark.excel") \
+    .option("header",
