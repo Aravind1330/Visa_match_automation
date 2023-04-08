@@ -645,3 +645,66 @@ output_columns = ['Company ID & Name', 'match_rule', 'description', 'fin_orig_su
 output_df = output_df.select(output_columns)
 
 output_df.write.format("com.databricks.spark.csv
+
+
+
+
+
+
+
+
+
+
+
+
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import udf
+from pyspark.sql.types import StringType, BooleanType, IntegerType
+
+# Define a SparkSession
+spark = SparkSession.builder.appName("matching").getOrCreate()
+
+# Read the rules from a text file
+with open("Z:/Desktop/Rules_1.txt", 'r') as f:
+    rule_strings = f.readlines()
+
+# Remove new line characters and empty lines, and convert to list of functions
+rules = []
+for rule_string in rule_strings:
+    rule_string = rule_string.strip()
+    if rule_string:
+        rule = udf(eval(f"lambda t5, invoice: {rule_string}"), BooleanType())
+        rules.append(rule)
+
+# Define a function to apply the rules to each row pair and return the rule index
+match_row_udf = udf(lambda t5, invoice: [(i+1) for i, rule in enumerate(rules) if rule(t5, invoice)], ArrayType(IntegerType()))
+
+# Read in the two Excel sheets as Spark DataFrames
+T5_df = spark.read.format("com.databricks.spark.csv").option("header", "true").option("inferSchema", "true").load("Z:/Downloads/Unmatched_trans_Data_1.xlsx")
+Invoice_df = spark.read.format("com.databricks.spark.csv").option("header", "true").option("inferSchema", "true").load("Z:/Downloads/Unmatched_Inv_Data_1.xlsx")
+
+# Define a dictionary for rule descriptions
+rule_descriptions = {
+    1: 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same',
+    2: 'Ticket_no_right_of_12'
+}
+
+# Define a UDF for the rule description
+rule_desc_udf = udf(lambda rule_index: rule_descriptions.get(rule_index, "Unmatched"), StringType())
+
+# Join the two DataFrames and apply the matching function to each row pair
+matched_df = T5_df.crossJoin(Invoice_df).withColumn("matched_rules", match_row_udf(T5_df["Company ID & Name"], Invoice_df["Company ID & Name"]))
+
+# Filter out unmatched rows and explode the matched_rules array
+matched_df = matched_df.filter(matched_df["matched_rules"].isNotNull()).select("Company ID & Name", "matched_rules", "fin_orig_supplier_nm", "fin_source_amt", "inv_match_source_amt")
+matched_df = matched_df.select("Company ID & Name", "matched_rules", rule_desc_udf("matched_rules").alias("description"), "fin_orig_supplier_nm", "fin_source_amt", "inv_match_source_amt").withColumn("matched_rule", explode("matched_rules")).drop("matched_rules")
+
+# Aggregate the matched data by Company ID & Name and matched rule
+aggregated_df = matched_df.groupBy("Company ID & Name", "matched_rule", "description").count().withColumnRenamed("count", "TRF")
+total = aggregated_df.select("TRF").rdd.flatMap(lambda x: x).sum()
+total_row = ("Total", "-", total)
+aggregated_df = aggregated_df.union(spark.createDataFrame([total_row], schema=aggregated_df.schema))
+
+# Write the output data to an Excel file
+matched_df.write.format("com.databricks.spark.csv").option("header", "true").option("delimiter", "\t").mode("overwrite").save("Z:/Desktop/output2_matched")
+aggregated_df.write.format("com.databricks.spark.csv").option("header", "
