@@ -897,3 +897,8 @@ aggregated = aggregated.union(total_row)
 # Write the aggregated data to a separate sheet in the Excel file
 aggregated.write.format("com.crealytics.spark.excel") \
     .option("header",
+
+
+
+
+joined_table = joined_table.withColumn("description", when(col("Match Rule") > 0, rule_descriptions[col("Match Rule").cast("int")]).otherwise("Unmatched"))
