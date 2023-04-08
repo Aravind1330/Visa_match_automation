@@ -901,4 +901,73 @@ aggregated.write.format("com.crealytics.spark.excel") \
 
 
 
-joined_table = joined_table.withColumn("description", when(col("Match Rule") > 0, rule_descriptions[col("Match Rule").cast("int")]).otherwise("Unmatched"))
+
+
+
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import udf
+from pyspark.sql.types import BooleanType, IntegerType, StringType, StructType, StructField
+
+# Define the schema for the input data
+T5_schema = StructType([
+    StructField("Company ID & Name", StringType(), True),
+    StructField("fin_orig_supplier_nm", StringType(), True),
+    StructField("fin_source_amt", StringType(), True)
+])
+
+Invoice_schema = StructType([
+    StructField("Company ID & Name", StringType(), True),
+    StructField("inv_ticket_num", StringType(), True),
+    StructField("inv_match_source_amt", StringType(), True)
+])
+
+# Define the matching rules as UDFs
+def rule1(T5, Invoice):
+    if T5["fin_orig_supplier_nm"][-13:] == Invoice["inv_ticket_num"][-13:] \
+        and T5["fin_source_amt"] == Invoice["inv_match_source_amt"]:
+        return True
+    return False
+
+def rule2(T5, Invoice):
+    if T5["fin_orig_supplier_nm"][-12:] == Invoice["inv_ticket_num"][-12:] \
+        and T5["fin_source_amt"] == Invoice["inv_match_source_amt"]:
+        return True
+    return False
+
+def rule3(T5, Invoice):
+    if T5["fin_orig_supplier_nm"][-11:] == Invoice["inv_ticket_num"][-11:] \
+        and T5["fin_source_amt"] == Invoice["inv_match_source_amt"]:
+        return True
+    return False
+
+# Define the match_row function as a UDF
+match_row_udf = udf(lambda T5, Invoice: int(rule1(T5, Invoice))*1 + int(rule2(T5, Invoice))*2 + int(rule3(T5, Invoice))*3,
+                    IntegerType())
+
+# Create a SparkSession
+spark = SparkSession.builder.appName("Matching").getOrCreate()
+
+# Read the data from Excel files as DataFrames
+T5_df = spark.read.format("com.crealytics.spark.excel").option("header", "true").schema(T5_schema).load("Z:/Downloads/Unmatched_trans_Data_1.xlsx")
+Invoice_df = spark.read.format("com.crealytics.spark.excel").option("header", "true").schema(Invoice_schema).load("Z:/Downloads/Unmatched_Inv_Data_1.xlsx")
+
+# Join the two DataFrames on the "Company ID & Name" column
+joined_df = T5_df.join(Invoice_df, "Company ID & Name")
+
+# Add a new column with the matching rule index
+joined_df = joined_df.withColumn("Match Rule", match_row_udf(joined_df.columns))
+
+# Define rule descriptions
+rule_descriptions = {
+    1: 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same',
+    2: 'Ticket_no_right_of_12'
+}
+
+# Add a new column with the rule description
+joined_df = joined_df.withColumn("description", udf(lambda i: rule_descriptions.get(i, "Unmatched"), StringType())("Match Rule"))
+
+# Write the output to an Excel file
+joined_df.write.format("com.crealytics.spark.excel").option("header", "true").option("dataAddress", "'Sheet1'!A1").mode("overwrite").save("Z:/Desktop/output2.xlsx")
+
+# Aggregate the data and write to a separate sheet in the same Excel file
+aggregated_df = joined_df.groupBy("Company ID & Name", "Match Rule").count().with
