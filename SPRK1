@@ -1160,3 +1160,13 @@ T5_table = T5_table.withColumn('description', rule_descriptions_udf('Match Rule'
 
 ## Convert to CSV
 # T5_table.write.csv("Z:/Desktop/output2.csv", header=True, mode='overwrite')
+
+
+
+
+
+
+
+# Define a function to map rule indices to descriptions
+def rule_descriptions(rule):
+    return rule_descriptions.get(rule, '-')
