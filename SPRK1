@@ -708,3 +708,61 @@ aggregated_df = aggregated_df.union(spark.createDataFrame([total_row], schema=ag
 # Write the output data to an Excel file
 matched_df.write.format("com.databricks.spark.csv").option("header", "true").option("delimiter", "\t").mode("overwrite").save("Z:/Desktop/output2_matched")
 aggregated_df.write.format("com.databricks.spark.csv").option("header", "
+
+
+
+
+
+
+
+
+
+
+
+
+from pyspark.sql.functions import udf
+from pyspark.sql.types import StringType, IntegerType, StructType, StructField
+import pyspark.sql.functions as F
+
+# Read the rules from a text file
+rules_df = spark.read.text("Z:/Desktop/Rules_1.txt")
+rules = []
+for row in rules_df.collect():
+    rule_string = row.value.strip()
+    if rule_string:
+        exec(f"rule = lambda T5, Invoice: {rule_string}")
+        rules.append(rule)
+
+# Define a UDF to apply the rules to each row pair and return the rule index
+match_row_udf = udf(lambda T5, Invoice: next((i+1 for i, rule in enumerate(rules) if rule(T5, Invoice)), "Unmatched"), StringType())
+
+# Read in the two Excel sheets as dataframes
+T5_table = spark.read.format('csv').options(header=True, inferSchema=True).load('Z:/Downloads/Unmatched_trans_Data_1.xlsx')
+Invoice_table = spark.read.format('csv').options(header=True, inferSchema=True).load('Z:/Downloads/Unmatched_Inv_Data_1.xlsx')
+
+# Define a schema for the output data
+output_schema = StructType([
+    StructField("Company ID & Name", StringType(), True),
+    StructField("Match Rule", StringType(), True),
+    StructField("description", StringType(), True),
+    StructField("fin_orig_supplier_nm", StringType(), True),
+    StructField("fin_source_amt", StringType(), True),
+    StructField("inv_match_source_amt", StringType(), True)
+])
+
+# Loop through each row in T5_table and find a match in Invoice_table
+output_data = T5_table.crossJoin(Invoice_table) \
+    .withColumn("Match Rule", match_row_udf(F.struct(*T5_table.columns), F.struct(*Invoice_table.columns))) \
+    .filter(F.col("Match Rule") != "Unmatched") \
+    .select("Company ID & Name", "Match Rule", "fin_orig_supplier_nm", "fin_source_amt", "inv_match_source_amt") \
+    .withColumn("description", F.when(F.col("Match Rule") == 1, "Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same").when(F.col("Match Rule") == 2, "Ticket_no_right_of_12")) \
+    .orderBy("Company ID & Name", "Match Rule") \
+    .collect()
+
+# Convert the output data to a dataframe and write to an Excel file
+output_df = spark.createDataFrame(output_data, output_schema)
+aggregated = output_df.groupBy("Company ID & Name", "Match Rule").agg(F.count("*").alias("TRF")).orderBy("Company ID & Name", "Match Rule")
+total = aggregated.agg(F.sum("TRF")).collect()[0][0]
+aggregated = aggregated.union(spark.createDataFrame([("Total", "-", total,)], ["Company ID & Name", "Match Rule", "TRF"]))
+output_df.write.format("com.databricks.spark.excel") \
+    .option("header", "true")
