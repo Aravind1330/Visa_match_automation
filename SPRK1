@@ -766,3 +766,72 @@ total = aggregated.agg(F.sum("TRF")).collect()[0][0]
 aggregated = aggregated.union(spark.createDataFrame([("Total", "-", total,)], ["Company ID & Name", "Match Rule", "TRF"]))
 output_df.write.format("com.databricks.spark.excel") \
     .option("header", "true")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import pyspark.sql.functions as F
+Read the rules from a text file
+
+with open("Z:/Desktop/Rules_1.txt", 'r') as f:
+rule_strings = f.readlines()
+Remove new line characters and empty lines, and convert to list of functions
+
+rules = []
+for rule_string in rule_strings:
+rule_string = rule_string.strip()
+if rule_string:
+rule = eval(f"lambda t5, invoice: {rule_string}")
+rules.append(rule)
+Define a function to apply the rules to each row pair and return the rule index
+
+def match_row(t5, invoice):
+for i, rule in enumerate(rules):
+if rule(t5, invoice):
+return True, i+1
+return False, "Unmatched"
+Read in the two Excel sheets as dataframes
+
+t5_df = spark.read.format('com.databricks.spark.csv').options(header='true', inferSchema='true').load('Z:/Downloads/Unmatched_trans_Data_1.xlsx')
+invoice_df = spark.read.format('com.databricks.spark.csv').options(header='true', inferSchema='true').load('Z:/Downloads/Unmatched_Inv_Data_1.xlsx')
+Create an empty list for the output data
+
+output_data = []
+Define a dictionary for rule descriptions
+
+rule_descriptions = {
+1: 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same',
+2: 'Ticket_no_right_of_12'
+}
+Loop through each row in t5_df and find a match in invoice_df
+
+for row_t5 in t5_df.rdd.collect():
+matched = False
+for row_invoice in invoice_df.rdd.collect():
+matched, rule_index = match_row(row_t5, row_invoice)
+if matched:
+description = rule_descriptions[rule_index]
+output_data.append({'Company ID & Name': row_t5['Company ID & Name'], 'Match Rule': rule_index, 'description': description, 'fin_orig_supplier_nm': row_t5['fin_orig_supplier_nm'], 'fin_source_amt': row_t5['fin_source_amt'], 'inv_match_source_amt': row_invoice['inv_match_source_amt']})
+break
+Convert the output data to a dataframe
+
+output_columns = ['Company ID & Name', 'Match Rule', 'description', 'fin_orig_supplier_nm', 'fin_source_amt', 'inv_match_source_amt']
+output_df = spark.createDataFrame(output_data, schema=output_columns)
+Write the output data to an Excel file
+
+aggregated = output_df.groupBy('Company ID & Name', 'Match Rule').agg(F.count('*').alias('TRF'))
+total = aggregated.agg(F.sum('TRF').alias('Total')).select(F.lit('Total').alias('Company ID & Name'), F.lit('-').alias('Match Rule'), 'Total',).union(aggregated)
+
+output_df.write.format('com.databricks.spark.csv').option('header', 'true').option('delimiter', ',').mode('overwrite').save('Z:/Desktop/output2.csv')
+aggregated.write.format('com.databricks.spark.csv').option('header', 'true').option('delimiter', ',').mode('overwrite').save('Z:/Desktop/aggregated.csv')
