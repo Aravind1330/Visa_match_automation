@@ -65,3 +65,75 @@ aggregated = aggregated.union(spark.createDataFrame([('Total', '-', total)], ['C
 
 # Write the aggregated data to the second sheet of the Excel file
 aggregated.write.format("com.databricks.spark.csv").option("header", "true").option
+
+
+
+
+
+
+
+from pyspark.sql.functions import udf
+from pyspark.sql.types import BooleanType, IntegerType, StringType
+from pyspark.sql import SparkSession
+
+# Define UDFs for each rule
+def rule1(T5_dict, invoice_dict):
+    return (
+        T5_dict['fin_orig_supplier_nm'][-13:] == invoice_dict['inv_ticket_num'][-13:]
+        and T5_dict['fin_account'] == invoice_dict['inv_match_account']
+        and T5_dict['fin_source_amt'] == invoice_dict['inv_match_source_amt']
+        and T5_dict['fin_source_currency'] == invoice_dict['inv_match_currency']
+        and T5_dict['fin_date'] == invoice_dict['inv_match_date']
+        and T5_dict['fin_cd_indicator'] == invoice_dict['inv_cd_indicator']
+        and T5_dict['fin_rpic'] == invoice_dict['inv_match_rpic']
+    )
+
+def rule2(T5_dict, invoice_dict):
+    return T5_dict['fin_orig_supplier_nm'][-12:] == invoice_dict['inv_ticket_num'][-12:] and T5_dict['fin_source_amt'] == invoice_dict['inv_match_source_amt']
+
+def rule3(T5_dict, invoice_dict):
+    return T5_dict['fin_orig_supplier_nm'][-11:] == invoice_dict['inv_ticket_num'][-11:]
+
+# Create a SparkSession
+spark = SparkSession.builder.appName("InvoiceMatching").getOrCreate()
+
+# Read the data from Excel files into DataFrames
+T5_df = spark.read.format("com.crealytics.spark.excel") \
+    .option("header", "true") \
+    .option("inferSchema", "true") \
+    .option("treatEmptyValuesAsNulls", "true") \
+    .load("Z:/Downloads/Unmatched_trans_Data_1.xlsx")
+
+Invoice_df = spark.read.format("com.crealytics.spark.excel") \
+    .option("header", "true") \
+    .option("inferSchema", "true") \
+    .option("treatEmptyValuesAsNulls", "true") \
+    .load("Z:/Downloads/Unmatched_Inv_Data_1.xlsx")
+
+# Define UDFs for matching rules
+match_rule1_udf = udf(rule1, BooleanType())
+match_rule2_udf = udf(rule2, BooleanType())
+match_rule3_udf = udf(rule3, BooleanType())
+
+# Define UDFs for rule descriptions
+rule_desc1_udf = udf(lambda x: 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same' if x == 1 else None, StringType())
+rule_desc2_udf = udf(lambda x: 'Ticket_no_right_of_12' if x == 2 else None, StringType())
+
+# Apply rules to each row pair and return the rule index
+def match_row(T5_dict, invoice_dict):
+    if match_rule1_udf(T5_dict, invoice_dict):
+        return 1
+    elif match_rule2_udf(T5_dict, invoice_dict):
+        return 2
+    elif match_rule3_udf(T5_dict, invoice_dict):
+        return 3
+    else:
+        return None
+
+match_row_udf = udf(match_row, IntegerType())
+
+# Join the two DataFrames and add a column for the match rule index
+joined_df = T5_df.join(Invoice_df, on='Company ID & Name', how='inner')
+matched_df = joined_df.withColumn('Match Rule', match_row_udf(joined_df.T5.to_dict(), joined_df.Invoice.to_dict()))
+
+# Define
