@@ -1,0 +1,67 @@
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import udf
+from pyspark.sql.types import StringType, BooleanType
+
+# Create a SparkSession
+spark = SparkSession.builder.appName("DataMatching").getOrCreate()
+
+# Read the rules from a text file
+with open("Z:/Desktop/Rules_1.txt", 'r') as f:
+    rule_strings = f.readlines()
+
+# Remove new line characters and empty lines, and convert to list of functions
+rules = []
+for rule_string in rule_strings:
+    rule_string = rule_string.strip()
+    if rule_string:
+        rule = udf(eval(f"lambda T5, Invoice: {rule_string}"), BooleanType())
+        rules.append(rule)
+
+# Define a function to apply the rules to each row pair and return the rule index
+def match_row(T5, Invoice):
+    for i, rule in enumerate(rules):
+        if rule(T5, Invoice):
+            return i+1
+    return "Unmatched"
+
+# Read in the T5 table and create a DataFrame
+T5_table = spark.read.format("com.databricks.spark.csv").option("header", "true").option("inferSchema", "true").load("Z:/Downloads/Unmatched_trans_Data_1.xlsx")
+
+# Read in the Invoice table and create a DataFrame
+Invoice_table = spark.read.format("com.databricks.spark.csv").option("header", "true").option("inferSchema", "true").load("Z:/Downloads/Unmatched_Inv_Data_1.xlsx")
+
+# Define a UDF to convert dictionary to string
+dict_to_str = udf(lambda x: str(x), StringType())
+
+# Define a UDF to add Match Rule and Description columns
+add_match_rule = udf(lambda x: match_row(x.asDict(), Invoice_table.where(Invoice_table['inv_match_source_amt'] == x['fin_source_amt']).first().asDict()))
+
+# Add Match Rule and Description columns to T5 table
+T5_table = T5_table.withColumn('Match Rule', add_match_rule(T5_table)).withColumn('Description', dict_to_str(T5_table['Match Rule']))
+
+# Define rule descriptions
+rule_descriptions = {
+    1: 'Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same',
+    2: 'Ticket_no_right_of_12'
+}
+
+# Define a UDF to add Description column
+add_description = udf(lambda x: rule_descriptions[x] if x in rule_descriptions else '')
+
+# Add Description column to T5 table
+T5_table = T5_table.withColumn('Description', add_description(T5_table['Match Rule']))
+
+# Write the T5 table to an Excel file
+T5_table.write.format("com.databricks.spark.csv").option("header", "true").option("delimiter", "\t").mode("overwrite").save("Z:/Desktop/output2.xlsx")
+
+# Aggregate the T5 table by Company ID & Name and Match Rule, and calculate the TRF
+aggregated = T5_table.groupBy(['Company ID & Name', 'Match Rule']).count().withColumnRenamed('count', 'TRF')
+
+# Calculate the total TRF
+total = aggregated.groupBy().sum('TRF').collect()[0][0]
+
+# Add a row for the total TRF
+aggregated = aggregated.union(spark.createDataFrame([('Total', '-', total)], ['Company ID & Name', 'Match Rule', 'TRF']))
+
+# Write the aggregated data to the second sheet of the Excel file
+aggregated.write.format("com.databricks.spark.csv").option("header", "true").option
