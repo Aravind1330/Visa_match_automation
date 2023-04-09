@@ -120,7 +120,10 @@ rule_desc1_udf = udf(lambda x: 'Ticket_no_right_of_13, Acct_no, Amount, Currency
 rule_desc2_udf = udf(lambda x: 'Ticket_no_right_of_12' if x == 2 else None, StringType())
 
 # Apply rules to each row pair and return the rule index
-def match_row(T5_dict, invoice_dict):
+def match_row(T5_struct, invoice_struct):
+    T5_dict = T5_struct.asDict()
+    invoice_dict = invoice_struct.asDict()
+    
     if match_rule1_udf(T5_dict, invoice_dict):
         return 1
     elif match_rule2_udf(T5_dict, invoice_dict):
@@ -134,6 +137,4 @@ match_row_udf = udf(match_row, IntegerType())
 
 # Join the two DataFrames and add a column for the match rule index
 joined_df = T5_df.join(Invoice_df, on='Company ID & Name', how='inner')
-matched_df = joined_df.withColumn('Match Rule', match_row_udf(joined_df.T5.to_dict(), joined_df.Invoice.to_dict()))
-
-# Define
+matched_df = joined_df.withColumn('Match Rule', match_row_udf(joined_df.T5.getItem(0), joined_df.Invoice.getItem(0)))
