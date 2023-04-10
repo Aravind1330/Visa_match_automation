@@ -240,3 +240,33 @@ output_df_new = output_df.iloc[:, :-2]
 # Write the new DataFrame to a new Excel file
 with pd.ExcelWriter(config['output_file_no_last_2_cols']) as writer:
     output_df_new.to_excel(writer, sheet_name='Output', index=False)
+
+
+
+
+
+
+def match_row(T5, Invoice_table):
+    for i, rule in enumerate(rules):
+        for j, Invoice in enumerate(Invoice_table):
+            if rule(T5, Invoice):
+                # Check if the invoice ID has already been used
+                if Invoice['Invoice ID'] not in used_invoice_ids:
+                    # Delete the used invoice from the Invoice_table
+                    del Invoice_table[j]
+                    return True, i+1
+    return False, "Unmatched"
+
+
+# Loop through each row in table1 and find a match in table2
+for T5 in T5_table:
+    matched = False
+    for Invoice in Invoice_table:
+        matched, rule_index = match_row(T5, Invoice_table)
+        if matched:
+            description = rule_descriptions[rule_index]
+            output_data.append({'Company ID & Name': T5['Company ID & Name'], 'Match Rule': rule_index, 'description': description, 'fin_orig_supplier_nm': T5['fin_orig_supplier_nm'], 'fin_source_amt': T5['fin_source_amt'], 'inv_match_source_amt': Invoice['inv_match_source_amt'], 'inv_erp_vend_no': Invoice['inv_erp_vend_no'], 'inv_po_no': Invoice['inv_po_no']})
+            break
+
+# Write the output data to an Excel file
+...
