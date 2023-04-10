@@ -138,3 +138,27 @@ match_row_udf = udf(match_row, IntegerType())
 # Join the two DataFrames and add a column for the match rule index
 joined_df = T5_df.join(Invoice_df, on='Company ID & Name', how='inner')
 matched_df = joined_df.withColumn('Match Rule', match_row_udf(joined_df.T5.getItem(0), joined_df.Invoice.getItem(0)))
+
+
+
+
+
+
+input_files:
+  rules_file: Z:/Desktop/Rules_1.txt
+  t5_file: Z:/Downloads/Unmatched_trans_Data_1.xlsx
+  invoice_file: Z:/Downloads/Unmatched_Inv_Data_1.xlsx
+
+output_file: Z:/Desktop/output2.xlsx
+
+output_columns:
+  - Company ID & Name
+  - Match Rule
+  - description
+  - fin_orig_supplier_nm
+  - fin_source_amt
+  - inv_match_source_amt
+
+rule_descriptions:
+  1: Ticket_no_right_of_13, Acct_no, Amount, Currency, Date, C&D indicator, RPIC are same
+  2: Ticket_no_right_of_12
