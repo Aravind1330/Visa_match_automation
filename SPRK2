@@ -225,3 +225,9 @@ aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated
 with pd.ExcelWriter(config['output_file']) as writer:
     output_df.to_excel(writer, sheet_name='Output', index=False)
     aggregated.to_excel(writer, sheet_name='Aggregated
+
+
+
+
+
+output_df = pd.DataFrame(output_data, columns=config['output_columns'])
