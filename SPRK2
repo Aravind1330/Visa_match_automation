@@ -231,3 +231,12 @@ with pd.ExcelWriter(config['output_file']) as writer:
 
 
 output_df = pd.DataFrame(output_data, columns=config['output_columns'])
+
+
+
+# Create a new DataFrame without the last 2 columns
+output_df_new = output_df.iloc[:, :-2]
+
+# Write the new DataFrame to a new Excel file
+with pd.ExcelWriter(config['output_file_no_last_2_cols']) as writer:
+    output_df_new.to_excel(writer, sheet_name='Output', index=False)
