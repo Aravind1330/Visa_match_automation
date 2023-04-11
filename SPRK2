@@ -298,3 +298,32 @@ for rule_string in rule_strings:
 
 # Define a dictionary for rule descriptions
 rule_descriptions = {i+1: rule[1] for i, rule in enumerate(rules)}
+
+
+
+
+
+
+
+
+
+
+
+rules = []
+rule_descriptions = {}
+for rule_string in rule_strings:
+    rule_string = rule_string.strip()
+    if rule_string:
+        rule_parts = rule_string.split("||")
+        rule = eval(f"lambda row, row2: {rule_parts[0]}")
+        rules.append(rule)
+        rule_descriptions[len(rules)] = rule_parts[1]
+
+# Define a function to apply the rules to each row pair and return the rule index
+def match_row(T5, Invoice, used_invoice_ids):
+    for i, rule in enumerate(rules):
+        if rule(T5, Invoice):
+            # Check if the invoice ID has already been used
+            if Invoice['Invoice ID'] not in used_invoice_ids:
+                return True, i+1
+    return False, "Unmatched"
