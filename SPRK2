@@ -270,3 +270,31 @@ for T5 in T5_table:
 
 # Write the output data to an Excel file
 ...
+
+
+
+
+
+
+
+
+
+
+
+
+# Read the rules and rule descriptions from a text file
+with open("Z:/Desktop/Rules_1.txt", 'r') as f:
+    rule_strings = f.readlines()
+
+# Remove new line characters and empty lines, and convert to list of tuples (rule, description)
+rules = []
+for rule_string in rule_strings:
+    rule_string = rule_string.strip()
+    if rule_string:
+        rule_components = rule_string.split(",")
+        rule = eval(f"lambda row, row2: {rule_components[0]}")
+        description = rule_components[1].strip()
+        rules.append((rule, description))
+
+# Define a dictionary for rule descriptions
+rule_descriptions = {i+1: rule[1] for i, rule in enumerate(rules)}
