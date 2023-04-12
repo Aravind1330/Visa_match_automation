@@ -491,3 +491,19 @@ for i, T5 in T5_table.iterrows():
         if rule(T5, Invoice):
             return True, i+1
     return False, "Unmatched"
+
+
+
+
+
+
+
+for T5 in T5_table:
+    matched = False
+    for Invoice in Invoice_table:
+        matched, rule_index = match_row(T5, Invoice, )
+        if matched:
+            description = rule_descriptions[rule_index]
+            output_data.append({'Company ID & Name': T5['Company ID & Name'], 'Match Rule': rule_index, 'description': description, 'fin_orig_supplier_nm': T5['fin_orig_supplier_nm'], 'fin_source_amt': T5['fin_source_amt'], 'inv_match_source_amt': Invoice['inv_match_source_amt'], 'inv_erp_vend_no': Invoice['inv_erp_vend_no'], 'inv_po_no': Invoice['inv_po_no']})
+            Invoice_table.remove(Invoice) # remove matched invoice
+            break
