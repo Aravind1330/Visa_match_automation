@@ -465,3 +465,29 @@ for i, row in rules_df.iterrows():
     rule = eval(f"lambda row, row2: {row['rule']}")
     rules.append(rule)
     rule_descriptions[i+1] = row['description']
+
+
+
+
+
+
+
+
+
+
+for i, T5 in T5_table.iterrows():
+    matched = False
+    for j, Invoice in Invoice_table.iterrows():
+        matched, rule_index = match_row(T5.to_dict(), Invoice.to_dict())
+        if matched:
+            T5_table.at[i, 'Match Rule'] = rule_index
+            Invoice_table = Invoice_table.drop(j) # Delete the matched invoice
+            break # Exit the loop after the first match
+            
+            
+            
+      def match_row(T5, Invoice):
+    for i, rule in enumerate(rules):
+        if rule(T5, Invoice):
+            return True, i+1
+    return False, "Unmatched"
