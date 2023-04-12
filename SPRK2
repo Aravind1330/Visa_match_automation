@@ -448,3 +448,20 @@ aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated
 with pd.ExcelWriter('Z:/Desktop/output2.xlsx') as writer:
     output_df.to_excel(writer, sheet_name='Output', index=False)
     aggregated.to_excel(writer, sheet_name='Aggregated', index=False)
+
+
+
+
+
+
+
+
+
+# Read the rules and descriptions from a CSV file
+rules_df = pd.read_csv("path/to/rules.csv")
+rules = []
+rule_descriptions = {}
+for i, row in rules_df.iterrows():
+    rule = eval(f"lambda row, row2: {row['rule']}")
+    rules.append(rule)
+    rule_descriptions[i+1] = row['description']
