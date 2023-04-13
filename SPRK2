@@ -633,3 +633,23 @@ aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated
 
 # Write the output data to a CSV file
 output_df.to_csv('Z:/Desktop/output2.csv', index=False)
+
+
+
+
+
+
+
+
+
+
+
+def match_row(row1, row2, used_ids):
+    """Match two rows using the pre-defined rules"""
+    for i, rule in enumerate(rules):
+        if i + 1 in used_ids:
+            continue
+        if rule(row1, row2):
+            return True, i + 1
+    
+    return False, 0
