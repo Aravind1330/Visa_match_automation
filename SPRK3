@@ -52,3 +52,11 @@ if error_messages:
     for i, message in enumerate(error_messages):
         ws.cell(row=i+1, column=1, value=message)
     wb.save('Z:/Desktop/errors.xlsx')
+
+
+# Write the error messages to an Excel file
+if error_messages:
+    error_df = pd.DataFrame({'Error Messages': error_messages})
+    writer = pd.ExcelWriter('Z:/Desktop/errors.xlsx', engine='xlsxwriter')
+    error_df.to_excel(writer, sheet_name='Errors', index=False)
+    writer.save()
