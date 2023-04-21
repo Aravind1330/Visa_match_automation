@@ -1,1 +1,51 @@
 Invoice_table = Invoice_table[Invoice_table['Product'] == 1]
+
+
+
+
+# Read the rules and rule descriptions from a CSV file
+rules_df = pd.read_csv('Z:/Desktop/Rules.csv')
+rules = []
+rule_descriptions = {}
+for i, row in rules_df.iterrows():
+    rule_string = row['Rule']
+    rule_description = row['Description']
+    rule = eval(f"lambda row, row2: {rule_string}")
+    rules.append(rule)
+    rule_descriptions[i+1] = rule_description
+
+# Define the output columns
+output_columns = ['Company ID & Name', 'Match Rule', 'Description', 'fin_orig_supplier_nm', 'fin_source_amt', 'inv_match_source_amt', 'inv_erp_vend_no', 'inv_po_no']
+
+# Define a list to store the output rows
+output_rows = []
+
+# Loop through each row in table1 and find a match in table2
+for T5 in T5_table:
+    matched = False
+    inv_filter = (Invoice_table['auth_no'] == T5['auth_no']) & (Invoice_table['ticket_no'] == T5['ticket_no'])
+    filtered_invoices = Invoice_table[inv_filter]
+    invoice_sum = filtered_invoices['inv_match_source_amt'].sum()
+    if invoice_sum == T5['fin_source_amt']:
+        description = "Bundle Invoice Match"
+        for index, inv_row in filtered_invoices.iterrows():
+            output_rows.append({'Company ID & Name': T5['Company ID & Name'], 'Match Rule': 'Bundle Invoice Match', 'Description': description, 'fin_orig_supplier_nm': T5['fin_orig_supplier_nm'], 'fin_source_amt': T5['fin_source_amt'], 'inv_match_source_amt': inv_row['inv_match_source_amt'], 'inv_erp_vend_no': inv_row['inv_erp_vend_no'], 'inv_po_no': inv_row['inv_po_no']})
+            used_invoice_ids.append(inv_row['Invoice ID'])
+        matched = True
+    else:
+        for Invoice in filtered_invoices.itertuples():
+            matched, rule_index = match_row(T5, Invoice, used_invoice_ids)
+            if matched:
+                description = rule_descriptions[rule_index]
+                output_rows.append({'Company ID & Name': T5['Company ID & Name'], 'Match Rule': rule_index, 'Description': description, 'fin_orig_supplier_nm': T5['fin_orig_supplier_nm'], 'fin_source_amt': T5['fin_source_amt'], 'inv_match_source_amt': Invoice.inv_match_source_amt, 'inv_erp_vend_no': Invoice.inv_erp_vend_no, 'inv_po_no': Invoice.inv_po_no})
+                used_invoice_ids.append(Invoice._asdict()['Invoice ID'])
+                break
+
+# Create a DataFrame from the output rows and aggregate the data
+output_df = pd.DataFrame(output_rows, columns=output_columns)
+aggregated = output_df.groupby(['Company ID & Name', 'Match Rule']).size().reset_index(name='TRF')
+total = aggregated['TRF'].sum()
+aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated.columns), ignore_index=True)
+
+# Write the output data to a CSV file
+output_df.to_csv('Z:/Desktop/output2.csv
