@@ -1,2 +1,7 @@
 valid_regions = [1, 2, 3]
 T5_table = T5_table[T5_table['region id'].isin(valid_regions)]
+
+
+
+
+T5_table = [row for row in T5_table if row['region id'] in valid_regions]
