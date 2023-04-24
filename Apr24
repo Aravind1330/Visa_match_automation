@@ -13,3 +13,14 @@ valid_regions = config['valid_regions']
 T5_table = pd.read_excel(config['input_file_path'], dtype=str)
 T5_table = T5_table[T5_table['region id'].isin(valid_regions)].to_dict(orient='records')
 
+
+
+
+# Read the T5 data from an Excel file
+T5_table = pd.read_excel(config['input_file_path'], dtype=str)
+
+# Filter out rows with region id other than 1, 2, or 3
+T5_table = T5_table[T5_table['region id'].isin(['1', '2', '3'])]
+
+# Convert the remaining rows to a dictionary
+T5_table = T5_table.to_dict(orient='records')
