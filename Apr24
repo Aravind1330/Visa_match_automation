@@ -1,0 +1,2 @@
+valid_regions = [1, 2, 3]
+T5_table = T5_table[T5_table['region id'].isin(valid_regions)]
