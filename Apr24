@@ -5,3 +5,11 @@ T5_table = T5_table[T5_table['region id'].isin(valid_regions)]
 
 
 T5_table = [row for row in T5_table if row['region id'] in valid_regions]
+
+
+
+
+valid_regions = config['valid_regions']
+T5_table = pd.read_excel(config['input_file_path'], dtype=str)
+T5_table = T5_table[T5_table['region id'].isin(valid_regions)].to_dict(orient='records')
+
