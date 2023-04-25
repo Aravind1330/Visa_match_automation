@@ -24,3 +24,18 @@ T5_table = T5_table[T5_table['region id'].isin(['1', '2', '3'])]
 
 # Convert the remaining rows to a dictionary
 T5_table = T5_table.to_dict(orient='records')
+
+
+
+
+
+
+
+
+
+
+
+Invoice_table['inv_match_source_amt'] = Invoice_table['inv_match_source_amt'].replace('-', '')
+
+
+output_df['inv_match_source_amt'] = output_df['inv_match_source_amt'].replace('', '-')
