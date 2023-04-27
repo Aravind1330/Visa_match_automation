@@ -39,3 +39,14 @@ Invoice_table['inv_match_source_amt'] = Invoice_table['inv_match_source_amt'].re
 
 
 output_df['inv_match_source_amt'] = output_df['inv_match_source_amt'].replace('', '-')
+
+
+
+import configparser
+
+config = configparser.ConfigParser()
+config.read('config.ini')
+
+new_output_columns = dict(config.items('output_columns'))
+output_df = output_df.rename(columns=new_output_columns)
+
