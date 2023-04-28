@@ -50,3 +50,39 @@ config.read('config.ini')
 new_output_columns = dict(config.items('output_columns'))
 output_df = output_df.rename(columns=new_output_columns)
 
+
+
+
+
+# Rename the output column names in output file
+output_columns_new = [column['display_name'] for column in config['output_columns']]
+output_df.columns = output_columns_new
+aggregated.columns = ['Company ID & Name', 'Match Rule', 'TRF']
+
+
+Name,Value
+output_columns,"[
+    {
+        ""name"": ""Company ID & Name"",
+        ""display_name"": ""Company"",
+        ""required"": true
+    },
+    {
+        ""name"": ""Match Rule"",
+        ""display_name"": ""Rule"",
+        ""required"": true
+    },
+    {
+        ""name"": ""Description"",
+        ""display_name"": ""Description"",
+        ""required"": true
+    },
+    {
+        ""name"": ""fin_orig_supplier_nm"",
+        ""display_name"": ""Original Supplier"",
+        ""required"": false
+    },
+    {
+        ""name"": ""fin_source_amt"",
+        ""display_name"": ""Source Amount"",
+        ""
