@@ -86,3 +86,16 @@ output_columns,"[
         ""name"": ""fin_source_amt"",
         ""display_name"": ""Source Amount"",
         ""
+
+
+
+import datetime
+
+# Define a function to filter rows based on date
+def filter_date(table, date_col, days):
+    cutoff_date = datetime.datetime.today() - datetime.timedelta(days=days)
+    return table[table[date_col] < cutoff_date.strftime('%Y-%m-%d')]
+
+# Read in the T5_table and filter out rows with dates within the last 7 working days
+T5_table = pd.read_csv('Z:/Desktop/T5_table.csv')
+T5_table = filter_date(T5_table, 'Date', 7)
