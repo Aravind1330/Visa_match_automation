@@ -318,3 +318,5 @@ output_df.to_csv('Z:/Desktop/output2.csv', index=False)
 
 
 output_df_new.to_csv(config['output_file'], index=False)
+# Rename columns in output file
+output_df = output_df.rename(columns={'fin_orig_supplier_nm': 'Supplier Name', 'fin_source_amt': 'Source Amount', 'inv_match_source_amt': 'Matched Amount', 'inv_erp_vend_no': 'Vendor No', 'inv_po_no': 'PO No'})
