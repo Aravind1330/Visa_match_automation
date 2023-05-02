@@ -312,3 +312,9 @@ aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated
 
 # Write the output data to a CSV file
 output_df.to_csv('Z:/Desktop/output2.csv', index=False)
+
+
+
+
+
+output_df_new.to_csv(config['output_file'], index=False)
