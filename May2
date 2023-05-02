@@ -173,3 +173,82 @@ with pd.ExcelWriter('Z:/Desktop/output2.xlsx') as writer:
     output_df.to_excel(writer, sheet_name='Matched Invoices', index=False)
     unused_df = pd.DataFrame(unused_invoices, columns=['Company ID & Name', 'invoice_no'])
     unused_df.to_excel(writer, sheet_name='Unused Invoices', index=False)
+
+
+
+
+
+
+
+
+
+
+import pandas as pd
+
+# Read the T5 table and the Invoice table into pandas dataframes
+T5_table = pd.read_excel('Z:/Desktop/T5.xlsx')
+Invoice_table = pd.read_excel('Z:/Desktop/Invoice.xlsx')
+
+# Define a function to check if a row from the T5 table matches with a row from the Invoice table
+def match_row(T5_row, invoice_row):
+    # Your matching logic here
+    return matched, rule_index
+
+# Read the rules from the CSV file
+rules_df = pd.read_csv('Z:/Desktop/Rules.csv')
+rules = []
+rule_descriptions = {}
+for i, row in rules_df.iterrows():
+    rule_string = row['Rule']
+    rule_description = row['Description']
+    rule = eval(f"lambda row, row2: {rule_string}")
+    rules.append(rule)
+    rule_descriptions[i+1] = rule_description
+
+# Define the output columns for matched rows
+matched_output_columns = ['Company ID & Name', 'Match Rule', 'Description', 'fin_orig_supplier_nm', 'fin_source_amt', 'inv_match_source_amt', 'inv_erp_vend_no', 'inv_po_no']
+
+# Define the output columns for unused invoice rows
+unused_output_columns = ['Company ID & Name', 'Invoice No', 'fin_orig_supplier_nm', 'fin_source_amt', 'inv_match_source_amt', 'inv_erp_vend_no', 'inv_po_no']
+
+# Define a list to store the output rows for matched rows
+matched_output_rows = []
+
+# Define a list to store the output rows for unused invoice rows
+unused_output_rows = []
+
+# Loop through each row in T5 table and find a match in Invoice table
+for T5_row in T5_table.itertuples(index=False):
+    try:
+        matched = False
+        for invoice_row in Invoice_table.itertuples(index=False):
+            matched, rule_index = match_row(T5_row, invoice_row)
+            if matched:
+                description = rule_descriptions[rule_index]
+                matched_output_rows.append({
+                    column: T5_row._asdict()[column] if column in T5_row._fields else invoice_row._asdict()[column] for column in matched_output_columns
+                })
+                matched_output_rows[-1]['Match Rule'] = rule_index
+                matched_output_rows[-1]['Description'] = description
+                break
+        if not matched:
+            unused_output_rows.append({
+                column: T5_row._asdict()[column] if column in T5_row._fields else '' for column in unused_output_columns
+            })
+    except:
+        # print(f"Error processing T5 row: {T5_row}")
+        continue
+
+# Create dataframes from the output rows and aggregate the data for matched rows
+matched_output_df = pd.DataFrame(matched_output_rows, columns=matched_output_columns)
+matched_aggregated = matched_output_df.groupby(['Company ID & Name', 'Match Rule']).size().reset_index(name='TRF')
+matched_total = matched_aggregated['TRF'].sum()
+matched_aggregated = matched_aggregated.append(pd.Series(['Total', '-', matched_total], index=matched_aggregated.columns), ignore_index=True)
+
+# Create a dataframe for unused invoice rows
+unused_output_df = pd.DataFrame(unused_output_rows, columns=unused_output_columns)
+
+# Write the output data to CSV files
+matched_output_df.to_csv('Z:/Desktop/matched_output.csv', index=False)
+unused_output_df.to_csv('Z:/Desktop/unused_output.csv', index=False)
+matched_aggregated.to_csv('Z:/Desktop/matched_aggregated_output.csv', index=False)
