@@ -106,3 +106,70 @@ aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated
 # Write the output data to a CSV file
 output_df.to_csv('Z:/Desktop/output2.csv', index=False)
 modify code where in new sheet show unused invoice table invoice_no column
+
+
+
+
+
+
+
+rules_df = pd.read_csv('Z:/Desktop/Rules.csv')
+rules = []
+rule_descriptions = {}
+for i, row in rules_df.iterrows():
+    rule_string = row['Rule']
+    rule_description = row['Description']
+    rule = eval(f"lambda row, row2: {rule_string}")
+    rules.append(rule)
+    rule_descriptions[i+1] = rule_description
+
+# Define the output columns
+output_columns = ['Company ID & Name', 'Match Rule', 'Description', 'fin_orig_supplier_nm', 'fin_source_amt', 'inv_match_source_amt', 'inv_erp_vend_no', 'inv_po_no']
+
+# Define a list to store the output rows and unused invoices
+output_rows = []
+unused_invoices = []
+
+# Define date filter function
+def is_older_than_7_days(date_str):
+    date = datetime.datetime.strptime(date_str, '%Y-%m-%d')
+    today = datetime.datetime.today()
+    weekdays = np.busday_count(date.date(), today.date())
+    return weekdays > 7
+
+# Loop through each row in table1 and find a match in table2
+for T5 in T5_table:
+    try:
+        if is_older_than_7_days(T5['date']):
+            matched = False
+            for Invoice in Invoice_table:
+                matched, rule_index = match_row(T5, Invoice)
+                if matched:
+                    description = rule_descriptions[rule_index]
+                    output_rows.append({
+                        column: T5[column] if column in T5 else Invoice[column] for column in output_columns
+                    })
+                    output_rows[-1]['Match Rule'] = rule_index
+                    output_rows[-1]['description'] = description
+                    break
+            if not matched:
+                unused_invoices.append({
+                    'Company ID & Name': T5['Company ID & Name'],
+                    'invoice_no': T5['invoice_no']
+                })
+    except:
+        # print(f"Error processing T5: {T5}")
+        error_messages.append(f"Error processing T5: {5}")
+        continue
+
+# Create a DataFrame from the output rows and aggregate the data
+output_df = pd.DataFrame(output_rows, columns=output_columns)
+aggregated = output_df.groupby(['Company ID & Name', 'Match Rule']).size().reset_index(name='TRF')
+total = aggregated['TRF'].sum()
+aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated.columns), ignore_index=True)
+
+# Write the output data to a CSV file
+with pd.ExcelWriter('Z:/Desktop/output2.xlsx') as writer:
+    output_df.to_excel(writer, sheet_name='Matched Invoices', index=False)
+    unused_df = pd.DataFrame(unused_invoices, columns=['Company ID & Name', 'invoice_no'])
+    unused_df.to_excel(writer, sheet_name='Unused Invoices', index=False)
