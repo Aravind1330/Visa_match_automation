@@ -161,3 +161,32 @@ aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated
 output_df.to_csv('Z:/Desktop/output2.csv', index=False)
 with pd.ExcelWriter(config['output_file']) as writer:
     output_df.to_excel(writer, sheet_name='Output', index=False)
+
+
+
+
+# Define a list to store the matched invoice indices
+matched_invoice_indices = []
+
+for T5 in T5_table:
+    try:
+        matched = False
+        for i, Invoice in enumerate(Invoice_table):
+            # Skip invoices that have already been matched
+            if i in matched_invoice_indices:
+                continue
+            matched, rule_index = match_row(T5, Invoice)
+            if matched:
+                description = rule_descriptions[rule_index]
+                output_rows.append({
+                    column: T5[column] if column in T5 else Invoice[column] for column in output_columns
+                })
+                output_rows[-1]['Match Rule'] = rule_index
+                output_rows[-1]['Description'] = description
+                # Add the matched invoice index to the list
+                matched_invoice_indices.append(i)
+                break
+    except:
+        # print (f"Error processing T5: {T5}")
+        error_messages.append(f"Error processing T5: {T5}")
+        continue
