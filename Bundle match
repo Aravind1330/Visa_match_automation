@@ -1,0 +1,58 @@
+# Define the bundle match rule
+def bundle_match(row, rows):
+    # Get the transaction amount
+    transaction_amt = row['fin_source_amt']
+    
+    # Filter the rows to include only the ones with the same auth/ticket number
+    matching_rows = rows[(rows['inv_auth_no'] == row['inv_auth_no']) | (rows['inv_ticket_num'] == row['inv_ticket_num'])]
+    
+    # Calculate the sum of the invoice amounts
+    invoice_amt_sum = matching_rows['inv_match_source_amt'].sum()
+    
+    # Check if the sum of invoice amounts matches the transaction amount
+    return invoice_amt_sum == transaction_amt
+
+# Define the output columns
+output_columns = ['Company ID & Name', 'Match Rule', 'Description', 'fin_orig_supplier_nm', 'fin_source_amt', 'inv_match_source_amt', 'inv_erp_vend_no', 'inv_po_no', 'inv_auth_no', 'inv_ticket_num']
+
+# Define a list to store the output rows
+output_rows = []
+
+# Keep track of matched invoices
+matched_invoices = []
+
+# Filter T5 dataframe to remove rows with null 'fin_source_amt' column
+T5_table = T5_table.dropna(subset=['fin_source_amt'])
+
+# Loop through each row in table1 and find a match in table2
+for T5 in T5_table:
+    try:
+        # Filter the invoice table to include only the ones that have not been matched
+        unmatched_invoices = Invoice_table[~Invoice_table.index.isin(matched_invoices)]
+        
+        # Group the invoices by auth/ticket number and apply the bundle match rule
+        groups = unmatched_invoices.groupby(['inv_auth_no', 'inv_ticket_num'])
+        for _, group in groups:
+            if bundle_match(T5, group):
+                output_rows.append({
+                    column: T5[column] if column in T5 else group.iloc[0][column] for column in output_columns
+                })
+                output_rows[-1]['Match Rule'] = 'Bundle Match'
+                output_rows[-1]['Description'] = 'Bundle of invoices matched transaction'
+                # Add the matched invoice indexes to the list
+                matched_invoices.extend(group.index)
+    except:
+        # print (f"Error processing T5: {T5}")
+        error_messages.append(f"Error processing T5: {T5}")
+        continue
+
+# Create a DataFrame from the output rows and aggregate the data
+output_df = pd.DataFrame(output_rows, columns=output_columns)
+aggregated = output_df.groupby(['Company ID & Name', 'Match Rule']).size().reset_index(name='TRF')
+total = aggregated['TRF'].sum()
+aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated.columns), ignore_index=True)
+
+# Write the output data to a CSV file
+output_df.to_csv('Z:/Desktop/output2.csv', index=False)
+with pd.ExcelWriter(config['output_file']) as writer:
+    output_df.to_excel(writer, sheet_name='Output', index=False)
