@@ -190,3 +190,30 @@ for T5 in T5_table:
         # print (f"Error processing T5: {T5}")
         error_messages.append(f"Error processing T5: {T5}")
         continue
+
+
+
+
+# Loop through each row in table1 and find a match in table2
+for T5 in T5_table:
+    try:
+        for i, Invoice in enumerate(Invoice_table):
+            # Skip invoices that have already been matched
+            if i in matched_invoices:
+                continue
+            matched, rule_index = match_row(T5, Invoice)
+            if matched:
+                description = rule_descriptions[rule_index]
+                output_rows.append({
+                    column: T5[column] if column in T5 else Invoice[column] for column in output_columns
+                })
+                output_rows[-1]['Match Rule'] = rule_index
+                output_rows[-1]['Description'] = description
+                # Add the matched invoice index to the list
+                matched_invoices.append(i)
+                matched_invoice_indices.append(Invoice.name)
+                break
+    except:
+        # print (f"Error processing T5: {T5}")
+        error_messages.append(f"Error processing T5: {T5}")
+        continue
