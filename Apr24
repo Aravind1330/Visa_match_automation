@@ -244,3 +244,7 @@ for T5 in T5_table:
         # print (f"Error processing T5: {T5}")
         error_messages.append(f"Error processing T5: {T5}")
         continue
+
+
+
+Invoice_table['inv_match_source_amt'] = Invoice_table['inv_match_source_amt'].str.replace('-', '')
