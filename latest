@@ -81,3 +81,71 @@ with pd.ExcelWriter('Z:/Desktop/matched_output.xlsx') as writer:
 with pd.ExcelWriter('Z:/Desktop/unmatched_output.xlsx') as writer:
     unmatched_output_df.to_excel(writer, sheet_name='Unmatched Output', index=False)
 
+
+
+import pandas as pd
+
+rules_df = pd.read_csv('Z:/Desktop/Rules.csv')
+rules = []
+rule_descriptions = {}
+for i, row in rules_df.iterrows():
+    rule_string = row['Rule']
+    rule_description = row['Description']
+    rule = eval(f"lambda row, row2: {rule_string}")
+    rules.append(rule)
+    rule_descriptions[i+1] = rule_description
+
+# Define the output columns
+output_columns = ['Company ID & Name', 'Match Rule', 'Description', 'fin_orig_supplier_nm', 'fin_source_amt', 'inv_match_source_amt', 'inv_erp_vend_no', 'inv_po_no']
+
+# Define lists to store the output rows for matched and unmatched transactions
+matched_output_rows = []
+unmatched_output_rows = []
+
+# Filter T5 dataframe to remove rows with null 'fin_source_amt' column
+T5_table = T5_table.dropna(subset=['fin_source_amt'])
+
+# Loop through each row in T5_table and find a match in Invoice_table
+for T5_idx, T5_row in T5_table.iterrows():
+    try:
+        matched = False
+        for Invoice_idx, Invoice_row in Invoice_table.iterrows():
+            matched, rule_index = match_row(T5_row, Invoice_row)
+            if matched:
+                description = rule_descriptions[rule_index]
+                matched_output_rows.append({
+                    column: T5_row[column] if column in T5_row else Invoice_row[column] for column in output_columns
+                })
+                matched_output_rows[-1]['Match Rule'] = rule_index
+                matched_output_rows[-1]['Description'] = description
+                break
+        if not matched:
+            unmatched_output_rows.append({
+                column: T5_row[column] for column in output_columns
+            })
+            unmatched_output_rows[-1]['Match Rule'] = 'N/A'
+            unmatched_output_rows[-1]['Description'] = 'No match found'
+    except Exception as e:
+        error_messages.append(f"Error processing T5 at index {T5_idx}: {str(e)}")
+        continue
+
+# Create DataFrames from the output rows for matched and unmatched transactions
+matched_output_df = pd.DataFrame(matched_output_rows, columns=output_columns)
+unmatched_output_df = pd.DataFrame(unmatched_output_rows, columns=output_columns)
+
+# Aggregate the data
+matched_aggregated = matched_output_df.groupby(['Company ID & Name', 'Match Rule']).size().reset_index(name='TRF')
+matched_total = matched_aggregated['TRF'].sum()
+matched_aggregated = matched_aggregated.append(pd.Series(['Total', '-', matched_total], index=matched_aggregated.columns), ignore_index=True)
+
+# Write the output data to separate CSV files
+matched_output_df.to_csv('Z:/Desktop/matched_output.csv', index=False)
+unmatched_output_df.to_csv('Z:/Desktop/unmatched_output.csv', index=False)
+
+with pd.ExcelWriter(config['output_file']) as writer:
+    matched_output_df.to_excel(writer, sheet_name='Matched Output', index=False)
+    unmatched_output_df.to_excel(writer, sheet_name='Unmatched Output', index=False)
+
+# Aggregate the matched data and write to CSV file
+matched_aggregated.to_csv('Z:/Desktop/matched_aggregated.csv', index=False)
+
