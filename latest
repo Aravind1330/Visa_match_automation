@@ -322,3 +322,24 @@ t5_df = spark.read.csv('path_to_T5_table.csv', header=True)
 
 # Filter rows where "region" values are not 1, 2, or 3 and "Mcc" values are not 1 or 2
 filtered_t5_df = t5_df.filter((t5_df['region'].isin(['1', '2', '3'])) & (t5_df['Mcc'].isin(['1', '2'])))
+
+
+
+
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col
+
+# Create a SparkSession
+spark = SparkSession.builder.getOrCreate()
+
+# Load the T5 table as a Spark DataFrame
+t5_df = spark.read.csv('path_to_T5_table.csv', header=True)
+
+# Filter rows where "region" values are not 1, 2, or 3 and "Mcc" values are not 1 or 2
+filtered_t5_df = t5_df.filter((col('region').isin(['1', '2', '3'])) & (col('Mcc').isin(['1', '2'])))
+
+# Show the filtered results
+filtered_t5_df.show()
+
+# Save the filtered DataFrame as a new CSV file
+filtered_t5_df.write.csv('path_to_filtered_T5_table.csv', header=True, mode='overwrite')
