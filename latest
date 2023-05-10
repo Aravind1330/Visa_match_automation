@@ -17,3 +17,67 @@ rules_file_path = 'Z:/Desktop/Rules.csv'
 rules, rule_descriptions = read_rules(rules_file_path)
 
 
+import pandas as pd
+
+rules_df = pd.read_csv('Z:/Desktop/Rules.csv')
+rules = []
+rule_descriptions = {}
+for i, row in rules_df.iterrows():
+    rule_string = row['Rule']
+    rule_description = row['Description']
+    rule = eval(f"lambda row, row2: {rule_string}")
+    rules.append(rule)
+    rule_descriptions[i+1] = rule_description
+
+# Define the output columns
+output_columns = ['Company ID & Name', 'Match Rule', 'Description', 'fin_orig_supplier_nm', 'fin_source_amt', 'inv_match_source_amt', 'inv_erp_vend_no', 'inv_po_no']
+
+# Define lists to store the output rows for matched and unmatched transactions
+matched_output_rows = []
+unmatched_output_rows = []
+
+# Filter T5 dataframe to remove rows with null 'fin_source_amt' column
+T5_table = T5_table.dropna(subset=['fin_source_amt'])
+
+# Loop through each row in T5_table and find a match in Invoice_table
+for T5 in T5_table.itertuples(index=False):
+    try:
+        matched = False
+        for Invoice in Invoice_table:
+            matched, rule_index = match_row(T5, Invoice)
+            if matched:
+                description = rule_descriptions[rule_index]
+                matched_output_rows.append({
+                    column: getattr(T5, column) if hasattr(T5, column) else getattr(Invoice, column) for column in output_columns
+                })
+                matched_output_rows[-1]['Match Rule'] = rule_index
+                matched_output_rows[-1]['Description'] = description
+                break
+        if not matched:
+            unmatched_output_rows.append({
+                column: getattr(T5, column) for column in output_columns
+            })
+            unmatched_output_rows[-1]['Match Rule'] = 'N/A'
+            unmatched_output_rows[-1]['Description'] = 'No match found'
+    except Exception as e:
+        error_messages.append(f"Error processing T5: {T5}\n{str(e)}")
+        continue
+
+# Create DataFrames from the output rows for matched and unmatched transactions
+matched_output_df = pd.DataFrame(matched_output_rows, columns=output_columns)
+unmatched_output_df = pd.DataFrame(unmatched_output_rows, columns=output_columns)
+
+# Create a DataFrame from the matched output rows and aggregate the data
+matched_aggregated = matched_output_df.groupby(['Company ID & Name', 'Match Rule']).size().reset_index(name='TRF')
+matched_total = matched_aggregated['TRF'].sum()
+matched_aggregated = matched_aggregated.append(pd.Series(['Total', '-', matched_total], index=matched_aggregated.columns), ignore_index=True)
+
+# Write the matched output data to an Excel file
+with pd.ExcelWriter('Z:/Desktop/matched_output.xlsx') as writer:
+    matched_output_df.to_excel(writer, sheet_name='Matched Output', index=False)
+    matched_aggregated.to_excel(writer, sheet_name='Aggregated Matched Output', index=False)
+
+# Write the unmatched output data to a separate Excel file
+with pd.ExcelWriter('Z:/Desktop/unmatched_output.xlsx') as writer:
+    unmatched_output_df.to_excel(writer, sheet_name='Unmatched Output', index=False)
+
