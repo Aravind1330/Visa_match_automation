@@ -149,3 +149,64 @@ with pd.ExcelWriter(config['output_file']) as writer:
 # Aggregate the matched data and write to CSV file
 matched_aggregated.to_csv('Z:/Desktop/matched_aggregated.csv', index=False)
 
+
+
+
+
+
+
+
+import pandas as pd
+
+# ... previous code ...
+
+# Define additional output columns for unmatched transactions
+unmatched_output_columns = ['Company ID & Name', 'fin_orig_supplier_nm', 'fin_source_amt']
+
+# Define a list to store the output rows for unmatched transactions
+unmatched_output_rows = []
+
+# ... previous code ...
+
+# Loop through each row in table1 and find a match in table2
+for T5 in T5_table.iterrows():
+    try:
+        matched = False
+        for Invoice in Invoice_table.iterrows():
+            matched, rule_index = match_row(T5, Invoice)
+            if matched:
+                description = rule_descriptions[rule_index]
+                output_rows.append({
+                    column: T5[column] if column in T5 else Invoice[column] for column in config['output_columns']
+                })
+                output_rows[-1]['Match Rule'] = rule_index
+                output_rows[-1]['description'] = description
+                break
+
+        if not matched:
+            unmatched_output_rows.append({
+                'Company ID & Name': T5['Company ID & Name'],
+                'fin_orig_supplier_nm': T5['fin_orig_supplier_nm'],
+                'fin_source_amt': T5['fin_source_amt']
+            })
+
+    except:
+        # print(f"Error processing T5: {T5}")
+        error_messages.append(f"Error processing T5: {T5}")
+        continue
+
+# Create a DataFrame from the output rows and aggregate the data
+output_df = pd.DataFrame(output_rows, columns=output_columns)
+aggregated = output_df.groupby(['Company ID & Name', 'Match Rule']).size().reset_index(name='TRF')
+total = aggregated['TRF'].sum()
+aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated.columns), ignore_index=True)
+
+# Write the output data to a CSV file
+output_df.to_csv('Z:/Desktop/output.csv', index=False)
+
+# Create a DataFrame from the unmatched output rows
+unmatched_output_df = pd.DataFrame(unmatched_output_rows, columns=unmatched_output_columns)
+
+# Write the unmatched transactions to a separate CSV file
+unmatched_output_df.to_csv('Z:/Desktop/unmatched_output.csv', index=False)
+
