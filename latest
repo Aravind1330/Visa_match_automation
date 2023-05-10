@@ -12,5 +12,8 @@ def read_rules(file_path):
         rule_descriptions[i+1] = rule_description
     return rules, rule_descriptions
 
+# Read rules from the CSV file using the helper function
+rules_file_path = 'Z:/Desktop/Rules.csv'
+rules, rule_descriptions = read_rules(rules_file_path)
 
 
