@@ -291,3 +291,13 @@ unmatched_output_df.to_csv('Z:/Desktop/unmatched_output.csv', index=False)
 with pd.ExcelWriter(config['output_file']) as writer:
     output_df.to_excel(writer, sheet_name='Output', index=False)
     aggregated.to_excel(writer, sheet_name='Aggregated', index=False)
+
+
+
+
+
+if not matched:
+            unmatched_output_row = {
+                column: T5[column] for column in unmatched_output_columns
+            }
+            unmatched_output_rows.append(unmatched_output_row)
