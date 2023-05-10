@@ -309,3 +309,16 @@ if not matched:
 unmatched_output_columns = config['unmatched_output_columns']
 unmatched_output_rows = []
 description = rule_descriptions.get(rule_index, '')
+
+
+
+from pyspark.sql import SparkSession
+
+# Create a SparkSession
+spark = SparkSession.builder.getOrCreate()
+
+# Load the T5 table as a Spark DataFrame
+t5_df = spark.read.csv('path_to_T5_table.csv', header=True)
+
+# Filter rows where "region" values are not 1, 2, or 3
+filtered_t5_df = t5_df.filter(t5_df.region.isin(['1', '2', '3']))
