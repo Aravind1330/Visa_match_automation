@@ -301,3 +301,10 @@ if not matched:
                 column: T5[column] for column in unmatched_output_columns
             }
             unmatched_output_rows.append(unmatched_output_row)
+
+
+
+
+# Define a list to store the unmatched transactions
+unmatched_output_columns = config['unmatched_output_columns']
+unmatched_output_rows = []
