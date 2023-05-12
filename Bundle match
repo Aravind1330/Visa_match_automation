@@ -135,3 +135,36 @@ matched_output_df.to_csv('Z:/Desktop/matched_output.csv', index=False)
 unmatched_output_df.to_csv('Z:/Desktop/unmatched_output.csv', index=False)
 matched_aggregated.to_csv('Z:/Desktop/matched_aggregated.csv', index=False)
 
+
+
+
+import pandas as pd
+
+def load_rules():
+    rules_df = pd.read_csv('Z:/Desktop/Rules.csv')
+    rules = []
+    rule_descriptions = {}
+    for i, row in rules_df.iterrows():
+        rule_string = row['Rule']
+        rule_description = row['Description']
+        rule = eval(f"lambda row, row2: {rule_string}")
+        rules.append(rule)
+        rule_descriptions[i+1] = rule_description
+    return rules, rule_descriptions
+
+
+
+import pandas as pd
+from rules_functions import load_rules
+
+# Load rules_df, rules, and rule_descriptions
+rules, rule_descriptions = load_rules()
+
+# Define the output columns
+output_columns = ['Company ID & Name', 'Match Rule', 'Description', 'fin_orig_supplier_nm', 'fin_source_amt', 'inv_match_source_amt', 'inv_erp_vend_no', 'inv_po_no']
+
+# Define lists to store the output rows for matched and unmatched transactions
+matched_output_rows = []
+unmatched_output_rows = []
+
+# Rest of your code...
