@@ -168,3 +168,16 @@ matched_output_rows = []
 unmatched_output_rows = []
 
 # Rest of your code...
+import pandas as pd
+
+def load_rules():
+    rules_df = pd.read_csv('Z:/Desktop/Rules.csv')
+    rules = []
+    rule_descriptions = {}
+    for i, row in rules_df.iterrows():
+        rule_string = row['Rule']
+        rule_description = row['Description']
+        rule = eval(f"lambda row, row2: {rule_string}")
+        rules.append(rule)
+        rule_descriptions[i+1] = rule_description
+    return rules, rule_descriptions
