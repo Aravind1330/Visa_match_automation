@@ -66,12 +66,27 @@ with pd.ExcelWriter(config['output_file']) as writer:
 
 
 
-Rule Generation: The code reads rules from a CSV file and creates lambda functions using eval. Instead of manually specifying the rules in the CSV file, you can use machine learning algorithms to learn the rules from the data. For example, you can train a classification model to predict the rules based on the input data, and then use the trained model to generate the rules dynamically.
+import pandas as pd
 
-Matching T5 Transactions: The code matches T5 transactions with invoices using a loop. Instead of a simple matching process, you can employ machine learning techniques to enhance the matching algorithm. For example, you can use a similarity-based matching algorithm or train a model to predict the likelihood of a match between a T5 transaction and an invoice.
+def read_rules_dataframe(file_path):
+    rules_df = pd.read_csv(file_path)
+    rules = []
+    rule_descriptions = {}
+    for i, row in rules_df.iterrows():
+        rule_string = row['Rule']
+        rule_description = row['Description']
+        rule = eval(f"lambda row, row2: {rule_string}")
+        rules.append(rule)
+        rule_descriptions[i+1] = rule_description
+    return rules, rule_descriptions
 
-Error Detection and Handling: The code includes a try-except block for error handling. You can leverage machine learning techniques for error detection and handling. For example, you can train a model to classify different types of errors and automatically take appropriate actions to handle those errors.
 
-Aggregation and Analysis: After processing the transactions, the code performs aggregation and analysis on the output data. You can apply machine learning techniques for more advanced analysis, such as clustering similar transactions, identifying patterns or anomalies, and making predictions based on historical data.
 
-Preprocessing and Data Transformation: Before processing the data, you can incorporate machine learning techniques for preprocessing and data transformation steps. For instance, you can use dimensionality reduction techniques like PCA (Principal Component Analysis) or feature selection algorithms to improve the efficiency and accuracy of the processing steps.
+import pandas as pd
+import yaml
+from rules_functions import read_rules_dataframe
+
+# Read the rules from the CSV file
+rules, rule_descriptions = read_rules_dataframe('Z:/Desktop/Rules.csv')
+
+# Rest of your code...
