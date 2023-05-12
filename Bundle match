@@ -248,3 +248,35 @@ T5_data = T5_table.collect()
 T5_records = [row.asDict() for row in T5_data]
 
 # Rest of your code...
+
+
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col
+from pyspark.sql.window import Window
+
+# Process each T5 transaction
+for T5 in T5_table.collect():
+    try:
+        matched = False
+        for Invoice in Invoice_table.collect():
+            matched, rule_index = match_row(T5, Invoice)  # Modify the match_row function for Spark DataFrame comparison
+            if matched:
+                description = rule_descriptions.get(rule_index, '')  # Retrieve the description using the rule_index
+                output_row = {}
+                for column in output_columns:
+                    if column in T5.columns:
+                        output_row[column] = T5[column]
+                    elif column in Invoice.columns:
+                        output_row[column] = Invoice[column]
+                output_row['Match Rule'] = rule_index
+                output_row['Description'] = description
+                output_rows.append(output_row)
+                break
+
+        if not matched:
+            unmatched_output_row = {column: T5[column] for column in unmatched_output_columns}
+            unmatched_output_rows.append(unmatched_output_row)
+
+    except Exception as e:
+        error_messages.append(f"Error processing T5: {T5}\n{str(e)}")
+        continue
