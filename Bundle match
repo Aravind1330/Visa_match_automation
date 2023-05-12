@@ -66,17 +66,72 @@ with pd.ExcelWriter(config['output_file']) as writer:
 
 
 
+import pandas as pd
 
-from pyspark.sql import SparkSession
+rules_df = pd.read_csv('Z:/Desktop/Rules.csv')
+rules = []
+rule_descriptions = {}
+for i, row in rules_df.iterrows():
+    rule_string = row['Rule']
+    rule_description = row['Description']
+    rule = eval(f"lambda row, row2: {rule_string}")
+    rules.append(rule)
+    rule_descriptions[i+1] = rule_description
 
-# Create SparkSession
-spark = SparkSession.builder.getOrCreate()
+# Define the output columns
+output_columns = ['Company ID & Name', 'Match Rule', 'Description', 'fin_orig_supplier_nm', 'fin_source_amt', 'inv_match_source_amt', 'inv_erp_vend_no', 'inv_po_no']
 
-# Read T5 table from a CSV file
-t5_table = spark.read.csv('path/to/t5_table.csv', header=True, inferSchema=True)
+# Read the previously unmatched transactions if available
+try:
+    unmatched_output_df = pd.read_csv('Z:/Desktop/unmatched_output.csv')
+except FileNotFoundError:
+    unmatched_output_df = pd.DataFrame(columns=output_columns)
 
-# Filter rows based on region column values
-filtered_t5_table = t5_table.filter(t5_table['region'].isin([1, 2, 3]))
+# Keep track of matched invoices
+matched_invoices = []
 
-# Show the filtered DataFrame
-filtered_t5_table.show()
+# Filter T5 dataframe to remove rows with null 'fin_source_amt' column
+T5_table = T5_table.dropna(subset=['fin_source_amt'])
+
+# Loop through each row in T5_table and find a match in Invoice_table
+for T5_idx, T5_row in T5_table.iterrows():
+    try:
+        matched = False
+        for Invoice_idx, Invoice_row in Invoice_table.iterrows():
+            matched, rule_index = match_row(T5_row, Invoice_row)
+            if matched:
+                description = rule_descriptions[rule_index]
+                matched_output = {
+                    column: T5_row[column] if column in T5_row else Invoice_row[column] for column in output_columns
+                }
+                matched_output['Match Rule'] = rule_index
+                matched_output['Description'] = description
+                matched_invoices.append(Invoice_idx)  # Keep track of matched invoices
+                break
+        if not matched:
+            unmatched_output = {
+                column: T5_row[column] for column in output_columns
+            }
+            unmatched_output['Match Rule'] = 'N/A'
+            unmatched_output['Description'] = 'No match found'
+            unmatched_output_df = unmatched_output_df.append(unmatched_output, ignore_index=True)
+    except Exception as e:
+        error_messages.append(f"Error processing T5 at index {T5_idx}: {str(e)}")
+        continue
+
+# Remove previously matched transactions from unmatched_output_df
+unmatched_output_df = unmatched_output_df.drop(matched_invoices)
+
+# Create DataFrames from the output rows for matched transactions
+matched_output_df = pd.DataFrame(columns=output_columns)  # Create an empty DataFrame for matched transactions
+
+# Aggregate the data
+matched_aggregated = matched_output_df.groupby(['Company ID & Name', 'Match Rule']).size().reset_index(name='TRF')
+matched_total = matched_aggregated['TRF'].sum()
+matched_aggregated = matched_aggregated.append(pd.Series(['Total', '-', matched_total], index=matched_aggregated.columns), ignore_index=True)
+
+# Write the output data to separate CSV files
+matched_output_df.to_csv('Z:/Desktop/matched_output.csv', index=False)
+unmatched_output_df.to_csv('Z:/Desktop/unmatched_output.csv', index=False)
+matched_aggregated.to_csv('Z:/Desktop/matched_aggregated.csv', index=False)
+
