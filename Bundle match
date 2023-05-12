@@ -209,3 +209,42 @@ for row in rules_df.rdd.collect():
     rules.append(rule)
     rule_descriptions[row['id']] = rule_description
 
+
+
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col
+
+# Create a SparkSession
+spark = SparkSession.builder.getOrCreate()
+
+# Read the T5 table from Excel using the config file
+T5_table = spark.read.format('com.crealytics.spark.excel') \
+    .option('header', 'true') \
+    .option('dataAddress', 'T5') \
+    .option('treatEmptyValuesAsNulls', 'true') \
+    .option('inferSchema', 'true') \
+    .load(config['input_files']['T5-file'])
+
+# Drop duplicates based on 'fin_record_key'
+T5_table = T5_table.dropDuplicates(['fin_record_key'])
+
+# Filter rows based on 'fin_region_id'
+T5_table = T5_table.filter(col('fin_region_id').isin(['1', '2', '3']))
+
+# Filter rows based on 'fin_merch_catg_cd'
+T5_table = T5_table.filter(col('fin_merch_catg_cd').isin(['3000', '3001', '3002', '3003']))
+
+# Filter rows based on date using a custom function
+def filter_date(date_column, days):
+    return col(date_column) >= current_date() - expr(f'interval {days} days')
+
+T5_table = T5_table.filter(filter_date('fin_posting_dt', 7))
+
+# Drop rows with null values in specified columns
+T5_table = T5_table.dropna(subset=['fin_source_amt', 'fin_orig_supplier_nm'])
+
+# Convert DataFrame to a list of dictionaries (orient='records')
+T5_data = T5_table.collect()
+T5_records = [row.asDict() for row in T5_data]
+
+# Rest of your code...
