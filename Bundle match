@@ -194,6 +194,18 @@ rules, rule_descriptions = load_rules(rules_file_path)
 
 
 
-# Write the removed rows to an Excel file
-removed_rows_df = pd.DataFrame(T5_table[~T5_table.index.isin(output_df.index)])
-removed_rows_df.to_excel('Z:/Desktop/removed_rows.xlsx', index=False)
+# Read the rules from the CSV file into a PySpark DataFrame
+rules_df = spark.read.csv('Z:/Desktop/Rules.csv', header=True, inferSchema=True)
+
+# Create empty lists to store rules and rule descriptions
+rules = []
+rule_descriptions = {}
+
+# Iterate over the rows of the rules DataFrame
+for row in rules_df.rdd.collect():
+    rule_string = row['Rule']
+    rule_description = row['Description']
+    rule = eval(f"lambda row, row2: {rule_string}")
+    rules.append(rule)
+    rule_descriptions[row['id']] = rule_description
+
