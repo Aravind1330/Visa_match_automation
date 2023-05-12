@@ -190,3 +190,10 @@ rules_file_path = 'Z:/Desktop/Rules.csv'
 
 # Load the rules using the load_rules() function
 rules, rule_descriptions = load_rules(rules_file_path)
+
+
+
+
+# Write the removed rows to an Excel file
+removed_rows_df = pd.DataFrame(T5_table[~T5_table.index.isin(output_df.index)])
+removed_rows_df.to_excel('Z:/Desktop/removed_rows.xlsx', index=False)
