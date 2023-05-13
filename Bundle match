@@ -401,3 +401,93 @@ unmatched_output_df.to_csv(unmatched_file_path, index=False)
 with pd.ExcelWriter(config['output_file']) as writer:
     output_df.to_excel(writer, sheet_name='Output', index=False)
     aggregated.to_excel
+
+
+
+
+
+
+
+
+
+
+
+
+
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col
+
+# Initialize SparkSession
+spark = SparkSession.builder.getOrCreate()
+
+# Read the rules from the CSV file
+rules_df = spark.read.csv('Z:/Desktop/Rules.csv', header=True)
+rules = []
+rule_descriptions = {}
+for row in rules_df.collect():
+    rule_string = row['Rule']
+    rule_description = row['Description']
+    rule = eval(f"lambda row, row2: {rule_string}")
+    rules.append(rule)
+    rule_descriptions[row['Rule Index']] = rule_description
+
+# Read the config file
+with open('config.yml', 'r') as f:
+    config = yaml.safe_load(f)
+
+# Define the output columns
+output_columns = config['output_columns']
+
+# Filter T5 dataframe to remove rows with null 'fin_source_amt' column
+T5_table = T5_table.dropna(subset=['fin_source_amt'])
+
+# Broadcast the rules and rule descriptions to all worker nodes
+broadcast_rules = spark.sparkContext.broadcast(rules)
+broadcast_rule_descriptions = spark.sparkContext.broadcast(rule_descriptions)
+
+# Process each T5 transaction
+output_rows = []
+unmatched_output_rows = []
+for T5 in T5_table.rdd.toLocalIterator():
+    try:
+        matched = False
+        for Invoice in Invoice_table.rdd.collect():
+            matched, rule_index = match_row(T5, Invoice)
+            if matched:
+                description = broadcast_rule_descriptions.value.get(rule_index, '')
+                output_row = {
+                    column: T5[column] if column in T5 else Invoice[column] for column in output_columns
+                }
+                output_row['Match Rule'] = rule_index
+                output_row['Description'] = description
+                output_rows.append(output_row)
+                break
+
+        if not matched:
+            unmatched_output_row = {
+                column: T5[column] for column in unmatched_output_columns
+            }
+            unmatched_output_rows.append(unmatched_output_row)
+
+    except Exception as e:
+        error_messages.append(f"Error processing T5: {T5}\n{str(e)}")
+        continue
+
+# Create DataFrames from the output rows
+output_df = spark.createDataFrame(output_rows)
+unmatched_output_df = spark.createDataFrame(unmatched_output_rows)
+
+# Aggregate the data
+aggregated = output_df.groupby(['Company ID & Name', 'Match Rule']).count().withColumnRenamed('count', 'TRF')
+total = aggregated.selectExpr('sum(TRF)').collect()[0][0]
+aggregated = aggregated.union(spark.createDataFrame([['Total', '-', total]], schema=aggregated.schema))
+
+# Write the output data to a CSV file
+output_df.write.csv('Z:/Desktop/output.csv', header=True, mode='overwrite')
+
+# Write the unmatched transactions to a separate CSV file
+unmatched_output_df.write.csv('Z:/Desktop/unmatched_output.csv', header=True, mode='overwrite')
+
+# Write the aggregated data to Excel
+output_df.write.format('excel').option('sheet_name', 'Output').option('header', 'true').mode('overwrite').save(config['output_file'], compression='uncompressed')
+aggregated.write.format('excel').option('sheet_name', 'Aggregated').option('header', 'true').mode('append').save(config['output_file'], compression='uncompressed')
