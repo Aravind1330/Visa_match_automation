@@ -564,7 +564,6 @@ for T5 in T5_table:
 
 import pandas as pd
 import yaml
-import os
 
 # Read the rules from the CSV file
 rules_df = pd.read_csv('Z:/Desktop/Rules.csv')
@@ -591,12 +590,10 @@ output_rows = []
 unmatched_output_columns = config['unmatched_output_columns']
 unmatched_output_rows = []
 
-unmatched_output_file = 'Z:/Desktop/unmatched_output.csv'
-
-# Load the existing unmatched transaction data if the file exists
-if os.path.isfile(unmatched_output_file):
-    unmatched_output_df = pd.read_csv(unmatched_output_file)
-else:
+# Load the existing unmatched transaction data if it exists
+try:
+    unmatched_output_df = pd.read_csv('Z:/Desktop/unmatched_output.csv')
+except FileNotFoundError:
     unmatched_output_df = pd.DataFrame(columns=unmatched_output_columns)
 
 # Process each T5 transaction
@@ -646,10 +643,11 @@ unmatched_output_df.drop(matched_indices, inplace=True)
 unmatched_output_df = unmatched_output_df.append(unmatched_output_rows, ignore_index=True)
 
 # Write the updated unmatched transactions to the CSV file
-unmatched_output_df.to_csv(unmatched_output_file, index=False)
+unmatched_output_df.to_csv('Z:/Desktop/unmatched_output.csv', index=False)
 
 # Write the aggregated data to Excel
 with pd.ExcelWriter(config['output_file']) as writer:
     output_df.to_excel(writer, sheet_name='Output', index=False)
     aggregated.to_excel(writer, sheet_name='Aggregated', index=False)
+
 
