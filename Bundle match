@@ -651,3 +651,5 @@ with pd.ExcelWriter(config['output_file']) as writer:
     aggregated.to_excel(writer, sheet_name='Aggregated', index=False)
 
 
+# Append the new unmatched transactions to the existing unmatched_output_df
+unmatched_output_df = unmatched_output_df.append(unmatched_output_rows, ignore_index=True)
