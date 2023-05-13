@@ -655,6 +655,9 @@ with pd.ExcelWriter(config['output_file']) as writer:
 unmatched_output_rows += unmatched_output_df.to_dict('records')
 
 
+# Create a DataFrame for the new unmatched transactions
+new_unmatched_output_df = pd.DataFrame(unmatched_output_rows, columns=unmatched_output_columns)
+
 # Append the new unmatched transactions to the existing unmatched_output_df
-unmatched_output_df = pd.DataFrame(unmatched_output_rows, columns=unmatched_output_columns)
-unmatched_output_df = unmatched_output_df.append(output_df[output_columns].drop_duplicates(), ignore_index=True)
+unmatched_output_df = pd.concat([unmatched_output_df, new_unmatched_output_df, output_df[output_columns]], ignore_index=True)
+
