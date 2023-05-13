@@ -491,3 +491,13 @@ unmatched_output_df.write.csv('Z:/Desktop/unmatched_output.csv', header=True, mo
 # Write the aggregated data to Excel
 output_df.write.format('excel').option('sheet_name', 'Output').option('header', 'true').mode('overwrite').save(config['output_file'], compression='uncompressed')
 aggregated.write.format('excel').option('sheet_name', 'Aggregated').option('header', 'true').mode('append').save(config['output_file'], compression='uncompressed')
+
+
+
+
+
+
+
+
+# Store the removed rows in a separate DataFrame
+removed_rows = pd.DataFrame(columns=T5_table.columns)
