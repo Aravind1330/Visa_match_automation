@@ -661,3 +661,41 @@ new_unmatched_output_df = pd.DataFrame(unmatched_output_rows, columns=unmatched_
 # Append the new unmatched transactions to the existing unmatched_output_df
 unmatched_output_df = pd.concat([unmatched_output_df, new_unmatched_output_df, output_df[output_columns]], ignore_index=True)
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Remove the matched transactions from unmatched_output_df
+matched_indices = unmatched_output_df[
+    unmatched_output_df.apply(lambda row: any(match_row(row, invoice) for invoice in Invoice_table), axis=1)
+].index
+unmatched_output_df.drop(matched_indices, inplace=True)
+
+# Create a DataFrame for the new unmatched transactions
+new_unmatched_output_df = pd.DataFrame(unmatched_output_rows, columns=unmatched_output_columns)
+
+# Append the new unmatched transactions to the existing unmatched_output_df
+unmatched_output_df = pd.concat([unmatched_output_df, new_unmatched_output_df, output_df[output_columns]], ignore_index=True)
+
+# Remove duplicates from unmatched_output_df
+unmatched_output_df.drop_duplicates(inplace=True)
