@@ -280,3 +280,31 @@ for T5 in T5_table.collect():
     except Exception as e:
         error_messages.append(f"Error processing T5: {T5}\n{str(e)}")
         continue
+
+
+
+
+
+import pandas as pd
+
+def read_rules_df(file_path):
+    rules_df = pd.read_csv(file_path)
+    rules = []
+    rule_descriptions = {}
+    for i, row in rules_df.iterrows():
+        rule_string = row['Rule']
+        rule_description = row['Description']
+        rule = eval(f"lambda row, row2: {rule_string}")
+        rules.append(rule)
+        rule_descriptions[i+1] = rule_description
+    return rules_df, rules, rule_descriptions
+
+
+import pandas as pd
+import yaml
+from rules_reader import read_rules_df
+
+# Read the rules DataFrame using the function from the separate file
+rules_df, rules, rule_descriptions = read_rules_df('Z:/Desktop/Rules.csv')
+
+# Rest of your code...
