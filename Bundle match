@@ -558,3 +558,31 @@ for T5 in T5_table:
     except Exception as e:
         error_messages.append(f"Error processing T5: {T5}\n{str(e)}")
         continue
+
+
+
+
+unmatched_output_file = 'Z:/Desktop/unmatched_output.csv'
+
+# Load the existing unmatched transaction data if the file exists
+if os.path.isfile(unmatched_output_file):
+    unmatched_output_df = pd.read_csv(unmatched_output_file)
+else:
+    unmatched_output_df = pd.DataFrame(columns=unmatched_output_columns)
+
+
+if matched:
+    # Identify the row index of the matched transaction in unmatched_output_df
+    matched_index = unmatched_output_df[
+        (unmatched_output_df['T5_column1'] == T5['T5_column1']) &
+        (unmatched_output_df['T5_column2'] == T5['T5_column2'])
+    ].index
+
+    # Remove the matched transaction from unmatched_output_df
+    unmatched_output_df.drop(matched_index, inplace=True)
+
+
+# Append the new unmatched transactions to the existing unmatched_output_df
+unmatched_output_df = unmatched_output_df.append(unmatched_output_rows, ignore_index=True)
+# Write the updated unmatched transactions to the CSV file
+unmatched_output_df.to_csv(unmatched_output_file, index=False)
