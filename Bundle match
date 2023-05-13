@@ -499,20 +499,62 @@ aggregated.write.format('excel').option('sheet_name', 'Aggregated').option('head
 
 
 
-# T5 Data Filtering
-T5_table = pd.read_excel(config['input_files'][0])
-original_rows_count = len(T5_table)
+import pandas as pd
 
-T5_table = T5_table.drop_duplicates(subset=['fin_record_key'])
-duplicated_rows = pd.concat([T5_table, T5_table]).drop_duplicates(keep=False)
+def read_rules():
+    rules_df = pd.read_csv('Z:/Desktop/Rules.csv')
+    rules = []
+    rule_descriptions = {}
+    for i, row in rules_df.iterrows():
+        rule_string = row['Rule']
+        rule_description = row['Description']
+        rule = eval(f"lambda row, row2: {rule_string}")
+        rules.append(rule)
+        rule_descriptions[i+1] = rule_description  # Fixed index to i+1
+    return rules, rule_descriptions
 
-T5_table = T5_table[T5_table['fin_region_id'].isin(['1', '2', '3'])]
-T5_table = T5_table[T5_table['fin_merch_catg_cd'].isin(['3000', '3001', '3002', '3003'])]
-T5_table = T5_table.dropna(subset=['fin_source_amt', 'fin_orig_supplier_nm'])
+def apply_rules(row, row2, rules):
+    matched = False
+    rule_index = None
+    for rule in rules:
+        matched = rule(row, row2)
+        if matched:
+            # Additional processing if needed
+            break
+    return matched, rule_index
 
-filtered_rows_count = len(T5_table)
-removed_rows_count = original_rows_count - filtered_rows_count
 
-# Store removed rows in a separate Excel file
-removed_rows_df = pd.concat([duplicated_rows, T5_table]).drop_duplicates(keep=False)
-removed_rows_df.to_excel('Z:/Desktop/removed_rows.xlsx', index=False)
+
+import pandas as pd
+import yaml
+from rules_functions import read_rules, apply_rules
+
+
+
+
+# Read the rules from the CSV file
+rules, rule_descriptions = read_rules()
+
+# ...
+
+# Process each T5 transaction
+for T5 in T5_table:
+    try:
+        matched, rule_index = apply_rules(T5, Invoice, rules)
+        if matched:
+            description = rule_descriptions.get(rule_index, '')  # Retrieve the description using the rule_index
+            output_row = {
+                column: T5[column] if column in T5 else Invoice[column] for column in output_columns
+            }
+            output_row['Match Rule'] = rule_index
+            output_row['Description'] = description
+            output_rows.append(output_row)
+        else:
+            unmatched_output_row = {
+                column: T5[column] for column in unmatched_output_columns
+            }
+            unmatched_output_rows.append(unmatched_output_row)
+
+    except Exception as e:
+        error_messages.append(f"Error processing T5: {T5}\n{str(e)}")
+        continue
