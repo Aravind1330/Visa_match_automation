@@ -499,5 +499,20 @@ aggregated.write.format('excel').option('sheet_name', 'Aggregated').option('head
 
 
 
-# Store the removed rows in a separate DataFrame
-removed_rows = pd.DataFrame(columns=T5_table.columns)
+# T5 Data Filtering
+T5_table = pd.read_excel(config['input_files'][0])
+original_rows_count = len(T5_table)
+
+T5_table = T5_table.drop_duplicates(subset=['fin_record_key'])
+duplicated_rows = pd.concat([T5_table, T5_table]).drop_duplicates(keep=False)
+
+T5_table = T5_table[T5_table['fin_region_id'].isin(['1', '2', '3'])]
+T5_table = T5_table[T5_table['fin_merch_catg_cd'].isin(['3000', '3001', '3002', '3003'])]
+T5_table = T5_table.dropna(subset=['fin_source_amt', 'fin_orig_supplier_nm'])
+
+filtered_rows_count = len(T5_table)
+removed_rows_count = original_rows_count - filtered_rows_count
+
+# Store removed rows in a separate Excel file
+removed_rows_df = pd.concat([duplicated_rows, T5_table]).drop_duplicates(keep=False)
+removed_rows_df.to_excel('Z:/Desktop/removed_rows.xlsx', index=False)
