@@ -429,3 +429,5 @@ with pd.ExcelWriter(config['output_file']) as writer:
     output_df.to_excel(writer, sheet_name='Output', index=False)
     aggregated.to_excel(writer, sheet_name='Aggregated', index=False)
 
+# Add the "Reason" column
+unmatched_output_df['Reason'] = ''
