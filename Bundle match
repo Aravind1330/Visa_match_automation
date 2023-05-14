@@ -246,22 +246,94 @@ unmatched
 
 
 import pandas as pd
+import yaml
+import os
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col
 
-def read_rules(file_path):
-    rules_df = pd.read_csv(file_path)
-    rules = []
-    rule_descriptions = {}
-    for i, row in rules_df.iterrows():
-        rule_string = row['Rule']
-        rule_description = row['Description']
-        rule = eval(f"lambda row, row2: {rule_string}")
-        rules.append(rule)
-        rule_descriptions[i+1] = rule_description  # Fixed index to i+1
-
-    return rules, rule_descriptions
-
-
+# Create a SparkSession
+spark = SparkSession.builder.getOrCreate()
 
 # Read the rules from the CSV file
-rules_file_path = 'Z:/Desktop/Rules.csv'
-rules, rule_descriptions = read_rules(rules_file_path)
+rules_df = pd.read_csv('Z:/Desktop/Rules.csv')
+rules = []
+rule_descriptions = {}
+for i, row in rules_df.iterrows():
+    rule_string = row['Rule']
+    rule_description = row['Description']
+    rule = eval(f"lambda row, row2: {rule_string}")
+    rules.append(rule)
+    rule_descriptions[i+1] = rule_description  # Fixed index to i+1
+
+def match_row(T5, Invoice):
+    for i, rule in enumerate(rules):
+        if rule(T5, Invoice):
+            return True, i+1
+    return False, "Unmatched"
+
+# Read the config file
+with open('config.yml', 'r') as f:
+    config = yaml.safe_load(f)
+
+# Define the output columns
+output_columns = config['output_columns']
+
+# Define a list to store the output rows
+output_rows = []
+
+# Define a list to store the unmatched transactions
+unmatched_output_columns = config['unmatched_output_columns']
+unmatched_output_rows = []
+
+unmatched_output_file = 'Z:/Desktop/unmatched_output.csv'
+
+# Load the existing unmatched transaction data if the file exists
+if os.path.isfile(unmatched_output_file):
+    unmatched_output_df = spark.read.csv(unmatched_output_file, header=True)
+else:
+    unmatched_output_df = spark.createDataFrame([], unmatched_output_columns)
+
+# Load T5 and Invoice data (replace with your own code to load the data into Spark DataFrames)
+T5_table = spark.read.csv('T5.csv', header=True)
+Invoice_table = spark.read.csv('Invoice.csv', header=True)
+
+# Process each T5 transaction
+for T5 in T5_table.rdd.toLocalIterator():
+    try:
+        matched = False
+        for Invoice in Invoice_table.rdd.toLocalIterator():
+            matched, rule_index = match_row(T5, Invoice)
+            if matched:
+                description = rule_descriptions.get(rule_index, '')  # Retrieve the description using the rule_index
+                output_row = {
+                    column: T5[column] if column in T5 else Invoice[column] for column in output_columns
+                }
+                output_row['Match Rule'] = rule_index
+                output_row['Description'] = description
+                output_rows.append(output_row)
+                break
+
+        if not matched:
+            unmatched_output_row = {
+                column: T5[column] for column in unmatched_output_columns
+            }
+            unmatched_output_rows.append(unmatched_output_row)
+
+    except Exception as e:
+        error_messages.append(f"Error processing T5: {T5}\n{str(e)}")
+        continue
+
+# Create a DataFrame from the output rows
+output_df = pd.DataFrame(output_rows, columns=output_columns)
+output_df = spark.createDataFrame(output_df)
+
+# Aggregate the data
+aggregated = output_df.groupBy(['Company ID & Name', 'Match Rule']).count().withColumnRenamed('count', 'TRF')
+total = aggregated.agg({'TRF': 'sum'}).collect()[0][0]
+aggregated = aggregated.union(spark.createDataFrame([['Total', '-', total]], aggregated.columns))
+
+# Write the output data to a CSV file
+output_df.write.csv('Z:/Desktop/output.csv', header=True, mode='overwrite')
+
+# Remove the matched
+
