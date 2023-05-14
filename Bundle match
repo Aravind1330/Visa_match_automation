@@ -245,20 +245,23 @@ unmatched
 
 
 
-# Drop duplicate rows based on 'fin_record_key'
-T5_table = T5_table.dropDuplicates(subset=['fin_record_key'])
+import pandas as pd
 
-# Apply region filtering
-T5_table = T5_table.filter(col('fin_region_id').isin('1', '2', '3'))
+def read_rules(file_path):
+    rules_df = pd.read_csv(file_path)
+    rules = []
+    rule_descriptions = {}
+    for i, row in rules_df.iterrows():
+        rule_string = row['Rule']
+        rule_description = row['Description']
+        rule = eval(f"lambda row, row2: {rule_string}")
+        rules.append(rule)
+        rule_descriptions[i+1] = rule_description  # Fixed index to i+1
 
-# Apply 'fin_merch_catg_cd' filtering
-T5_table = T5_table.filter(col('fin_merch_catg_cd').isin('3000', '3001', '3002', '3003'))
+    return rules, rule_descriptions
 
-# Apply date filtering (assuming 'fin_posting_dt' is of date type)
-T5_table = T5_table.filter(col('fin_posting_dt') >= (current_date() - expr('INTERVAL 7 days')))
 
-# Drop rows with missing values in 'fin_source_amt' and 'fin_orig_supplier_nm'
-T5_table = T5_table.dropna(subset=['fin_source_amt', 'fin_orig_supplier_nm'])
 
-# Convert DataFrame to list of dictionaries
-T5_records = T5_table.rdd.map(lambda row: row.asDict()).collect()
+# Read the rules from the CSV file
+rules_file_path = 'Z:/Desktop/Rules.csv'
+rules, rule_descriptions = read_rules(rules_file_path)
