@@ -337,3 +337,10 @@ output_df.write.csv('Z:/Desktop/output.csv', header=True, mode='overwrite')
 
 # Remove the matched
 
+
+
+# Update the "Reason" column based on conditions
+unmatched_output_df.loc[unmatched_output_df['Ticket'].isna() & unmatched_output_df['Auth No'].isna(), 'Reason'] = 'Both Ticket and Auth No Empty'
+unmatched_output_df.loc[unmatched_output_df['Ticket'].isna() & unmatched_output_df['Auth No'].notna(), 'Reason'] = 'No Ticket Number'
+unmatched_output_df.loc[unmatched_output_df['Ticket'].notna() & unmatched_output_df['Auth No'].isna(), 'Reason'] = 'No Auth No'
+unmatched_output_df.loc[unmatched_output_df['Ticket'] == 0 | unmatched_output_df['Auth No'] == 0, 'Reason'] = 'Improper Auth No or Ticket Number'
