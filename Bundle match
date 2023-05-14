@@ -344,3 +344,88 @@ unmatched_output_df.loc[unmatched_output_df['Ticket'].isna() & unmatched_output_
 unmatched_output_df.loc[unmatched_output_df['Ticket'].isna() & unmatched_output_df['Auth No'].notna(), 'Reason'] = 'No Ticket Number'
 unmatched_output_df.loc[unmatched_output_df['Ticket'].notna() & unmatched_output_df['Auth No'].isna(), 'Reason'] = 'No Auth No'
 unmatched_output_df.loc[unmatched_output_df['Ticket'] == 0 | unmatched_output_df['Auth No'] == 0, 'Reason'] = 'Improper Auth No or Ticket Number'
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+output_columns:
+  - Company ID & Name
+  - Ticket
+  - Auth No
+  - Reason
+
+unmatched_output_columns:
+  - Company ID & Name
+  - Ticket
+  - Auth No
+
+reason_conditions:
+  - condition: 'Ticket.isna() and Auth No.isna()'
+    reason: 'Both Ticket and Auth No Empty'
+  - condition: 'Ticket.isna() and Auth No.notna()'
+    reason: 'No Ticket Number'
+  - condition: 'Ticket.notna() and Auth No.isna()'
+    reason: 'No Auth No'
+  - condition: 'Ticket == 0 or Auth No == 0'
+    reason: 'Improper Auth No or Ticket Number'
+
+output_file: 'Z:/Desktop/output.xlsx'
+unmatched_output_file: 'Z:/Desktop/unmatched_output.csv'
+
+
+
+
+
+
+
+
+
+# ID & Name', 'Match Rule']).size().reset_index(name='TRF')
+total = aggregated['TRF'].sum()
+aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated.columns), ignore_index=True)
+
+# Update the Reason column based on conditions
+reason_conditions = config['reason_conditions']
+for condition in reason_conditions:
+    condition_str = condition['condition']
+    reason = condition['reason']
+    condition_func = lambda row: literal_eval(condition_str)
+    output_df.loc[condition_func(output_df), 'Reason'] = reason
+
+# Write the output data to a CSV file
+output_df.to_csv('Z:/Desktop/output.csv', index=False)
+
+# Remove the matched transactions from unmatched_output_df
+matched_indices = unmatched_output_df[
+    unmatched_output_df.apply(lambda row: any(match_row(row, invoice) for invoice in Invoice_table), axis=1)
+].index
+unmatched_output_df.drop(matched_indices, inplace=True)
+
+# Append the new unmatched transactions to the existing unmatched_output_df
+unmatched_output_df = unmatched_output_df.append(unmatched_output_rows, ignore_index=True)
+
+# Remove duplicates from unmatched_output_df
+unmatched_output_df.drop_duplicates(inplace=True)
+
+# Write the updated unmatched transactions to the CSV file
+unmatched_output_df.to_csv(unmatched_output_file, index=False)
+
+# Write the aggregated data to Excel
+with pd.ExcelWriter(config['output_file']) as writer:
+    output_df.to_excel(writer, sheet_name='Output', index=False)
+    aggregated.to_excel(writer, sheet_name='Aggregated', index=False)
+
