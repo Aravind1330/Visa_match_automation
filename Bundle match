@@ -230,3 +230,35 @@ unmatched_output_df = unmatched_output_df.join(matched_indices, unmatched_output
 
 # Append the new unmatched transactions to the existing unmatched_output_df
 unmatched
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Drop duplicate rows based on 'fin_record_key'
+T5_table = T5_table.dropDuplicates(subset=['fin_record_key'])
+
+# Apply region filtering
+T5_table = T5_table.filter(col('fin_region_id').isin('1', '2', '3'))
+
+# Apply 'fin_merch_catg_cd' filtering
+T5_table = T5_table.filter(col('fin_merch_catg_cd').isin('3000', '3001', '3002', '3003'))
+
+# Apply date filtering (assuming 'fin_posting_dt' is of date type)
+T5_table = T5_table.filter(col('fin_posting_dt') >= (current_date() - expr('INTERVAL 7 days')))
+
+# Drop rows with missing values in 'fin_source_amt' and 'fin_orig_supplier_nm'
+T5_table = T5_table.dropna(subset=['fin_source_amt', 'fin_orig_supplier_nm'])
+
+# Convert DataFrame to list of dictionaries
+T5_records = T5_table.rdd.map(lambda row: row.asDict()).collect()
