@@ -489,3 +489,42 @@ for i, filename in enumerate(output_filenames):
 
     output_df_part = output_df.iloc[start_idx:end_idx]
     output_df_part.to_csv(filename, index=False)
+
+
+
+
+
+
+
+
+
+
+for T5 in T5_table:
+try:
+matched = False
+bundle_invoice_amt = 0 # Variable to store the bundled invoice amount
+matching_invoices = [] # List to store matching invoices
+    for Invoice in Invoice_table:
+        if T5['Auth No'] == Invoice['Auth No'] or T5['Ticket No'] == Invoice['Ticket No']:
+            bundle_invoice_amt += Invoice['Source Amt']  # Sum the source amount of matching invoices
+            matching_invoices.append(Invoice)
+
+    if bundle_invoice_amt == T5['Source Amt']:
+        matched = True
+        rule_index = 0  # Set rule index for bundle match, you can define a specific rule index if required
+        description = rule_descriptions.get(rule_index, '')  # Retrieve the description using the rule_index
+        output_row = {
+            column: T5[column] if column in T5 else matching_invoices[0][column] for column in output_columns
+        }
+        output_row['Match Rule'] = rule_index
+        output_row['Description'] = description
+        output_rows.append(output_row)
+    else:
+        unmatched_output_row = {
+            column: T5[column] for column in unmatched_output_columns
+        }
+        unmatched_output_rows.append(unmatched_output_row)
+
+except Exception as e:
+    error_messages.append(f"Error processing T5: {T5}\n{str(e)}")
+    continue
