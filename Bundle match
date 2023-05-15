@@ -619,3 +619,45 @@ for T5 in T5_table:
     except Exception as e:
         error_messages.append(f"Error processing T5: {T5}\n{str(e)}")
         continue
+
+
+
+
+
+
+
+
+
+for T5 in T5_table:
+    try:
+        matched = False
+        matching_invoices = []  # List to store matching invoices for one-to-many match
+        rule_index = 0  # Default value for rule index
+
+        for Invoice in Invoice_table:
+            if (T5['Auth No'] == Invoice['Auth No'] or T5['Ticket No'] == Invoice['Ticket No']):
+                matching_invoices.append(Invoice)
+
+        if matching_invoices:
+            invoice_source_amt_sum = sum(invoice['Source Amt'] for invoice in matching_invoices)
+            if T5['Source Amt'] == invoice_source_amt_sum:
+                matched = True
+                description = "One-to-Many Match"
+                rule_index = 1  # Set the rule index to the desired value
+
+                for Invoice in matching_invoices:
+                    output_row = {
+                        column: T5[column] if column in T5 else Invoice[column] for column in output_columns
+                    }
+                    output_row['Match Rule'] = rule_index
+                    output_row['Description'] = description
+                    output_rows.append(output_row)
+        else:
+            unmatched_output_row = {
+                column: T5[column] for column in unmatched_output_columns
+            }
+            unmatched_output_rows.append(unmatched_output_row)
+
+    except Exception as e:
+        error_messages.append(f"Error processing T5: {T5}\n{str(e)}")
+        continue
