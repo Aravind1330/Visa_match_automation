@@ -464,3 +464,28 @@ if output_count > output_threshold:
 else:
     # Write the entire output DataFrame to the output file
     output_df.to_csv(output_filename, index=False)
+
+
+
+
+
+
+
+
+
+
+
+
+# Define the maximum transactions per output file
+max_transactions_per_file = 900
+
+# Split the output DataFrame into multiple files if it exceeds the maximum transactions per file
+num_files = (len(output_df) - 1) // max_transactions_per_file + 1
+output_filenames = ['Z:/Desktop/output{}.csv'.format(i) for i in range(1, num_files + 1)]
+
+for i, filename in enumerate(output_filenames):
+    start_idx = i * max_transactions_per_file
+    end_idx = start_idx + max_transactions_per_file
+
+    output_df_part = output_df.iloc[start_idx:end_idx]
+    output_df_part.to_csv(filename, index=False)
