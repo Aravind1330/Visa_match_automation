@@ -592,62 +592,28 @@ except Exception as e:
     
     
     
-    def match_bundle(T5, invoices):
-    # Extract relevant fields from T5 transaction
-    t5_amt = T5['fin_source_amt']
-    t5_auth_no = T5['auth_no']
-    t5_ticket_no = T5['ticket_no']
-    
-    # Initialize variables for matching
-    matched_invoices = []
-    invoices_amt_sum = 0
-    
-    # Iterate over invoices
-    for invoice in invoices:
-        # Extract relevant fields from invoice
-        inv_amt = invoice['fin_source_amt']
-        inv_auth_no = invoice['auth_no']
-        inv_ticket_no = invoice['ticket_no']
-        
-        # Check if all conditions match
-        if (
-            t5_amt == inv_amt and
-            (t5_auth_no == inv_auth_no or t5_ticket_no == inv_ticket_no)
-        ):
-            matched_invoices.append(invoice)
-            invoices_amt_sum += inv_amt
-    
-    # Return the matched invoices and the sum of their amounts
-    return matched_invoices, invoices_amt_sum
-
-
-
 # Process each T5 transaction
 for T5 in T5_table:
     try:
         matched = False
-        matched_invoices = []
-        invoices_amt_sum = 0
+        matching_invoices = []  # List to store matching invoices for one-to-many match
 
         for Invoice in Invoice_table:
-            if (
-                T5['fin_source_amt'] == Invoice['fin_source_amt'] and
-                (T5['auth_no'] == Invoice['auth_no'] or T5['ticket_no'] == Invoice['ticket_no'])
-            ):
-                matched_invoices.append(Invoice)
-                invoices_amt_sum += Invoice['fin_source_amt']
-                matched = True
+            if T5['Auth No'] == Invoice['Auth No'] or T5['Ticket No'] == Invoice['Ticket No']:
+                matching_invoices.append(Invoice)
 
-        if matched:
-            description = 'Bundle match'
-            output_row = {
-                column: T5[column] if column in T5 else matched_invoices[0][column] for column in output_columns
-            }
-            output_row['Match Rule'] = 'Bundle match'
-            output_row['Description'] = description
-            output_row['Invoice Count'] = len(matched_invoices)
-            output_row['Invoice Amount Sum'] = invoices_amt_sum
-            output_rows.append(output_row)
+        if matching_invoices:
+            invoice_source_amt_sum = sum(invoice['Source Amt'] for invoice in matching_invoices)
+            if T5['Source Amt'] == invoice_source_amt_sum:
+                matched = True
+                description = "One-to-Many Match"
+                for Invoice in matching_invoices:
+                    output_row = {
+                        column: T5[column] if column in T5 else Invoice[column] for column in output_columns
+                    }
+                    output_row['Match Rule'] = rule_index
+                    output_row['Description'] = description
+                    output_rows.append(output_row)
         else:
             unmatched_output_row = {
                 column: T5[column] for column in unmatched_output_columns
