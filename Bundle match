@@ -626,9 +626,19 @@ except Exception as e:
 for T5 in T5_table:
     try:
         matched = False
-        matched_invoices, invoices_amt_sum = match_bundle(T5, Invoice_table)
-        
-        if matched_invoices:
+        matched_invoices = []
+        invoices_amt_sum = 0
+
+        for Invoice in Invoice_table:
+            if (
+                T5['fin_source_amt'] == Invoice['fin_source_amt'] and
+                (T5['auth_no'] == Invoice['auth_no'] or T5['ticket_no'] == Invoice['ticket_no'])
+            ):
+                matched_invoices.append(Invoice)
+                invoices_amt_sum += Invoice['fin_source_amt']
+                matched = True
+
+        if matched:
             description = 'Bundle match'
             output_row = {
                 column: T5[column] if column in T5 else matched_invoices[0][column] for column in output_columns
@@ -638,9 +648,7 @@ for T5 in T5_table:
             output_row['Invoice Count'] = len(matched_invoices)
             output_row['Invoice Amount Sum'] = invoices_amt_sum
             output_rows.append(output_row)
-            matched = True
-
-        if not matched:
+        else:
             unmatched_output_row = {
                 column: T5[column] for column in unmatched_output_columns
             }
@@ -649,4 +657,3 @@ for T5 in T5_table:
     except Exception as e:
         error_messages.append(f"Error processing T5: {T5}\n{str(e)}")
         continue
-
