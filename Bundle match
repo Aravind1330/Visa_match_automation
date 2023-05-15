@@ -431,3 +431,36 @@ with pd.ExcelWriter(config['output_file']) as writer:
 
 # Add the "Reason" column
 unmatched_output_df['Reason'] = ''
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Write the output data to CSV file(s) with a maximum of 900 transactions per file
+output_threshold = 900
+output_filename = 'Z:/Desktop/output.csv'
+remaining_filename_template = 'Z:/Desktop/output_remaining_{}.csv'
+output_count = len(output_df)
+
+if output_count > output_threshold:
+    # Split the output DataFrame into multiple parts
+    num_files = output_count // output_threshold + 1
+
+    for i in range(num_files):
+        start_index = i * output_threshold
+        end_index = (i + 1) * output_threshold
+
+        output_df_part = output_df[start_index:end_index]
+        filename = remaining_filename_template.format(i + 1)
+        output_df_part.to_csv(filename, index=False)
+else:
+    # Write the entire output DataFrame to the output file
+    output_df.to_csv(output_filename, index=False)
