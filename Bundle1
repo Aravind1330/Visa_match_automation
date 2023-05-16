@@ -456,43 +456,89 @@ output_df = pd.DataFrame(output_rows, columns=output_columns)
 
 
 
-if not matched:
-    unmatched_output_row = {
-        column: T5[column] if column in T5 else None for column in unmatched_output_columns
-    }
-    unmatched_output_rows.append(unmatched_output_row)
+import pandas as pd
+import yaml
+import os
+
+# Read the rules from the CSV file
+rules_df = pd.read_csv('Z:/Desktop/Rules.csv')
+rules = []
+rule_descriptions = {}
+for i, row in rules_df.iterrows():
+    rule_string = row['Rule']
+    rule_description = row['Description']
+    rule = eval(f"lambda row, row2: {rule_string}")
+    rules.append(rule)
+    rule_descriptions[i+1] = rule_description  # Fixed index to i+1
 
 
+def match_row(T5, Invoice):
+    for i, rule in enumerate(rules):
+        if rule(T5, Invoice):
+            # Check if the invoice ID has already been used
+            return True, i + 1
+    return False, "Unmatched"
 
 
+# Read the config file
+with open('config.yml', 'r') as f:
+    config = yaml.safe_load(f)
 
+# Define the output columns
+output_columns = config['output_columns']
 
+# Define a list to store the output rows
+output_rows = []
 
-rule = eval(f"lambda row, invoices: {rule_string}")
+# Define a list to store the unmatched transactions
+unmatched_output_columns = config['unmatched_output_columns']
+unmatched_output_rows = []
 
+unmatched_output_file = 'Z:/Desktop/unmatched_output.csv'
 
+# Load the existing unmatched transaction data if the file exists
+if os.path.isfile(unmatched_output_file):
+    unmatched_output_df = pd.read_csv(unmatched_output_file)
+else:
+    unmatched_output_df = pd.DataFrame(columns=unmatched_output_columns)
 
+# Process each T5 transaction
+for T5 in T5_table:
+    try:
+        matched_invoices = []  # Store matched invoices for a transaction
+        for Invoice in Invoice_table:
+            matched, rule_index = match_row(T5, Invoice)
+            if matched:
+                description = rule_descriptions.get(rule_index, '')  # Retrieve the description using the rule_index
+                output_row = {
+                    column: T5[column] if column in T5 else Invoice[column] for column in output_columns
+                }
+                output_row['Match Rule'] = rule_index
+                output_row['Description'] = description
+                output_rows.append(output_row)
+                matched_invoices.append(Invoice)  # Store the matched invoice
 
+        if not matched_invoices:
+            unmatched_output_row = {
+                column: T5[column] for column in unmatched_output_columns
+            }
+            unmatched_output_rows.append(unmatched_output_row)
+        else:
+            # Remove matched invoices from Invoice_table
+            Invoice_table = [invoice for invoice in Invoice_table if invoice not in matched_invoices]
 
-matched_invoices = []
-total_invoice_amt = 0
+    except Exception as e:
+        error_messages.append(f"Error processing T5: {T5}\n{str(e)}")
+        continue
 
-for Invoice in Invoice_table:
-    matched, rule_index = match_row(T5, Invoice)
-    if matched:
-        description = rule_descriptions.get(rule_index, '')  # Retrieve the description using the rule_index
-        matched_invoices.append(Invoice)
-        total_invoice_amt += Invoice['Source Amt']
+# Create a DataFrame from the output rows
+output_df = pd.DataFrame(output_rows, columns=output_columns)
 
-if total_invoice_amt == T5['Source Amt']:
-    output_row = {
-        column: T5[column] if column in T5 else sum(invoice[column] for invoice in matched_invoices) for column in output_columns
-    }
-    output_row['Match Rule'] = rule_index
-    output_row['Description'] = description
-    output_rows.append(output_row)
-    break
-unmatched_output_row = {
-    column: T5[column] for column in unmatched_output_columns
-}
-unmatched_output_rows.append(unmatched_output_row)
+# Aggregate the data
+aggregated = output_df.groupby(['Company ID & Name', 'Match Rule']).size().reset_index(name='TRF')
+total = aggregated['TRF'].sum()
+aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated.columns), ignore_index=True)
+
+# Write the output data to a CSV file
+output
+
