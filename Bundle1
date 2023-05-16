@@ -183,22 +183,20 @@ unmatched_output_df.to_csv('Z:/Desktop/unmatched_output.csv', index=False)
 
 def match_row(T5, Invoice_table):
     matching_invoices = []
-    for Invoice in Invoice_table:
+    for i, Invoice in enumerate(Invoice_table):
         if T5['Auth No'] == Invoice['Auth No']:
-            matching_invoices.append(Invoice)
+            rule_index = i + 1
+            matching_invoices.append((Invoice, rule_index))  # Store the matching invoice and rule index
 
-    invoice_source_amt_sum = sum(invoice['Source Amt'] for invoice in matching_invoices)
-    if T5['Transaction Source Amt'] == invoice_source_amt_sum:
-        return True, matching_invoices
+    return matching_invoices
 
-    return False, []
 
 # Process each T5 transaction
 for T5 in T5_table:
     try:
-        matched, matching_invoices = match_row(T5, Invoice_table)
-        if matched:
-            for invoice in matching_invoices:
+        matching_invoices = match_row(T5, Invoice_table)
+        if matching_invoices:
+            for invoice, rule_index in matching_invoices:
                 description = rule_descriptions.get(rule_index, '')  # Retrieve the description using the rule_index
                 output_row = {
                     column: T5[column] if column in T5 else invoice[column] for column in output_columns
@@ -216,21 +214,3 @@ for T5 in T5_table:
     except Exception as e:
         error_messages.append(f"Error processing T5: {T5}\n{str(e)}")
         continue
-
-# Create a DataFrame from the output rows
-output_df = pd.DataFrame(output_rows, columns=output_columns)
-
-# Write the output data to a CSV file
-output_df.to_csv('Z:/Desktop/output.csv', index=False)
-
-# Create a DataFrame from the unmatched output rows
-unmatched_output_df = pd.DataFrame(unmatched_output_rows, columns=unmatched_output_columns)
-
-# Write the unmatched transactions to a separate CSV file
-unmatched_output_df.to_csv('Z:/Desktop/unmatched_output.csv', index=False)
-
-# Write the aggregated data to Excel
-with pd.ExcelWriter(config['output_file']) as writer:
-    output_df.to_excel(writer, sheet_name='Output', index=False)
-    aggregated.to_excel(writer, sheet_name='Aggregated', index=False)
-
