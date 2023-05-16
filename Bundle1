@@ -115,12 +115,11 @@ for T5 in T5_table:
         for Invoice in Invoice_table:
             is_matched, matching_invoices = match_row(T5, Invoice)
             if is_matched:
-                description = rule_descriptions.get(rule_index, '')  # Retrieve the description using the rule_index
                 for matching_invoice in matching_invoices:
                     output_row = {
                         column: T5[column] if column in T5 else matching_invoice[column] for column in output_columns
                     }
-                    output_row['Description'] = description
+                    output_row['Description'] = rule_descriptions.get(i+1, '')  # Get description using i+1
                     output_rows.append(output_row)
                     invoices_matched.append(matching_invoice)
 
