@@ -1,0 +1,82 @@
+import pandas as pd
+import yaml
+
+# Read the rules from the CSV file
+rules_df = pd.read_csv('Z:/Desktop/Rules.csv')
+rules = []
+rule_descriptions = {}
+for i, row in rules_df.iterrows():
+    rule_string = row['Rule']
+    rule_description = row['Description']
+    rule = eval(f"lambda row, row2: {rule_string}")
+    rules.append(rule)
+    rule_descriptions[i+1] = rule_description  # Fixed index to i+1
+
+def match_row(T5, Invoice_table):
+    matching_invoices = []
+    t5_source_amt = T5['Source_Amt']
+    auth_no = T5['Auth_No']  # Assuming 'Auth_No' is the column name in T5
+
+    for i, Invoice in Invoice_table.iterrows():
+        if Invoice['Auth_No'] == auth_no or Invoice['Ticket_No'] == auth_no:
+            matching_invoices.append(Invoice)
+
+    invoice_source_amt_sum = sum(match['Source_Amt'] for match in matching_invoices)
+    if invoice_source_amt_sum == t5_source_amt:
+        return matching_invoices
+
+    return []
+
+# Read the config file
+with open('config.yml', 'r') as f:
+    config = yaml.safe_load(f)
+
+# Define the output columns
+output_columns = config['output_columns']
+
+# Define a list to store the output rows
+output_rows = []
+
+# Define a list to store the unmatched transactions
+unmatched_output_columns = config['unmatched_output_columns']
+unmatched_output_rows = []
+
+# Process each T5 transaction
+for T5 in T5_table:
+    try:
+        matched_invoices = match_row(T5, Invoice_table)
+        if matched_invoices:
+            description = 'Matched multiple invoices'
+            for Invoice in matched_invoices:
+                output_row = {
+                    column: T5[column] if column in T5 else Invoice[column] for column in output_columns
+                }
+                output_row['Match Rule'] = ''
+                output_row['Description'] = description
+                output_rows.append(output_row)
+        else:
+            unmatched_output_row = {
+                column: T5[column] for column in unmatched_output_columns
+            }
+            unmatched_output_rows.append(unmatched_output_row)
+
+    except Exception as e:
+        error_messages.append(f"Error processing T5: {T5}\n{str(e)}")
+        continue
+
+# Create a DataFrame from the output rows
+output_df = pd.DataFrame(output_rows, columns=output_columns)
+
+# Write the output data to a CSV file
+output_df.to_csv('Z:/Desktop/output.csv', index=False)
+
+# Create a DataFrame from the unmatched output rows
+unmatched_output_df = pd.DataFrame(unmatched_output_rows, columns=unmatched_output_columns)
+
+# Write the unmatched transactions to a separate CSV file
+unmatched_output_df.to_csv('Z:/Desktop/unmatched_output.csv', index=False)
+
+# Write the aggregated data to Excel
+with pd.ExcelWriter(config['output_file']) as writer:
+    output_df.to_excel(writer, sheet_name='Output', index=False)
+    aggregated.to_excel(writer, sheet_name='Aggregated', index=False)
