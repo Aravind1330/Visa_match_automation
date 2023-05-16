@@ -80,3 +80,58 @@ unmatched_output_df.to_csv('Z:/Desktop/unmatched_output.csv', index=False)
 with pd.ExcelWriter(config['output_file']) as writer:
     output_df.to_excel(writer, sheet_name='Output', index=False)
     aggregated.to_excel(writer, sheet_name='Aggregated', index=False)
+
+
+
+
+
+
+
+
+
+
+def match_row(T5, Invoice_table):
+    matching_invoices = []
+    t5_source_amt = T5['Source_Amt']
+    auth_no = T5['Auth_No']  # Assuming 'Auth_No' is the column name in T5
+
+    for i, Invoice in Invoice_table.iterrows():
+        if Invoice['Auth_No'] == auth_no or Invoice['Ticket_No'] == auth_no:
+            matching_invoices.append(Invoice)
+
+    invoice_source_amt_sum = sum(match['Source_Amt'] for match in matching_invoices)
+
+    if invoice_source_amt_sum == t5_source_amt:
+        return True, matching_invoices
+    else:
+        return False, "Unmatched"
+        
+        
+        
+for T5 in T5_table:
+    try:
+        matched = False
+        invoices_matched = []
+        for Invoice in Invoice_table:
+            is_matched, matching_invoices = match_row(T5, Invoice)
+            if is_matched:
+                description = rule_descriptions.get(rule_index, '')  # Retrieve the description using the rule_index
+                for matching_invoice in matching_invoices:
+                    output_row = {
+                        column: T5[column] if column in T5 else matching_invoice[column] for column in output_columns
+                    }
+                    output_row['Description'] = description
+                    output_rows.append(output_row)
+                    invoices_matched.append(matching_invoice)
+
+                matched = True
+
+        if not matched:
+            unmatched_output_row = {
+                column: T5[column] for column in unmatched_output_columns
+            }
+            unmatched_output_rows.append(unmatched_output_row)
+
+    except Exception as e:
+        error_messages.append(f"Error processing T5: {T5}\n{str(e)}")
+        continue
