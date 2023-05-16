@@ -579,3 +579,28 @@ unmatched_output_df.to_csv('Z:/Desktop/unmatched_output.csv', index=False)
 with pd.ExcelWriter(config['output_file']) as writer:
     output_df.to_excel(writer, sheet_name='Output', index=False)
     aggregated.to_excel(writer, sheet_name='Aggregated', index=False)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+def match_row(T5, Invoice_table):
+    matching_invoices = []
+    total_invoice_source_amt = 0
+    for i, Invoice in enumerate(Invoice_table):
+        for rule_index, rule in enumerate(rules, start=1):
+            if rule(T5, Invoice):
+                matching_invoices.append((Invoice, rule_index))
+                total_invoice_source_amt += Invoice['Source Amt']
+                break
+
+    if total_invoice_source_amt == T5['Transaction Source Amt']:
+        return matching_invoices, True
+
+    return [], False
+matched_invoices, matched = match_row(T5, Invoice_table)
+
