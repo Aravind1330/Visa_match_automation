@@ -468,162 +468,31 @@ if not matched:
 
 
 
+rule = eval(f"lambda row, invoices: {rule_string}")
 
 
 
 
 
-def match_row_one_to_many(T5, Invoice_table):
-    matching_invoices = []
-    total_invoice_source_amt = 0
-    for i, Invoice in enumerate(Invoice_table):
-        if all(rule(T5, Invoice) for rule in rules):
-            matching_invoices.append((Invoice, i + 1))
-            total_invoice_source_amt += Invoice['Source Amt']
+matched_invoices = []
+total_invoice_amt = 0
 
-    if total_invoice_source_amt == T5['Transaction Source Amt']:
-        return matching_invoices
+for Invoice in Invoice_table:
+    matched, rule_index = match_row(T5, Invoice)
+    if matched:
+        description = rule_descriptions.get(rule_index, '')  # Retrieve the description using the rule_index
+        matched_invoices.append(Invoice)
+        total_invoice_amt += Invoice['Source Amt']
 
-    return []
-
-
-
-
-
-
-
-
-
-import pandas as pd
-import yaml
-
-# Read the rules from the CSV file
-rules_df = pd.read_csv('Z:/Desktop/Rules.csv')
-rules = []
-rule_descriptions = {}
-for i, row in rules_df.iterrows():
-    rule_condition = row['Condition']
-    rule_description = row['Description']
-    rule = eval(f"lambda row, row2: {rule_condition}")
-    rules.append(rule)
-    rule_descriptions[i + 1] = rule_description
-
-def match_row(T5, Invoice_table):
-    matching_invoices = []
-    total_invoice_source_amt = 0
-    for i, Invoice in enumerate(Invoice_table):
-        for rule in rules:
-            if rule(T5, Invoice):
-                matching_invoices.append((Invoice, i + 1))
-                total_invoice_source_amt += Invoice['Source Amt']
-                break
-
-    if total_invoice_source_amt == T5['Transaction Source Amt']:
-        return matching_invoices
-
-    return []
-
-# Read the config file
-with open('config.yml', 'r') as f:
-    config = yaml.safe_load(f)
-
-# Define the output columns
-output_columns = config['output_columns']
-
-# Define a list to store the output rows
-output_rows = []
-
-# Define a list to store the unmatched transactions
-unmatched_output_columns = config['unmatched_output_columns']
-unmatched_output_rows = []
-
-# Process each T5 transaction
-for T5 in T5_table:
-    try:
-        matched = False
-        for Invoice in Invoice_table:
-            matched, rule_index = match_row(T5, Invoice)
-            if matched:
-                description = rule_descriptions.get(rule_index, '')
-                output_row = {
-                    column: T5[column] if column in T5 else Invoice[column] for column in output_columns
-                }
-                output_row['Match Rule'] = rule_index
-                output_row['Description'] = description
-                output_rows.append(output_row)
-                break
-
-        if not matched:
-            unmatched_output_row = {
-                column: T5[column] for column in unmatched_output_columns
-            }
-            unmatched_output_rows.append(unmatched_output_row)
-
-    except Exception as e:
-        error_messages.append(f"Error processing T5: {T5}\n{str(e)}")
-        continue
-
-# Create a DataFrame from the output rows
-output_df = pd.DataFrame(output_rows, columns=output_columns)
-
-# Write the output data to a CSV file
-output_df.to_csv('Z:/Desktop/output.csv', index=False)
-
-# Create a DataFrame from the unmatched output rows
-unmatched_output_df = pd.DataFrame(unmatched_output_rows, columns=unmatched_output_columns)
-
-# Write the unmatched transactions to a separate CSV file
-unmatched_output_df.to_csv('Z:/Desktop/unmatched_output.csv', index=False)
-
-# Write the aggregated data to Excel
-with pd.ExcelWriter(config['output_file']) as writer:
-    output_df.to_excel(writer, sheet_name='Output', index=False)
-    aggregated.to_excel(writer, sheet_name='Aggregated', index=False)
-    
-    
-    
-    
-    
-    
-    
-    
-    
-def match_row(T5, Invoice_table):
-    matching_invoices = []
-    total_invoice_source_amt = 0
-    for i, Invoice in enumerate(Invoice_table):
-        for rule_index, rule in enumerate(rules, start=1):
-            if rule(T5, Invoice):
-                matching_invoices.append((Invoice, rule_index))
-                total_invoice_source_amt += Invoice['Source Amt']
-                break
-
-    if total_invoice_source_amt == T5['Transaction Source Amt']:
-        return matching_invoices, True
-
-    return [], False
-matched_invoices, matched = match_row(T5, Invoice_table)
-
-
-
-for T5 in T5_table:
-    try:
-        matched_invoices = match_row(T5, Invoice_table)
-        if matched_invoices:
-            for matched_invoice, rule_index in matched_invoices:
-                description = rule_descriptions.get(rule_index, '')
-                output_row = {
-                    column: T5[column] if column in T5 else matched_invoice[column] for column in output_columns
-                }
-                output_row['Match Rule'] = rule_index
-                output_row['Description'] = description
-                output_rows.append(output_row)
-        else:
-            unmatched_output_row = {
-                column: T5[column] for column in unmatched_output_columns
-            }
-            unmatched_output_rows.append(unmatched_output_row)
-
-    except Exception as e:
-        error_messages.append(f"Error processing T5: {T5}\n{str(e)}")
-        continue
+if total_invoice_amt == T5['Source Amt']:
+    output_row = {
+        column: T5[column] if column in T5 else sum(invoice[column] for invoice in matched_invoices) for column in output_columns
+    }
+    output_row['Match Rule'] = rule_index
+    output_row['Description'] = description
+    output_rows.append(output_row)
+    break
+unmatched_output_row = {
+    column: T5[column] for column in unmatched_output_columns
+}
+unmatched_output_rows.append(unmatched_output_row)
