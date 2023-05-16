@@ -462,3 +462,26 @@ if not matched:
     }
     unmatched_output_rows.append(unmatched_output_row)
 
+
+
+
+
+
+
+
+
+
+
+
+def match_row_one_to_many(T5, Invoice_table):
+    matching_invoices = []
+    total_invoice_source_amt = 0
+    for i, Invoice in enumerate(Invoice_table):
+        if all(rule(T5, Invoice) for rule in rules):
+            matching_invoices.append((Invoice, i + 1))
+            total_invoice_source_amt += Invoice['Source Amt']
+
+    if total_invoice_source_amt == T5['Transaction Source Amt']:
+        return matching_invoices
+
+    return []
