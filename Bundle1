@@ -165,3 +165,44 @@ unmatched_output_df = pd.DataFrame(unmatched_output_rows, columns=unmatched_outp
 unmatched_output_df.to_csv('Z:/Desktop/unmatched_output.csv', index=False)
 
 # Write the aggregated data to Excel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+for _, T5 in T5_table.iterrows():
+    matched_invoices = gather_matched_invoices(T5, Invoice_table)
+    if matched_invoices:
+        total_matched_amt = sum(float(Invoice['Source Amt']) for Invoice in matched_invoices)
+        if total_matched_amt == float(T5['Source Amt']):
+            for Invoice in matched_invoices:
+                for i, rule in enumerate(rules):
+                    if rule(T5, Invoice):
+                        description = rule_descriptions.get(i+1, '')  # Retrieve the description using the rule index
+                        output_row = {
+                            column: T5[column] if column in T5 else Invoice[column] for column in output_columns
+                        }
+                        output_row['Match Rule'] = i+1
+                        output_row['Description'] = description
+                        output_rows.append(output_row)
+        else:
+            unmatched_output_row = {
+                column: T5[column] for column in unmatched_output_columns
+            }
+            unmatched_output_rows.append(unmatched_output_row)
+    else:
+        unmatched_output_row = {
+            column: T5[column] for column in unmatched_output_columns
+        }
+        unmatched_output_rows.append(unmatched_output_row)
