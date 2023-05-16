@@ -485,3 +485,27 @@ def match_row_one_to_many(T5, Invoice_table):
         return matching_invoices
 
     return []
+
+
+
+
+
+
+
+
+
+def match_row(T5, Invoice_table):
+    matching_invoices = []
+    total_invoice_source_amt = 0
+    for i, Invoice in enumerate(Invoice_table):
+        if T5['Auth No'] == Invoice['Auth No']:
+            for rule_index, rule in enumerate(rules, start=1):
+                if eval(rule):
+                    matching_invoices.append((Invoice, rule_index))
+                    total_invoice_source_amt += Invoice['Source Amt']
+                    break
+
+    if total_invoice_source_amt == T5['Transaction Source Amt']:
+        return matching_invoices
+
+    return []
