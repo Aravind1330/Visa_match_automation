@@ -456,4 +456,9 @@ output_df = pd.DataFrame(output_rows, columns=output_columns)
 
 
 
+if not matched:
+    unmatched_output_row = {
+        column: T5[column] if column in T5 else None for column in unmatched_output_columns
+    }
+    unmatched_output_rows.append(unmatched_output_row)
 
