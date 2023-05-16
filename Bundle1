@@ -281,18 +281,14 @@ def match_row(T5, Invoice_table):
 
 
 
-# Define and populate T5_table (example data)
-T5_table = [
-    {'Auth No': 'A001', 'Transaction Source Amt': 1000},
-    {'Auth No': 'A002', 'Transaction Source Amt': 2000},
-    {'Auth No': 'A003', 'Transaction Source Amt': 1500}
-]
+def match_row(T5, Invoice_table):
+    matching_invoices = []
+    for i, Invoice in enumerate(Invoice_table):
+        if T5['Auth No'] == Invoice['Auth No']:
+            matching_invoices.append((Invoice, i + 1))  # Store the matching invoice and rule index
 
-# Define and populate Invoice_table (example data)
-Invoice_table = [
-    {'Auth No': 'A001', 'Source Amt': 500},
-    {'Auth No': 'A001', 'Source Amt': 500},
-    {'Auth No': 'A002', 'Source Amt': 1000},
-    {'Auth No': 'A002', 'Source Amt': 500},
-    {'Auth No': 'A003', 'Source Amt': 1500}
-]
+    matching_invoice_amt = sum(Invoice['Source Amt'] for Invoice, _ in matching_invoices)
+    if matching_invoice_amt == T5['Transaction Source Amt']:
+        return matching_invoices
+
+    return []
