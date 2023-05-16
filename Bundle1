@@ -269,3 +269,30 @@ def match_row(T5, Invoice_table):
         return matching_invoices
 
     return []
+
+
+
+
+
+
+
+
+
+
+
+
+# Define and populate T5_table (example data)
+T5_table = [
+    {'Auth No': 'A001', 'Transaction Source Amt': 1000},
+    {'Auth No': 'A002', 'Transaction Source Amt': 2000},
+    {'Auth No': 'A003', 'Transaction Source Amt': 1500}
+]
+
+# Define and populate Invoice_table (example data)
+Invoice_table = [
+    {'Auth No': 'A001', 'Source Amt': 500},
+    {'Auth No': 'A001', 'Source Amt': 500},
+    {'Auth No': 'A002', 'Source Amt': 1000},
+    {'Auth No': 'A002', 'Source Amt': 500},
+    {'Auth No': 'A003', 'Source Amt': 1500}
+]
