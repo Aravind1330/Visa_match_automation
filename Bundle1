@@ -698,3 +698,17 @@ output
 
 
 t5["fin_source_amt"] == sum(inv["inv_match_source_amt"] for inv in invoices)
+
+
+
+
+
+def match_row(T5, Invoice):
+    for i, rule in enumerate(rules):
+        if rule(T5, Invoice):
+            # Check if the invoice ID has already been used
+            invoice_sum = sum(invoice["inv_match_source_amt"] for invoice in Invoice)
+            if invoice_sum == T5.get("fin_source_amt", 0):
+                return True, i + 1
+    return False, "Unmatched"
+
