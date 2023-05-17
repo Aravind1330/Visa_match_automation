@@ -694,3 +694,7 @@ aggregated = aggregated.append(pd.Series(['Total', '-', total], index=aggregated
 
 # Write the output data to a CSV file
 output
+
+
+
+t5["fin_source_amt"] == sum(inv["inv_match_source_amt"] for inv in invoices)
