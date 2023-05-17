@@ -625,3 +625,19 @@ def match_row(T5, Invoice_table):
         return matching_invoices
 
     return []
+
+
+
+output_row = {
+    column: T5[column] if column in T5 else Invoice[column] for column in output_columns[:-1]
+}
+output_row['Match Rule'] = rule_index
+output_row['Description'] = description
+
+# Determine the match type based on the number of matching invoices
+if len(matching_invoices) == 1:
+    output_row['Match Type'] = 'One-One Match'
+else:
+    output_row['Match Type'] = 'Bundle Match'
+
+output_rows.append(output_row)
