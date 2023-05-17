@@ -603,3 +603,25 @@ for T5 in T5_table:
     except Exception as e:
         error_messages.append(f"Error processing T5: {T5}\n{str(e)}")
         continue
+
+
+
+
+
+
+
+
+def match_row(T5, Invoice_table):
+    matching_invoices = []
+    total_invoice_source_amt = 0
+    for i, Invoice in enumerate(Invoice_table):
+        for rule in rules:
+            if rule(T5, Invoice):
+                matching_invoices.append((Invoice, i + 1))
+                total_invoice_source_amt += Invoice['Source Amt']
+                break
+
+    if total_invoice_source_amt == T5['Transaction Source Amt']:
+        return matching_invoices
+
+    return []
