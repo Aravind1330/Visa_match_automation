@@ -707,8 +707,22 @@ def match_row(T5, Invoice):
     for i, rule in enumerate(rules):
         if rule(T5, Invoice):
             # Check if the invoice ID has already been used
-            invoice_sum = sum(invoice["inv_match_source_amt"] for invoice in Invoice)
-            if invoice_sum == T5.get("fin_source_amt", 0):
-                return True, i + 1
+            return True, i + 1
     return False, "Unmatched"
+
+
+matched, rule_index = match_row(T5, Invoice)
+if matched and rule_index == 2:  # Check if the rule index is for the new condition
+    description = rule_descriptions.get(rule_index, '')  # Retrieve the description using the rule_index
+    output_row = {
+        column: T5[column] if column in T5 else Invoice[column] for column in output_columns
+    }
+    output_row['Match Rule'] = rule_index
+    output_row['Description'] = description
+    output_rows.append(output_row)
+    matched_invoices.append(Invoice)  # Store the matched invoice
+    matched_invoice_amt += Invoice['Amt']  # Add the matched invoice amount
+
+
+Invoice['SourceAmt'].sum() == T5['SourceAmt'],Rule 2
 
