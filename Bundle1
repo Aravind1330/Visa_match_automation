@@ -726,3 +726,37 @@ if matched and rule_index == 2:  # Check if the rule index is for the new condit
 
 Invoice['SourceAmt'].sum() == T5['SourceAmt'],Rule 2
 
+
+
+
+for T5 in T5_table:
+    try:
+        matched_invoices = []  # Store matched invoices for a transaction
+        matched_invoice_amt = 0  # Store the sum of matched invoice amounts
+        for Invoice in Invoice_table:
+            matched, rule_index = match_row(T5, Invoice)
+            if matched:
+                description = rule_descriptions.get(rule_index, '')  # Retrieve the description using the rule_index
+                output_row = {
+                    column: T5[column] if column in T5 else Invoice[column] for column in output_columns
+                }
+                output_row['Match Rule'] = rule_index
+                output_row['Description'] = description
+                output_rows.append(output_row)
+                matched_invoices.append(Invoice)  # Store the matched invoice
+                matched_invoice_amt += Invoice['source_amt']  # Add the matched invoice amount
+
+        if not matched_invoices:
+            unmatched_output_row = {
+                column: T5[column] for column in unmatched_output_columns
+            }
+            unmatched_output_rows.append(unmatched_output_row)
+        elif matched_invoice_amt != T5['sourc_amt']:
+            matched_invoices = []  # Reset matched invoices if the amounts don't match
+
+        # Remove matched invoices from Invoice_table
+        Invoice_table = [invoice for invoice in Invoice_table if invoice not in matched_invoices]
+
+    except Exception as e:
+        error_messages.append(f"Error processing T5: {T5}\n{str(e)}")
+        continue
