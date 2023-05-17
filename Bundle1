@@ -813,8 +813,6 @@ for T5 in T5_table:
 
 
 
-
-
 # Process each T5 transaction
 for T5 in T5_table:
     try:
