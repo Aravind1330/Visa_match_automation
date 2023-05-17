@@ -576,66 +576,19 @@ def match_row(T5, Invoice_table):
 
 # ...
 
-def match_row(T5, Invoice_table):
-    matching_invoices = []
-    total_invoice_source_amt = 0
-    for i, Invoice in enumerate(Invoice_table):
-        for rule_index, rule in enumerate(rules, start=1):  # Increment rule_index by 1
-            if rule(row=T5, Invoice=Invoice):
-                matching_invoices.append((Invoice, rule_index))  # Store rule_index instead of i + 1
-                total_invoice_source_amt += Invoice['Source Amt']
-                break
-
-    if total_invoice_source_amt == T5['Transaction Source Amt']:
-        return matching_invoices
-
-    return []
-
-# ...
-
-for T5 in T5_table:
-    try:
-        matched = False
-        for Invoice in Invoice_table:
-            matched, rule_index = match_row(T5, Invoice)
-            if matched:
-                description = rule_descriptions.get(rule_index, '')  # Retrieve the description using the rule_index
-                output_row = {
-                    column: T5[column] if column in T5 else Invoice[column] for column in output_columns[:-1]
-                }
-                matching_invoice_count = len(matched)
-                output_row['Match Rule'] = rule_index
-                output_row['Description'] = description
-
-                output_rows.append(output_row)
-                break
-
-        if not matched:
-            unmatched_output_row = {
-                column: T5[column] for column in unmatched_output_columns
-            }
-            unmatched_output_rows.append(unmatched_output_row)
-
-    except Exception as e:
-        error_messages.append(f"Error processing T5: {T5}\n{str(e)}")
-        continue
-
-
-
-
-
-# ...
-
 # Read the rules from the CSV file
 rules_df = pd.read_csv('Z:/Desktop/Rules.csv')
 rules = []
 rule_descriptions = {}
+rule_numbers = []  # New list to store rule numbers
 for i, row in rules_df.iterrows():
+    rule_no = row['Rule No']  # Read the "Rule No" column from the CSV
     rule_string = row['Rule']
     rule_description = row['Description']
-    rule = eval(f"lambda row, Invoice: {rule_string}")  # Modified lambda function to use 'Invoice' as a keyword argument
+    rule = eval(f"lambda row, Invoice: {rule_string}")
     rules.append(rule)
-    rule_descriptions[i+1] = rule_description
+    rule_descriptions[rule_no] = rule_description
+    rule_numbers.append(rule_no)  # Store the rule number in the list
 
 # ...
 
@@ -644,7 +597,7 @@ def match_row(T5, Invoice_table):
     total_invoice_source_amt = 0
     for i, Invoice in enumerate(Invoice_table):
         for rule in rules:
-            if rule(row=T5, Invoice=Invoice):  # Updated to use 'Invoice' as a keyword argument
+            if rule(row=T5, Invoice=Invoice):
                 matching_invoices.append((Invoice, i + 1))
                 total_invoice_source_amt += Invoice['Source Amt']
                 break
@@ -655,26 +608,20 @@ def match_row(T5, Invoice_table):
     return []
 
 
-output_rows = []
-unmatched_output_rows = []
-error_messages = []
-
 # Process each T5 transaction
 for T5 in T5_table:
     try:
         matched = False
-        matched_rule_index = None  # Variable to store the matched rule index
         for Invoice in Invoice_table:
             matched, rule_index = match_row(T5, Invoice)
             if matched:
-                matched_rule_index = rule_index  # Store the matched rule index
-                description = rule_descriptions.get(rule_index, '')  # Retrieve the description using the rule_index
-
+                rule_no = rule_numbers[rule_index - 1]  # Retrieve the rule number from the list
+                description = rule_descriptions.get(rule_no, '')  # Retrieve the description using the rule number
                 output_row = {
                     column: T5[column] if column in T5 else Invoice[column] for column in output_columns[:-1]
                 }
                 matching_invoice_count = len(matched)
-                output_row['Match Rule'] = matched_rule_index  # Add the matched rule index to the output_row
+                output_row['Match Rule'] = rule_no  # Use the rule number in the output
                 output_row['Description'] = description
 
                 output_rows.append(output_row)
@@ -689,5 +636,3 @@ for T5 in T5_table:
     except Exception as e:
         error_messages.append(f"Error processing T5: {T5}\n{str(e)}")
         continue
-
-# ...
