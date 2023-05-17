@@ -641,3 +641,7 @@ else:
     output_row['Match Type'] = 'Bundle Match'
 
 output_rows.append(output_row)
+
+
+
+output_row['Match Type'] = 'One-One Match' if matching_invoice_count == 1 else 'Bundle Match'
