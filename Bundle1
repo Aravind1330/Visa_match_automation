@@ -745,48 +745,6 @@ for T5 in T5_table:
                 output_row['Description'] = description
                 output_rows.append(output_row)
                 matched_invoices.append(Invoice)  # Store the matched invoice
-                matched_invoice_amt += Invoice['source_amt']  # Add the matched invoice amount
-
-        if not matched_invoices:
-            unmatched_output_row = {
-                column: T5[column] for column in unmatched_output_columns
-            }
-            unmatched_output_rows.append(unmatched_output_row)
-        elif matched_invoice_amt != T5['sourc_amt']:
-            continue  # Skip further processing for this T5
-
-        # Remove matched invoices from Invoice_table
-        Invoice_table = [invoice for invoice in Invoice_table if invoice not in matched_invoices]
-
-    except Exception as e:
-        error_messages.append(f"Error processing T5: {T5}\n{str(e)}")
-        continue
-
-
-
-
-
-
-
-for T5 in T5_table:
-    try:
-        matched_invoices = []  # Store matched invoices for a transaction
-        matched_invoice_amt = 0  # Store the sum of matched invoice amounts
-
-        for Invoice in Invoice_table:
-            if Invoice['Invoice ID'] in matched_invoice_ids:
-                continue
-
-            matched, rule_index = match_row(T5, Invoice)
-            if matched:
-                description = rule_descriptions.get(rule_index, '')  # Retrieve the description using the rule_index
-                output_row = {
-                    column: T5[column] if column in T5 else Invoice[column] for column in output_columns
-                }
-                output_row['Match Rule'] = rule_index
-                output_row['Description'] = description
-                output_rows.append(output_row)
-                matched_invoices.append(Invoice)  # Store the matched invoice
                 matched_invoice_amt += Invoice['Amt']  # Add the matched invoice amount
 
         if not matched_invoices:
@@ -794,16 +752,14 @@ for T5 in T5_table:
                 column: T5[column] for column in unmatched_output_columns
             }
             unmatched_output_rows.append(unmatched_output_row)
-        elif matched_invoice_amt != T5['Amt']:
+        elif matched_invoice_amt == T5['Amt']:  # Check if the amounts match
+            # Remove matched invoices from Invoice_table
+            Invoice_table = [invoice for invoice in Invoice_table if invoice not in matched_invoices]
+        else:
             unmatched_output_row = {
                 column: T5[column] for column in unmatched_output_columns
             }
             unmatched_output_rows.append(unmatched_output_row)
-
-        matched_invoice_ids.extend([invoice['Invoice ID'] for invoice in matched_invoices])
-
-        # Remove matched invoices from Invoice_table
-        Invoice_table = [invoice for invoice in Invoice_table if invoice not in matched_invoices]
 
     except Exception as e:
         error_messages.append(f"Error processing T5: {T5}\n{str(e)}")
