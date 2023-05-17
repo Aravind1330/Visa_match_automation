@@ -564,27 +564,20 @@ def match_row(T5, Invoice_table):
 
 
 
-for T5 in T5_table:
-    try:
-        matched = False
-        for Invoice in Invoice_table:
-            matched, rule_index = match_row(T5, Invoice)
-            if matched:
-                description = rule_descriptions.get(rule_index, '')  # Retrieve the description using the rule_index
-                output_row = {
-                    column: T5[column] if column in T5 else Invoice[column] for column in output_columns
-                }
-                output_row['Match Rule'] = rule_index
-                output_row['Description'] = description
-                output_rows.append(output_row)
+def match_row(T5, Invoice_table):
+    if not Invoice_table:
+        return []
+
+    matching_invoices = []
+    total_invoice_source_amt = 0
+    for i, Invoice in enumerate(Invoice_table):
+        for rule in rules:
+            if rule(T5, Invoice):
+                matching_invoices.append((Invoice, i + 1))
+                total_invoice_source_amt += Invoice['Source Amt']
                 break
 
-        if not matched:
-            unmatched_output_row = {
-                column: T5[column] for column in unmatched_output_columns
-            }
-            unmatched_output_rows.append(unmatched_output_row)
+    if total_invoice_source_amt == T5['Transaction Source Amt']:
+        return matching_invoices
 
-    except Exception as e:
-        error_messages.append(f"Error processing T5: {T5}\n{str(e)}")
-        continue
+    return []
