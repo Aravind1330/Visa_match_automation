@@ -1,1 +1,12 @@
             print(f"T5: {T5}, Invoice: {Invoice}, Matched: {matched}, Rule Index: {rule_index}")  # Debug print
+
+
+
+for invoice, rule_index in matching_invoices:
+    description = rule_descriptions.get(rule_index + 1, None)  # Adjusted indexing by adding 1
+    output_row = {
+        column: T5[column] if column in T5 else invoice[column] for column in output_columns
+    }
+    output_row['Match Rule'] = rule_index + 1  # Adjusted indexing by adding 1
+    output_row['Description'] = description
+    output_rows.append(output_row)
