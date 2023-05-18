@@ -129,11 +129,12 @@ for T5 in T5_table:
 
 
 
-# Remove matched transactions from unmatched_output_df
+    # Remove matched transactions from unmatched_output_df
     matched_indices = []
     for idx, row in unmatched_output_df.iterrows():
+        row_dict = row.to_dict()  # Convert the row to a dictionary
         for invoice in Invoice_table:
-            if match_row(row, invoice):
+            if match_row(row_dict, invoice):
                 matched_indices.append(idx)
                 break
     unmatched_output_df.drop(matched_indices, inplace=True)
