@@ -3,6 +3,8 @@ for invoice, rule_index in matching_invoices:
     output_row = {
         column: T5[column] if column in T5 else invoice[column] for column in output_columns
     }
-    output_row['Match Rule'] = rule_index + 1 if rule_index is not None and rule_index < len(rule_descriptions) + 1 else None  # Adjusted indexing by adding 1
+    match_rule = rule_index + 1 if rule_index is not None and rule_index < len(rule_descriptions) + 1 else None
+    print(f"Match Rule: {match_rule}")  # Add a print statement to check the match rule value
+    output_row['Match Rule'] = match_rule
     output_row['Description'] = description
     output_rows.append(output_row)
