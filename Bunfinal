@@ -116,3 +116,30 @@ for T5 in T5_table:
             column: T5[column] if column in T5 else None for column in unmatched_output_columns
         }
         unmatched_output_rows.append(unmatched_output_row)
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Identify matched indices in unmatched_output_df
+matched_indices = unmatched_output_df.apply(lambda row: any(match_row(row, invoice) for invoice in Invoice_table), axis=1).index
+
+# Remove the matched transactions from unmatched_output_df
+unmatched_output_df.drop(matched_indices, inplace=True)
+
+# Append the new unmatched transactions to the existing unmatched_output_df
+unmatched_output_df = unmatched_output_df.append(unmatched_output_rows, ignore_index=True)
+
+# Remove duplicates from unmatched_output_df
+unmatched_output_df.drop_duplicates(subset=['fin_record_key'], inplace=True)
+
+# Write the unmatched transactions to a CSV file
+unmatched_output_df.to_csv(unmatched_output_file, index=False)
