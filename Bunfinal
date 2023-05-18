@@ -132,25 +132,16 @@ for T5 in T5_table:
 # Create a DataFrame from the output rows
 output_df = pd.DataFrame(output_rows, columns=output_columns)
 
-# Find indices of matched transactions in unmatched_output_df
-matched_indices = [
-    idx for idx, row in unmatched_output_df.iterrows() if any(match_row(row, invoice) for invoice in Invoice_table)
-]
+# Get matched indices
+matched_indices = unmatched_output_df.index
 
-# Drop the matched transactions from unmatched_output_df
+# Drop matched indices from unmatched_output_df
 unmatched_output_df.drop(matched_indices, inplace=True)
 
 # Append the new unmatched transactions to the existing unmatched_output_df
 unmatched_output_df = unmatched_output_df.append(unmatched_output_rows, ignore_index=True)
 
-# Write the unmatched transactions to the unmatched output CSV file
-unmatched_output_df.to_csv('Z:/Desktop/Automation_output/Unmatched.csv', index=False)
+# Remove duplicates from unmatched_output_df
+unmatched_output_df.drop_duplicates(subset=['fin_record_key'], inplace=True)
 
-# Write the output data to a CSV file
-output_df.to_csv('Z:/Desktop/output.csv', index=False)
-
-# Create a DataFrame from the unmatched output rows
-unmatched_output_df = pd.DataFrame(unmatched_output_rows, columns=unmatched_output_columns)
-
-# Write the unmatched transactions to a separate CSV file
-unmatched_output_df.to_csv('Z:/Desktop/unmatched_output.csv', index=False)
+unmatched_output_df.to_csv(unmatched_output_file, index=False)
