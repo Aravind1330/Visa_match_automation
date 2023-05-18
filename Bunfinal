@@ -1,12 +1,51 @@
-for invoice, rule_index in matching_invoices:
-    description = rule_descriptions.get(rule_index + 1, None)
-    output_row = {
-        column: T5[column] if column in T5 else invoice[column] for column in output_columns
-    }
-    if rule_index is not None and description is not None:  # Check if both rule_index and description are not None
-        output_row['Match Rule'] = rule_index + 1
-        output_row['Description'] = description
+# Read the rules from the CSV file
+rules_df = pd.read_csv('Z:/Desktop/Rules.csv')
+rules = []
+rule_descriptions = {}
+rule_numbers = {}
+for i, row in rules_df.iterrows():
+    rule_string = row['Rule']
+    rule_description = row['Description']
+    rule_no = row['Rule No']
+    rule = eval(f"lambda row, Invoice: {rule_string}")  # Modified lambda function to use 'Invoice' as a keyword argument
+    rules.append(rule)
+    rule_descriptions[i+1] = rule_description
+    rule_numbers[i+1] = rule_no
+
+# ...
+
+def match_row(T5, Invoice_table):
+    matching_invoices = []
+    total_invoice_source_amt = 0
+    match_rule = None  # Initialize the match_rule variable
+    for i, Invoice in enumerate(Invoice_table):
+        for rule_index, rule in enumerate(rules, start=1):
+            if rule(row=T5, Invoice=Invoice):  # Updated to use 'Invoice' as a keyword argument
+                matching_invoices.append((Invoice, i + 1))
+                total_invoice_source_amt += Invoice['Source Amt']
+                match_rule = rule_index  # Store the rule number when a match occurs
+                break
+
+    if total_invoice_source_amt == T5['Transaction Source Amt']:
+        return matching_invoices, match_rule  # Return the matching invoices and rule number
+
+    return [], None
+
+
+# Process each T5 transaction
+for T5 in T5_table:
+    matching_invoices, match_rule = match_row(T5, Invoice_table)
+    if matching_invoices:
+        for invoice, rule_index in matching_invoices:
+            description = rule_descriptions.get(rule_index)
+            output_row = {
+                column: T5[column] if column in T5 else invoice[column] for column in output_columns
+            }
+            output_row['Match Rule'] = rule_numbers.get(match_rule)  # Add the rule number to the output row
+            output_row['Description'] = description
+            output_rows.append(output_row)
     else:
-        output_row['Match Rule'] = None
-        output_row['Description'] = None
-    output_rows.append(output_row)
+        unmatched_output_row = {
+            column: T5[column] if column in T5 else None for column in unmatched_output_columns
+        }
+        unmatched_output_rows.append(unmatched_output_row)
