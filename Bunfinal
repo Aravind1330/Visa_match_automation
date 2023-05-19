@@ -142,3 +142,107 @@ move_unmatched_output_command = f'move "{unmatched_output_file_path}" "file://WV
 
 os.system(move_output_command)
 os.system(move_unmatched_output_command)
+
+
+
+
+
+
+
+
+
+import pandas as pd
+import yaml
+import subprocess
+
+# Read the rules from the CSV file
+rules_df = pd.read_csv('Z:/Desktop/Rules.csv')
+rules = []
+rule_descriptions = {}
+for i, row in rules_df.iterrows():
+    rule_string = row['Rule']
+    rule_description = row['Description']
+    rule = eval(f"lambda row, row2: {rule_string}")
+    rules.append(rule)
+    rule_descriptions[i+1] = rule_description  # Fixed index to i+1
+
+def match_row(T5, Invoice_table):
+    matching_invoices = []
+    total_invoice_source_amt = 0
+    for i, Invoice in enumerate(Invoice_table):
+        if T5['Auth No'] == Invoice['Auth No']:
+            matching_invoices.append((Invoice, i + 1))
+            total_invoice_source_amt += Invoice['Source Amt']
+
+    if total_invoice_source_amt == T5['Transaction Source Amt']:
+        return matching_invoices
+
+    return []
+
+# Read the config file
+with open('config.yml', 'r') as f:
+    config = yaml.safe_load(f)
+
+# Define the output columns
+output_columns = config['output_columns']
+
+# Define a list to store the output rows
+output_rows = []
+
+# Define a list to store the unmatched transactions
+unmatched_output_columns = config['unmatched_output_columns']
+unmatched_output_rows = []
+
+# Process each T5 transaction
+for T5 in T5_table:
+    try:
+        matched = False
+        for Invoice in Invoice_table:
+            matched, rule_index = match_row(T5, Invoice)
+            if matched:
+                description = rule_descriptions.get(rule_index, '')  # Retrieve the description using the rule_index
+                output_row = {
+                    column: T5[column] if column in T5 else Invoice[column] for column in output_columns
+                }
+                output_row['Match Rule'] = rule_index
+                output_row['Description'] = description
+                output_rows.append(output_row)
+                break
+
+        if not matched:
+            unmatched_output_row = {
+                column: T5[column] for column in unmatched_output_columns
+            }
+            unmatched_output_rows.append(unmatched_output_row)
+
+    except Exception as e:
+        error_messages.append(f"Error processing T5: {T5}\n{str(e)}")
+        continue
+
+# Create a DataFrame from the output rows
+output_df = pd.DataFrame(output_rows, columns=output_columns)
+
+# Specify the output file path on the C drive
+output_file_path = r'C:/New Software/FST/output.csv'
+
+# Write the output data to a CSV file
+output_df.to_csv(output_file_path, index=False)
+
+# Create a DataFrame from the unmatched output rows
+unmatched_output_df = pd.DataFrame(unmatched_output_rows, columns=unmatched_output_columns)
+
+# Specify the unmatched output file path on the C drive
+unmatched_output_file_path = r'C:/New Software/FST/unmatched_output.csv'
+
+# Write the unmatched transactions to a separate CSV file
+unmatched_output_df.to_csv(unmatched_output_file_path, index=False)
+
+# Specify the destination folder on the target device
+destination_folder = r'file://WV730H032577/New Software/FST/'
+
+# Run the command to copy the files to the destination folder
+copy_output_command = f'xcopy "{output_file_path}" "{destination_folder}" /Y'
+copy_unmatched_output_command = f'xcopy "{unmatched_output_file_path}" "{destination_folder}" /Y'
+
+subprocess.run(['cmd', '/c', copy_output_command], shell=True)
+subprocess.run(['cmd', '/c', copy_unmatched_output_command], shell=True)
