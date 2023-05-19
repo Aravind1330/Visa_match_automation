@@ -129,18 +129,6 @@ for T5 in T5_table:
 
 
 
-# Create a DataFrame from the output rows
-output_df = pd.DataFrame(output_rows, columns=output_columns)
-
-# Identify matched indices in unmatched_output_df
-matched_indices = unmatched_output_df.index[unmatched_output_df.apply(lambda row: any(match_row(row, invoice) for invoice in Invoice_table), axis=1)].tolist()
-
-# Drop matched indices from unmatched_output_df
-unmatched_output_df.drop(matched_indices, inplace=True)
-
-# Append the new unmatched transactions to the existing unmatched_output_df
-unmatched_output_df = unmatched_output_df.append(unmatched_output_rows, ignore_index=True)
-
-# Remove duplicates from unmatched_output_df based on 'fin_record_key' column
-unmatched_output_df.drop_duplicates(subset=['fin_record_key'], inplace=True)
-
+# Run the command to move the files to the desired location on the C drive
+subprocess.run(['cmd', '/c', 'move', output_file_path, r'file://WV730H032577/New Software/FST/output.csv'], shell=True)
+subprocess.run(['cmd', '/c', 'move', unmatched_output_file_path, r'file://WV730H032577/New Software/FST/unmatched_output.csv'], shell=True)
