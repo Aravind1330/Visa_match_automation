@@ -132,3 +132,13 @@ for T5 in T5_table:
 # Run the command to move the files to the desired location on the C drive
 subprocess.run(['cmd', '/c', 'move', output_file_path, r'file://WV730H032577/New Software/FST/output.csv'], shell=True)
 subprocess.run(['cmd', '/c', 'move', unmatched_output_file_path, r'file://WV730H032577/New Software/FST/unmatched_output.csv'], shell=True)
+
+
+
+
+# Move the files to the desired location on the C drive
+move_output_command = f'move "{output_file_path}" "file://WV730H032577/New Software/FST/output.csv"'
+move_unmatched_output_command = f'move "{unmatched_output_file_path}" "file://WV730H032577/New Software/FST/unmatched_output.csv"'
+
+os.system(move_output_command)
+os.system(move_unmatched_output_command)
