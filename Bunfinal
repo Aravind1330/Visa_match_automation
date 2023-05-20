@@ -347,3 +347,19 @@ output_df = pd.DataFrame(output_rows, columns=output_columns + ['Match Rule', 'D
 
 # Write the output data to a CSV file
 output_df.to_csv('Z:/Desktop/output.csv', index=False)
+
+
+
+
+
+def format_number(num):
+    # Convert the number to a string with the desired format
+    formatted_num = "{:.2f}".format(num)
+    return formatted_num
+
+
+# Write the output data to a CSV file
+output_df['NumericColumn1'] = output_df['NumericColumn1'].apply(format_number)
+output_df['NumericColumn2'] = output_df['NumericColumn2'].apply(format_number)
+# Repeat this for other numeric columns in your DataFrame
+output_df.to_csv('Z:/Desktop/output.csv', index=False)
