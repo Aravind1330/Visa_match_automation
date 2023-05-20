@@ -279,13 +279,33 @@ unmatched_output_df.to_csv(unmatched_output_file, index=False)
 for T5 in T5_table:
     matching_invoices, match_rule = match_row(T5, Invoice_table)
     if matching_invoices:
-        # Process matching invoices
-        ...
+        for invoice, rule_index in matching_invoices:
+            description = rule_descriptions.get(rule_index)
+            output_row = {
+                column: T5[column] if column in T5 else invoice[column] for column in output_columns
+            }
+            output_row['Match Rule'] = rule_index  # Add the rule number to the output row
+            output_row[description] = description
+            output_rows.append(output_row)
+
+            # Remove the matched transaction from unmatched_output_df
+            unmatched_indices = unmatched_output_df[
+                (unmatched_output_df['fin_record_key'] == T5['fin_record_key']) &
+                (unmatched_output_df['fin_source_amt'] == T5['fin_source_amt'])
+            ].index
+            unmatched_output_df.drop(unmatched_indices, inplace=True)
     else:
-        unmatched_output_row = [T5.get(column) if column in T5 else None for column in unmatched_output_columns]
+        unmatched_output_row = {
+            column: T5[column] if column in T5 else None for column in unmatched_output_columns
+        }
         unmatched_output_rows.append(unmatched_output_row)
 
 
+# Append the new unmatched transactions to the existing unmatched_output_df
+unmatched_output_df = unmatched_output_df.append(unmatched_output_rows, ignore_index=True)
 
+# Remove duplicates from unmatched_output_df
+unmatched_output_df.drop_duplicates(subset=['fin_record_key'], inplace=True)
 
-            unmatched_output_df = unmatched_output_df[unmatched_output_df['fin_record_key'] != invoice['fin_record_key']]
+# Save the updated unmatched output to the file
+unmatched_output_df.to_csv('Z:/Desktop/Automation_output/Unmatched.csv', index=False)
