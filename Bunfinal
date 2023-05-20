@@ -254,29 +254,7 @@ with pd.ExcelWriter(config['output_file']) as writer:
 
 
 
- # Process each T5 transaction
-for T5 in T5_table:
-    matching_invoices, match_rule = match_row(T5, Invoice_table)
-    if matching_invoices:
-        for invoice, rule_index in matching_invoices:
-            description = rule_descriptions.get(rule_index)
-            output_row = {}
-            for column in output_columns:
-                if column in T5:
-                    value = T5[column]
-                    if isinstance(value, (float, int)):
-                        value = str(value)
-                    output_row[column] = value
-                else:
-                    value = invoice[column]
-                    if isinstance(value, (float, int)):
-                        value = str(value)
-                    output_row[column] = value
-            output_row['Match Rule'] = rule_numbers.get(match_rule)
-            output_row[description] = description
-            output_rows.append(output_row)
-    else:
-        unmatched_output_row = {
-            column: str(T5[column]) if column in T5 else None for column in unmatched_output_columns
-        }
-        unmatched_output_rows.append(unmatched_output_row)
+# Convert numeric columns to strings with desired format
+for column in output_columns:
+    if column in output_df.columns and pd.api.types.is_numeric_dtype(output_df[column]):
+        output_df[column] = output_df[column].apply(lambda x: f"{x:.2f}" if pd.notnull(x) else "")
