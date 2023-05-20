@@ -251,10 +251,9 @@ with pd.ExcelWriter(config['output_file']) as writer:
 
 
 
-
-
-
-# Convert numeric columns to strings with desired format
-for column in output_columns:
-    if column in output_df.columns and pd.api.types.is_numeric_dtype(output_df[column]):
-        output_df[column] = output_df[column].apply(lambda x: f"{x:.2f}" if pd.notnull(x) else "")
+# Write the output data to a CSV file using the csv module
+output_file_path = 'Z:/Desktop/output.csv'
+with open(output_file_path, 'w', newline='') as csvfile:
+    writer = csv.DictWriter(csvfile, fieldnames=output_columns)
+    writer.writeheader()
+    writer.writerows(output_rows)
