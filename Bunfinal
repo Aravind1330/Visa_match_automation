@@ -352,10 +352,13 @@ output_df.to_csv('Z:/Desktop/output.csv', index=False)
 
 
 
-def format_number(num):
-    # Convert the number to a string with the desired format
-    formatted_num = "{:.2f}".format(num)
-    return formatted_num
+def format_value(value):
+    if isinstance(value, (int, float)):
+        # Convert the numeric value to a string with the desired format
+        return "{:.2f}".format(value)
+    else:
+        # Return the string value as it is
+        return value
 
 
 # Write the output data to a CSV file
