@@ -251,9 +251,23 @@ with pd.ExcelWriter(config['output_file']) as writer:
 
 
 
-# Write the output data to a CSV file using the csv module
-output_file_path = 'Z:/Desktop/output.csv'
-with open(output_file_path, 'w', newline='') as csvfile:
-    writer = csv.DictWriter(csvfile, fieldnames=output_columns)
-    writer.writeheader()
-    writer.writerows(output_rows)
+# Identify the indices of matched rows
+matched_indices = []
+for index, row in unmatched_output_df.iterrows():
+    for invoice in Invoice_table:
+        if match_row(row, invoice):
+            matched_indices.append(index)
+            break
+
+# Drop the matched rows from unmatched_output_df
+unmatched_output_df.drop(matched_indices, inplace=True)
+
+# Append the new unmatched transactions to the existing unmatched_output_df
+unmatched_output_df = unmatched_output_df.append(unmatched_output_rows, ignore_index=True)
+
+# Remove duplicates from unmatched_output_df
+unmatched_output_df.drop_duplicates(subset=['fin_record_key'], inplace=True)
+
+# Write the updated unmatched transactions to the unmatched output file
+unmatched_output_df.to_csv(unmatched_output_file, index=False)
+
