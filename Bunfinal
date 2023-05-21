@@ -508,3 +508,8 @@ def match_row(T5, Invoice_table):
         return matching_invoices, match_rule
 
     return [], None
+
+
+
+
+    matching_invoices = spark.createDataFrame(matching_invoices, ['Invoice', 'Rule Index']).filter(match_condition)
