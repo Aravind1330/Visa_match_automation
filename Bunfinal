@@ -605,3 +605,111 @@ for T5 in T5_table:
 
 # Write the output data to a CSV
 output_df.write.csv('Z:/Desktop/output.csv', header=True, mode='overwrite')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+from pyspark.sql import SparkSession
+import yaml
+import os
+
+# Initialize SparkSession
+spark = SparkSession.builder.getOrCreate()
+
+# Read the rules from the CSV file
+rules_df = spark.read.csv('Z:/Desktop/Rules.csv', header=True)
+rules = []
+rule_descriptions = {}
+rule_numbers = {}
+for row in rules_df.rdd.collect():
+    rule_string = row['Rule']
+    rule_description = row['Description']
+    rule_no = row['Rule No']
+    rule = eval(f"lambda row, Invoice: {rule_string}")  # Modified lambda function to use 'Invoice' as a keyword argument
+    rules.append(rule)
+    rule_descriptions[row['index']+1] = rule_description
+    rule_numbers[row['index']+1] = rule_no
+
+
+# Read the config file
+with open('config.yml', 'r') as f:
+    config = yaml.safe_load(f)
+
+def match_row(T5, Invoice_table):
+    matching_invoices = []
+    total_invoice_source_amt = 0
+    match_rule = None  # Initialize the match_rule variable
+    for i, Invoice in enumerate(Invoice_table):
+        for rule_index, rule in enumerate(rules, start=1):
+            if rule(row=T5, Invoice=Invoice):  # Updated to use 'Invoice' as a keyword argument
+                matching_invoices.append((Invoice, i + 1))
+                total_invoice_source_amt += Invoice['Source Amt']
+                match_rule = rule_index  # Store the rule number when a match occurs
+                break
+
+    if total_invoice_source_amt == T5['Transaction Source Amt']:
+        return matching_invoices, match_rule  # Return the matching invoices and rule number
+
+    return [], None
+
+# Define the output columns
+output_columns = config['output_columns']
+unmatched_output_columns = config['unmatched_output_columns']
+
+# Process the data
+output_df, unmatched_output_df = preprocess_data(T5_table, Invoice_table)
+
+# Check if previous matched transactions file exists
+if os.path.exists('Z:/Desktop/matched_output.csv'):
+    # Load previously matched transactions
+    previous_matched_output_df = spark.read.csv('Z:/Desktop/matched_output.csv', header=True)
+    previous_matched_transactions = previous_matched_output_df.select('TransactionID').rdd.flatMap(lambda x: x).collect()
+else:
+    previous_matched_transactions = []
+
+
+# Process each T5 transaction
+output_rows = []
+unmatched_output_rows = []
+for T5 in T5_table:
+    matching_invoices, match_rule = match_row(T5, Invoice_table)
+    match_type = "one-to-one" if len(matching_invoices) == 1 else "bundle match"
+
+    if matching_invoices:
+        for invoice, rule_index in matching_invoices:
+            description = rule_descriptions.get(rule_index)
+            output_row = {
+                column: T5[column] if column in T5 else invoice[column] for column in output_columns
+            }
+            output_row['Match Rule'] = rule_numbers.get(rule_index)  # Add the rule number to the output row
+            output_row['Description'] = description
+            output_row['Match Type'] = match_type  # Add the match type to the output row
+            output_rows.append(output_row)
+
+            # Remove the matched transaction from unmatched_output_df
+            unmatched_output_df = unmatched_output_df.filter(
+                (unmatched_output_df['fin_record_key'] != T5['fin_record_key']) |
+                (unmatched_output_df['fin_source_amt'] != T5['fin_source_amt'])
+            )
+    else:
+        unmatched_output_row = {
+            column: T5[column] if column in T5 else None for column in unmatched_output_columns
+        }
+        unmatched_output_rows.append(unmatched_output_row)
+
+# Create a DataFrame from the output rows
+output_df = spark.createDataFrame(output_rows)
+
+# Write the output data to a CSV file
+output_df.write.csv('Z:/Desktop/output.csv', header=True, mode='overwrite')
