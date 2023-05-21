@@ -482,3 +482,29 @@ for T5 in T5_table:
             column: T5[column] if column in T5 else None for column in unmatched_output_columns
         }
         unmatched_output_rows.append(unmatched_output_row)
+
+
+
+
+
+
+
+def match_row(T5, Invoice_table):
+    matching_invoices = []
+    total_invoice_source_amt = spark.sql.functions.sum(col('Source Amt')).alias('total_invoice_source_amt')
+    match_rule = None
+    for i, Invoice in enumerate(Invoice_table):
+        for rule_index, rule in enumerate(rules, start=1):
+            if rule(row=T5, Invoice=Invoice):
+                matching_invoices.append((Invoice, i + 1))
+                total_invoice_source_amt += Invoice['Source Amt']
+                match_rule = rule_index
+                break
+
+    match_condition = total_invoice_source_amt == T5['Transaction Source Amt']
+    matching_invoices = matching_invoices.filter(match_condition)
+
+    if matching_invoices:
+        return matching_invoices, match_rule
+
+    return [], None
