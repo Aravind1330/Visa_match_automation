@@ -512,4 +512,96 @@ def match_row(T5, Invoice_table):
 
 
 
+
+
+
+from pyspark.sql import SparkSession
+from pyspark.sql.types import StructType, StructField, StringType
+from pyspark.sql.functions import col, sum
+
+# Create a SparkSession
+spark = SparkSession.builder.getOrCreate()
+
+# Read the rules from the CSV file
+rules_df = spark.read.csv('Z:/Desktop/Rules.csv', header=True)
+rules = []
+rule_descriptions = {}
+rule_numbers = {}
+for i, row in enumerate(rules_df.collect()):
+    rule_string = row['Rule']
+    rule_description = row['Description']
+    rule_no = row['Rule No']
+    rule = eval(f"lambda row, Invoice: {rule_string}")
+    rules.append(rule)
+    rule_descriptions[i+1] = rule_description
+    rule_numbers[i+1] = rule_no
+
+# Read the config file
+with open('config.yml', 'r') as f:
+    config = yaml.safe_load(f)
+
+# Define the match_row function
+def match_row(T5, Invoice_table):
+    matching_invoices = []
+    total_invoice_source_amt = sum(col('Source Amt')).alias('total_invoice_source_amt')
+    match_rule = None
+    for i, Invoice in enumerate(Invoice_table):
+        for rule_index, rule in enumerate(rules, start=1):
+            if rule(row=T5, Invoice=Invoice):
+                matching_invoices.append((Invoice, i + 1))
+                total_invoice_source_amt += Invoice['Source Amt']
+                match_rule = rule_index
+                break
+
+    match_condition = total_invoice_source_amt == T5['Transaction Source Amt']
     matching_invoices = spark.createDataFrame(matching_invoices, ['Invoice', 'Rule Index']).filter(match_condition)
+
+    if matching_invoices.count() > 0:
+        return matching_invoices.collect(), match_rule
+
+    return [], None
+
+# Define the output columns
+output_columns = config['output_columns']
+unmatched_output_columns = config['unmatched_output_columns']
+
+# Process the data
+output_rows = []
+unmatched_output_rows = []
+
+# Create an empty DataFrame with the desired schema for output
+output_schema = StructType([
+    StructField(column, StringType(), nullable=True) for column in output_columns + ['Match Rule', 'Description', 'Match Type']
+])
+output_df = spark.createDataFrame([], schema=output_schema)
+
+for T5 in T5_table:
+    matching_invoices, match_rule = match_row(T5, Invoice_table)
+    match_type = "one-to-one" if len(matching_invoices) == 1 else "bundle match"
+
+    if matching_invoices:
+        for invoice_row in matching_invoices:
+            invoice = invoice_row['Invoice']
+            rule_index = invoice_row['Rule Index']
+            description = rule_descriptions.get(rule_index)
+            output_row = {
+                column: T5[column] if column in T5.columns else invoice[column] for column in output_columns
+            }
+            output_row['Match Rule'] = rule_numbers.get(rule_index)
+            output_row['Description'] = description
+            output_row['Match Type'] = match_type
+            output_df = output_df.append(output_row)
+
+            # Remove the matched transaction from unmatched_output_df
+            unmatched_output_df = unmatched_output_df.filter(
+                ~((col('fin_record_key') == T5['fin_record_key']) &
+                  (col('fin_source_amt').getItem(0) == T5['fin_source_amt']))
+            )
+    else:
+        unmatched_output_row = {
+            column: T5[column] if column in T5.columns else None for column in unmatched_output_columns
+        }
+        unmatched_output_rows.append(unmatched_output_row)
+
+# Write the output data to a CSV
+output_df.write.csv('Z:/Desktop/output.csv', header=True, mode='overwrite')
