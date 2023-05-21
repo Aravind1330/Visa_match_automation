@@ -453,3 +453,34 @@ output_df = spark.createDataFrame(output_rows)
 # Write the output data to a CSV file
 output_df.write.csv('Z:/Desktop/output.csv', header=True, mode='overwrite')
 
+
+
+
+
+# Process each T5 transaction
+for T5 in T5_table.rdd.toLocalIterator():
+    matching_invoices, match_rule = match_row(T5, Invoice_table.rdd.toLocalIterator())
+    match_type = "one-to-one" if len(matching_invoices) == 1 else "bundle match"
+
+    if matching_invoices:
+        for invoice, rule_index in matching_invoices:
+            description = rule_descriptions.get(rule_index)
+            output_row = {
+                column: T5[column] if column in T5 else invoice[column] for column in output_columns
+            }
+            output_row['Match Rule'] = rule_numbers.get(rule_index)  # Add the rule number to the output row
+            output_row['Description'] = description
+            output_row['Match Type'] = match_type  # Add the match type to the output row
+            output_rows.append(output_row)
+
+            # Remove the matched transaction from unmatched_output_df
+            unmatched_indices = unmatched_output_df.filter(
+                (col('fin_record_key') == T5['fin_record_key']) &
+                (col('fin_source_amt') == T5['fin_source_amt'])
+            ).select('index').rdd.flatMap(lambda x: x).collect()
+            unmatched_output_df = unmatched_output_df.filter(~col('index').isin(unmatched_indices))
+    else:
+        unmatched_output_row = {
+            column: T5[column] if column in T5 else None for column in unmatched_output_columns
+        }
+        unmatched_output_rows.append(unmatched_output_row)
