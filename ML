@@ -50,3 +50,47 @@ predicted_transactions = classifier.predict(new_invoices_vectorized)
 # Print the predicted transactions
 for invoice, transaction in zip(new_invoices, predicted_transactions):
     print(f"Invoice: {invoice} - Predicted Transaction: {transaction}")
+
+
+
+
+
+
+
+
+
+
+import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+
+# Load your transaction and invoice data into pandas DataFrames
+transaction_data = pd.read_csv('transaction_data.csv')
+invoice_data = pd.read_csv('invoice_data.csv')
+
+# Select relevant columns for matching
+transaction_features = transaction_data['supplier_name'].astype(str)
+invoice_features = invoice_data['ticket_number'].astype(str).str[:5]
+
+# Preprocess data and create feature vectors
+vectorizer = TfidfVectorizer()
+transaction_vectors = vectorizer.fit_transform(transaction_features)
+invoice_vectors = vectorizer.transform(invoice_features)
+
+# Compute cosine similarity between transaction and invoice vectors
+similarity_matrix = cosine_similarity(transaction_vectors, invoice_vectors)
+
+# Find the best matches
+threshold = 0.8  # Adjust the threshold based on your needs
+matches = []
+for transaction_idx, row in enumerate(similarity_matrix):
+    best_match_idx = row.argmax()
+    best_match_score = row[best_match_idx]
+    if best_match_score >= threshold:
+        transaction_id = transaction_data.iloc[transaction_idx]['transaction_id']
+        invoice_id = invoice_data.iloc[best_match_idx]['invoice_id']
+        matches.append((transaction_id, invoice_id, best_match_score))
+
+# Display the matches
+for transaction_id, invoice_id, score in matches:
+    print(f"Match found: Transaction ID {transaction_id} -> Invoice ID {invoice_id}, Score: {score}")
