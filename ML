@@ -1,0 +1,52 @@
+import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+from sklearn.preprocessing import LabelEncoder
+from sklearn import preprocessing
+
+# Load the data
+data = pd.read_csv('invoices_transactions.csv')
+
+# Preprocess the data
+# Assuming you have two columns: 'invoice_text' and 'transaction_text'
+# Preprocessing involves cleaning and transforming the text data
+# You can use techniques like removing punctuation, lowercasing, tokenization, etc.
+
+# Split the data into train and test sets
+X_train, X_test, y_train, y_test = train_test_split(
+    data['invoice_text'], data['transaction_text'], test_size=0.2, random_state=42)
+
+# Vectorize the text data
+vectorizer = TfidfVectorizer()
+X_train_vectorized = vectorizer.fit_transform(X_train)
+X_test_vectorized = vectorizer.transform(X_test)
+
+# Train a logistic regression classifier
+classifier = LogisticRegression()
+classifier.fit(X_train_vectorized, y_train)
+
+# Predict on the test set
+predictions = classifier.predict(X_test_vectorized)
+
+# Evaluate the model
+accuracy = accuracy_score(y_test, predictions)
+print(f"Accuracy: {accuracy}")
+
+# Match new invoices with transactions
+new_invoices = [
+    "Invoice 1 text",
+    "Invoice 2 text",
+    "Invoice 3 text"
+]
+
+# Vectorize the new invoice text
+new_invoices_vectorized = vectorizer.transform(new_invoices)
+
+# Predict the matching transactions for new invoices
+predicted_transactions = classifier.predict(new_invoices_vectorized)
+
+# Print the predicted transactions
+for invoice, transaction in zip(new_invoices, predicted_transactions):
+    print(f"Invoice: {invoice} - Predicted Transaction: {transaction}")
