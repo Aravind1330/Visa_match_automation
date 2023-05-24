@@ -94,3 +94,17 @@ for transaction_idx, row in enumerate(similarity_matrix):
 # Display the matches
 for transaction_id, invoice_id, score in matches:
     print(f"Match found: Transaction ID {transaction_id} -> Invoice ID {invoice_id}, Score: {score}")
+
+
+
+
+
+# Display and save the matches
+output_file = 'matches.csv'
+with open(output_file, 'w') as file:
+    file.write("Transaction ID, Invoice ID, Score\n")
+    for transaction_id, invoice_id, score in matches:
+        print(f"Match found: Transaction ID {transaction_id} -> Invoice ID {invoice_id}, Score: {score}")
+        file.write(f"{transaction_id}, {invoice_id}, {score}\n")
+
+print(f"Matches saved to {output_file}")
