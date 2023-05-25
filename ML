@@ -714,3 +714,93 @@ for transaction_idx, transaction_vector in enumerate(transaction_vectors):
             invoice_id = invoice_data.at[best_match_idx[column], 'inv_unmatch_inv_id']
             matches.append((transaction_id, invoice_id, best_match_idx[column], best_match_score[column]))
             matched_indices.add(best_match_idx[column])
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+import pandas as pd
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import CountVectorizer
+from fuzzywuzzy import fuzz
+
+# Load your transaction and invoice data into pandas DataFrames
+transaction_data = pd.read_csv('transaction_data.csv')
+invoice_data = pd.read_csv('invoice_data.csv')
+
+# Select relevant columns for matching
+transaction_columns = ['supplier_name', 'source_amount', 'other_column']
+transaction_features = transaction_data[transaction_columns].astype(str)
+invoice_features = invoice_data['ticket_number'].astype(str).str[:5]
+
+# Create a set to store matched invoice indices
+matched_indices = set()
+
+# Create CountVectorizer to convert text data to vectors
+vectorizer = CountVectorizer()
+
+# Fit and transform the supplier names
+supplier_vectors = vectorizer.fit_transform(transaction_features['supplier_name'])
+invoice_supplier_vectors = vectorizer.transform(invoice_features)
+
+# Calculate the cosine similarity matrix for supplier names
+supplier_similarity_matrix = cosine_similarity(supplier_vectors, invoice_supplier_vectors)
+
+# Find the best supplier name matches
+supplier_matches = []
+supplier_threshold = 80  # Adjust the threshold based on your needs
+for transaction_idx, transaction_name in enumerate(transaction_features['supplier_name']):
+    best_match_score = -1
+    best_match_idx = -1
+    for invoice_idx, invoice_name in enumerate(invoice_features):
+        if invoice_idx not in matched_indices:
+            similarity_score = fuzz.ratio(transaction_name, invoice_name)
+            if similarity_score > best_match_score:
+                best_match_score = similarity_score
+                best_match_idx = invoice_idx
+    if best_match_score >= supplier_threshold:
+        transaction_id = transaction_data.iloc[transaction_idx]['fin_record_key']
+        invoice_id = invoice_data.iloc[best_match_idx]['inv_unmatch_inv_id']
+        supplier_matches.append((transaction_id, invoice_id, best_match_idx, best_match_score))
+        matched_indices.add(best_match_idx)
+
+# Calculate the average score for source_amount column
+amount_matches = []
+amount_threshold = 90  # Adjust the threshold based on your needs
+for transaction_idx, transaction_amount in enumerate(transaction_features['source_amount']):
+    best_match_score = -1
+    best_match_idx = -1
+    for invoice_idx, invoice_amount in enumerate(invoice_data['source_amount'].astype(str)):
+        if invoice_idx not in matched_indices:
+            similarity_score = fuzz.ratio(transaction_amount, invoice_amount)
+            if similarity_score > best_match_score:
+                best_match_score = similarity_score
+                best_match_idx = invoice_idx
+    if best_match_score >= amount_threshold:
+        transaction_id = transaction_data.iloc[transaction_idx]['fin_record_key']
+        invoice_id = invoice_data.iloc[best_match_idx]['inv_unmatch_inv_id']
+        amount_matches.append((transaction_id, invoice_id, best_match_idx, best_match_score))
+        matched_indices.add(best_match_idx)
+
+# Combine the matches and calculate the final score as the average
+matches = []
+for supplier_match in supplier_matches:
+    transaction_id, invoice_id, invoice_idx, supplier_score = supplier_match
+    amount_match = next((m for m in amount_matches if m[0] == transaction_id and m[1] == invoice_id), None)
+    if amount_match:
+        _, _, _, amount_score = amount_match
+        final_score = (supplier_score + amount_score) / 2
+        matches.append((transaction_id, invoice_id, invoice_idx, final_score))
+
+# Display and save the matches
+output_file = 'matches.csv'
+with open(output_file, 'w') as file:
+   
+
