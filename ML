@@ -483,3 +483,6 @@ for Invoice in Invoice_table:
             column: Invoice[column] if column in Invoice else None for column in unmatched_invoices_columns
         }
         unmatched_invoices_rows.append(unmatched_invoice_row)
+
+# Create a DataFrame from the unmatched invoices
+unmatched_invoices_df = pd.DataFrame(unmatched_invoices_rows, columns=unmatched_invoices_columns)
