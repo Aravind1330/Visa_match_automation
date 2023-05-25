@@ -725,29 +725,25 @@ print(f"Matches saved to {output_file}")
 
 
 
-# Find the best matches
 matches = []
-for transaction_idx, transaction_row in transaction_features.iterrows():
-    best_match = [None, -1, -1, ""]  # [invoice_name, match_score, invoice_idx, match_pattern]
+
+for transaction_idx, transaction_name in enumerate(transaction_features):
+    best_match_score = -1
+    best_match_idx = -1
     
-    def find_best_match(column_name, column_value, best_match):
-        for invoice_idx, invoice_name in enumerate(list(invoice_features)):
-            if invoice_idx not in matched_indices:  # Check if the invoice has already been matched
-                for i in range(len(column_value) - 4):
-                    substring = column_value[i:i + 5]
-                    similarity_score = fuzz.ratio(substring, invoice_name)
-                    if similarity_score > best_match[1]:
-                        best_match[0] = invoice_name
-                        best_match[1] = similarity_score
-                        best_match[2] = invoice_idx
-                        best_match[3] = f"{column_name}: {column_value} -> {invoice_name}"
-                        break  # Break the inner loop if a match is found in any of the columns
+    for invoice_idx, invoice_name in enumerate(invoice_features):
+        if invoice_idx not in matched_indices:  # Check if the invoice has already been matched
+            similarity_score = fuzz.ratio(transaction_name, invoice_name)
+            
+            # Get the threshold for the current column
+            column_threshold = thresholds.get(transaction_columns[transaction_idx], 50)
+            
+            if similarity_score > best_match_score and similarity_score >= column_threshold:
+                best_match_score = similarity_score
+                best_match_idx = invoice_idx
     
-    # Apply the find_best_match function to each column of the transaction row
-    transaction_row.apply(lambda column_value: find_best_match(column_value.name, column_value, best_match))
-    
-    if best_match[1] >= thresholds[transaction_columns[0]]:
-        transaction_id = transaction_data.iloc[transaction_idx]['transaction_id']
-        invoice_id = invoice_data.iloc[best_match[2]]['invoice_id']
-        matches.append((transaction_id, invoice_id, best_match[2], best_match[1], best_match[3]))
-        matched_indices.add(best_match[2]) 
+    if best_match_score >= thresholds.get(transaction_columns[transaction_idx], 50):
+        transaction_id = transaction_data.iloc[transaction_idx]['fin_record_key']
+        invoice_id = invoice_data.iloc[best_match_idx]['inv_unmatch_inv_id']
+        matches.append((transaction_id, invoice_id, best_match_idx, best_match_score))
+        matched_indices.add(best_match_idx)
