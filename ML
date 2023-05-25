@@ -658,141 +658,59 @@ print(f"Matches saved to {output_file}")
 
 
 import pandas as pd
-from fuzzywuzzy import fuzz
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import TfidfVectorizer
 
-# Load your transaction and invoice data into pandas DataFrames
-transaction_data = pd.read_csv('transaction_data.csv')
-invoice_data = pd.read_csv('invoice_data.csv')
-
-# Select relevant columns for matching
-transaction_columns = ['supplier_name', 'source_amount', 'other_column']
-transaction_features = transaction_data[transaction_columns].astype(str)
-invoice_features = invoice_data['ticket_number'].astype(str).str[:5]
-
-# Define thresholds for different columns
+# Adjust the thresholds based on your needs for each column
 thresholds = {
-    'supplier_name': 80,
-    'source_amount': 90,
-    'other_column': 75
+    'name': 0.9,
+    'amount': 0.95,
+    'date': 0.8,
+    'description': 0.85,
+    # Add more columns and corresponding thresholds here
 }
 
-# Create a set to store matched invoice indices
+matches = []
 matched_indices = set()
 
-# Find the best matches
-matches = []
-for transaction_idx, transaction_row in transaction_features.iterrows():
-    best_match_score = -1
-    best_match_idx = -1
-    best_match_pattern = ""
-    
-    def find_best_match(column_name, column_value):
-        nonlocal best_match_score, best_match_idx, best_match_pattern
-        for invoice_idx, invoice_name in enumerate(invoice_features):
-            if invoice_idx not in matched_indices:  # Check if the invoice has already been matched
-                for i in range(len(column_value) - 4):
-                    substring = column_value[i:i + 5]
-                    similarity_score = fuzz.ratio(substring, invoice_name)
-                    if similarity_score > best_match_score:
-                        best_match_score = similarity_score
-                        best_match_idx = invoice_idx
-                        best_match_pattern = f"{column_name}: {column_value} -> {invoice_name}"
-                        break  # Break the inner loop if a match is found in any of the columns
-    
-    # Apply the find_best_match function to each column of the transaction row
-    transaction_row.apply(lambda column_value: find_best_match(column_value.name, column_value))
-    
-    if best_match_score >= thresholds[transaction_columns[0]]:
-        transaction_id = transaction_data.iloc[transaction_idx]['transaction_id']
-        invoice_id = invoice_data.iloc[best_match_idx]['invoice_id']
-        matches.append((transaction_id, invoice_id, best_match_idx, best_match_score, best_match_pattern))
-        matched_indices.add(best_match_idx)  # Add the matched invoice index to the set
+# List of columns to consider for cosine similarity
+columns_for_similarity = ['name', 'amount', 'date', 'description']
 
-# Display and save the matches
-output_file = 'matches.csv'
-with open(output_file, 'w') as file:
-    file.write("Transaction ID, Invoice ID, Best Match Index, Score, Matched Pattern\n")
-    for match in matches:
-        file.write(f"{match[0]}, {match[1]}, {match[2]}, {match[3]}, {match[4]}\n")
-        print(f"Match found: Transaction ID {match[0]} -> Invoice ID {match[1]}, "
-              f"Best Match Index: {match[2]}, Score: {match[3]}, Matched Pattern: {match[4]}")
+# Convert transaction columns and invoice columns into feature vectors using TF-IDF
+tfidf_vectorizer = TfidfVectorizer()
+transaction_vectors = tfidf_vectorizer.fit_transform(transaction_data[columns_for_similarity].astype(str).apply(' '.join, axis=1))
+invoice_vectors = tfidf_vectorizer.transform(invoice_data[columns_for_similarity].astype(str).apply(' '.join, axis=1))
 
-print(f"Matches saved to {output_file}")
+for transaction_idx, transaction_vector in enumerate(transaction_vectors):
+    best_match_score = {column: -1 for column in thresholds}
+    best_match_idx = {column: -1 for column in thresholds}
 
-
-
-
-
-
-
-matches = []
-
-for transaction_idx, transaction_name in enumerate(transaction_features):
-    best_match_score = -1
-    best_match_idx = -1
-    
-    for invoice_idx, invoice_name in enumerate(invoice_features):
-        if invoice_idx not in matched_indices:  # Check if the invoice has already been matched
-            similarity_score = fuzz.ratio(transaction_name, invoice_name)
-            
-            # Get the threshold for the current column
-            column_threshold = thresholds.get(transaction_columns[transaction_idx], 50)
-            
-            if similarity_score > best_match_score and similarity_score >= column_threshold:
-                best_match_score = similarity_score
-                best_match_idx = invoice_idx
-    
-    if best_match_score >= thresholds.get(transaction_columns[transaction_idx], 50):
-        transaction_id = transaction_data.iloc[transaction_idx]['fin_record_key']
-        invoice_id = invoice_data.iloc[best_match_idx]['inv_unmatch_inv_id']
-        matches.append((transaction_id, invoice_id, best_match_idx, best_match_score))
-        matched_indices.add(best_match_idx)
-
-
-
-
-
-
-
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.feature_extraction.text import CountVectorizer
-from fuzzywuzzy import fuzz
-
-# Create CountVectorizer to convert text data to vectors
-vectorizer = CountVectorizer()
-
-# Fit and transform the transaction names
-transaction_vectors = vectorizer.fit_transform(transaction_features['supplier_name'])
-
-# Transform the invoice names
-invoice_vectors = vectorizer.transform(invoice_features)
-
-# Calculate the cosine similarity matrix
-similarity_matrix = cosine_similarity(transaction_vectors, invoice_vectors)
-
-thresholds = {
-    'supplier_name': 0.8,
-    'source_amount': 0.9,
-    'other_column': 0.7
-}
-
-for transaction_idx, transaction_name in enumerate(transaction_features['supplier_name']):
-    best_match_score = -1
-    best_match_idx = -1
-
-    for invoice_idx, invoice_name in enumerate(invoice_features):
+    for invoice_idx, invoice_vector in enumerate(invoice_vectors):
         if invoice_idx not in matched_indices:
-            similarity_score = similarity_matrix[transaction_idx, invoice_idx]
+            similarity_scores = {}
 
-            # Get the threshold value for the current column
-            threshold = thresholds[transaction_columns[0]]  # Change the index based on the column
+            for column in thresholds:
+                transaction_value = transaction_data.at[transaction_idx, column]
+                invoice_value = invoice_data.at[invoice_idx, column]
 
-            if similarity_score > best_match_score and similarity_score >= threshold:
-                best_match_score = similarity_score
-                best_match_idx = invoice_idx
+                if isinstance(transaction_value, str) and isinstance(invoice_value, str):
+                    transaction_value_vector = tfidf_vectorizer.transform([transaction_value])
+                    invoice_value_vector = tfidf_vectorizer.transform([invoice_value])
+                    similarity_scores[column] = cosine_similarity(transaction_value_vector, invoice_value_vector)[0][0]
 
-    if best_match_score >= threshold:
-        transaction_id = transaction_data.iloc[transaction_idx]['fin_record_key']
-        invoice_id = invoice_data.iloc[best_match_idx]['inv_unmatch_inv_id']
-        matches.append((transaction_id, invoice_id, best_match_idx, best_match_score))
-        matched_indices.add(best_match_idx)
+            for column in thresholds:
+                similarity_score = similarity_scores.get(column, 0)
+
+                if similarity_score > best_match_score[column] and similarity_score >= thresholds[column]:
+                    best_match_score[column] = similarity_score
+                    best_match_idx[column] = invoice_idx
+
+    transaction_id = transaction_data.at[transaction_idx, 'fin_record_key']
+
+    for column in thresholds:
+        best_match_score[column] = best_match_score[column]
+
+        if best_match_score[column] >= thresholds[column]:
+            invoice_id = invoice_data.at[best_match_idx[column], 'inv_unmatch_inv_id']
+            matches.append((transaction_id, invoice_id, best_match_idx[column], best_match_score[column]))
+            matched_indices.add(best_match_idx[column])
