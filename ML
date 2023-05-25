@@ -714,3 +714,12 @@ with open(output_file, 'w') as file:
 
 print(f"Matches saved to {output_file}")
 
+
+
+
+
+
+
+
+# Filter the first 5 characters from supplier_name
+transaction_features['supplier_name'] = transaction_features['supplier_name'].str[5:]
