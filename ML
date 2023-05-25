@@ -329,3 +329,15 @@ with open(output_file, 'w') as file:
 
 print(f"Matches saved to {output_file}")
 
+
+
+
+
+
+
+
+
+
+# Convert unmatched invoices to DataFrame and write to CSV
+unmatched_output_df = pd.DataFrame(unmatched_invoices)
+unmatched_output_df.to_csv('Z:/Desktop/unmatched_output.csv', index=False)
