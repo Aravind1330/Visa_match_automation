@@ -966,3 +966,30 @@ with open(output_file, 'w') as file:
               f"Best Match Index: {match[2]}, Score: {match[3]}, Matched Pattern: {match[4]}")
 
 print(f"Matches saved to {output_file}")
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Display and save the matches
+output_file = 'matches.csv'
+with open(output_file, 'w') as file:
+    file.write("Transaction ID, Invoice ID, Best Match Index, Score\n")
+    for match in matches:
+        transaction_id = match[0]
+        invoice_id = match[1]
+        best_match_idx = match[2]
+        best_match_score = match[3]
+        file.write(f"{transaction_id}, {invoice_id}, {best_match_idx}, {best_match_score}\n")
+        print(f"Match found: Transaction ID {transaction_id} -> Invoice ID {invoice_id}, "
+              f"Best Match Index: {best_match_idx}, Score: {best_match_score}")
+
+print(f"Matches saved to {output_file}")
