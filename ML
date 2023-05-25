@@ -747,3 +747,71 @@ for transaction_idx, transaction_name in enumerate(transaction_features):
         invoice_id = invoice_data.iloc[best_match_idx]['inv_unmatch_inv_id']
         matches.append((transaction_id, invoice_id, best_match_idx, best_match_score))
         matched_indices.add(best_match_idx)
+
+
+
+
+
+
+
+
+
+
+
+import pandas as pd
+from fuzzywuzzy import fuzz
+
+# Load your transaction and invoice data into pandas DataFrames
+transaction_data = pd.read_csv('transaction_data.csv')
+invoice_data = pd.read_csv('invoice_data.csv')
+
+# Select relevant columns for matching
+transaction_columns = ['supplier_name', 'source_amount', 'other_column']
+transaction_features = transaction_data[transaction_columns].astype(str)
+invoice_features = invoice_data['ticket_number'].astype(str).str[:5]
+
+# Define threshold values for each column
+thresholds = {
+    'supplier_name': 80,
+    'source_amount': 70,
+    'other_column': 60
+}
+
+# Create a set to store matched invoice indices
+matched_indices = set()
+
+# Find the best matches
+matches = []
+
+for transaction_idx, transaction_name in enumerate(transaction_features):
+
+    best_match_score = -1
+    best_match_idx = -1
+
+    for invoice_idx, invoice_name in enumerate(invoice_features):
+
+        if invoice_idx not in matched_indices: # Check if the invoice has already been matched
+
+            similarity_score = fuzz.ratio(transaction_name, invoice_name)
+            column_threshold = thresholds[transaction_columns[transaction_idx]]
+
+            if similarity_score > best_match_score and similarity_score >= column_threshold:
+                best_match_score = similarity_score
+                best_match_idx = invoice_idx
+
+    if best_match_score >= column_threshold:
+        transaction_id = transaction_data.iloc[transaction_idx]['fin_record_key']
+        invoice_id = invoice_data.iloc[best_match_idx]['inv_unmatch_inv_id']
+        matches.append((transaction_id, invoice_id, best_match_idx, best_match_score))
+        matched_indices.add(best_match_idx)
+
+# Display and save the matches
+output_file = 'matches.csv'
+with open(output_file, 'w') as file:
+    file.write("Transaction ID, Invoice ID, Best Match Index, Score, Matched Pattern\n")
+    for match in matches:
+        file.write(f"{match[0]}, {match[1]}, {match[2]}, {match[3]}, {match[4]}\n")
+        print(f"Match found: Transaction ID {match[0]} -> Invoice ID {match[1]}, "
+              f"Best Match Index: {match[2]}, Score: {match[3]}, Matched Pattern: {match[4]}")
+
+print(f"Matches saved to {output_file}")
