@@ -657,10 +657,6 @@ print(f"Matches saved to {output_file}")
 
 
 
-
-
-
-
 import pandas as pd
 from fuzzywuzzy import fuzz
 
@@ -673,21 +669,27 @@ transaction_columns = ['supplier_name', 'source_amount', 'other_column']
 transaction_features = transaction_data[transaction_columns].astype(str)
 invoice_features = invoice_data['ticket_number'].astype(str).str[:5]
 
+# Define thresholds for different columns
+thresholds = {
+    'supplier_name': 80,
+    'source_amount': 90,
+    'other_column': 75
+}
+
 # Create a set to store matched invoice indices
 matched_indices = set()
 
 # Find the best matches
-threshold = 80  # Adjust the threshold based on your needs
 matches = []
 for transaction_idx, transaction_row in transaction_features.iterrows():
     best_match_score = -1
     best_match_idx = -1
     best_match_pattern = ""
-    for invoice_idx, invoice_name in enumerate(invoice_features):
-        if invoice_idx not in matched_indices:  # Check if the invoice has already been matched
-            for column_name, column_value in transaction_row.items():
-                if column_name == 'supplier_name':
-                    column_value = column_value[5:]  # Remove the first 5 characters from supplier_name
+    
+    def find_best_match(column_name, column_value):
+        nonlocal best_match_score, best_match_idx, best_match_pattern
+        for invoice_idx, invoice_name in enumerate(invoice_features):
+            if invoice_idx not in matched_indices:  # Check if the invoice has already been matched
                 for i in range(len(column_value) - 4):
                     substring = column_value[i:i + 5]
                     similarity_score = fuzz.ratio(substring, invoice_name)
@@ -696,8 +698,11 @@ for transaction_idx, transaction_row in transaction_features.iterrows():
                         best_match_idx = invoice_idx
                         best_match_pattern = f"{column_name}: {column_value} -> {invoice_name}"
                         break  # Break the inner loop if a match is found in any of the columns
-
-    if best_match_score >= threshold:
+    
+    # Apply the find_best_match function to each column of the transaction row
+    transaction_row.apply(lambda column_value: find_best_match(column_value.name, column_value))
+    
+    if best_match_score >= thresholds[transaction_columns[0]]:
         transaction_id = transaction_data.iloc[transaction_idx]['transaction_id']
         invoice_id = invoice_data.iloc[best_match_idx]['invoice_id']
         matches.append((transaction_id, invoice_id, best_match_idx, best_match_score, best_match_pattern))
@@ -714,12 +719,3 @@ with open(output_file, 'w') as file:
 
 print(f"Matches saved to {output_file}")
 
-
-
-
-
-
-
-
-# Filter the first 5 characters from supplier_name
-transaction_features['supplier_name'] = transaction_features['supplier_name'].str[5:]
