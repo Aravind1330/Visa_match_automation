@@ -457,3 +457,29 @@ aggregated = None  # Assuming aggregated data is defined elsewhere
 with pd.ExcelWriter(config['output_file']) as writer:
     output_df.to_excel(writer, sheet_name='Output', index=False)
     aggregated.to_excel(writer, sheet_name='Aggregated', index=False)
+
+
+
+
+
+
+
+
+# Define a DataFrame to store the unmatched invoices
+unmatched_invoices_columns = config['unmatched_invoices_columns']
+unmatched_invoices_rows = []
+
+
+# Process each invoice to identify unmatched invoices
+for Invoice in Invoice_table:
+    matched = False
+    for T5 in T5_table:
+        matching_invoices, _ = match_row(T5, [Invoice])
+        if matching_invoices:
+            matched = True
+            break
+    if not matched:
+        unmatched_invoice_row = {
+            column: Invoice[column] if column in Invoice else None for column in unmatched_invoices_columns
+        }
+        unmatched_invoices_rows.append(unmatched_invoice_row)
