@@ -725,14 +725,13 @@ print(f"Matches saved to {output_file}")
 
 
 
-
 # Find the best matches
 matches = []
 for transaction_idx, transaction_row in transaction_features.iterrows():
     best_match = [None, -1, -1, ""]  # [invoice_name, match_score, invoice_idx, match_pattern]
     
     def find_best_match(column_name, column_value, best_match):
-        for invoice_idx, invoice_name in enumerate(invoice_features):
+        for invoice_idx, invoice_name in enumerate(list(invoice_features)):
             if invoice_idx not in matched_indices:  # Check if the invoice has already been matched
                 for i in range(len(column_value) - 4):
                     substring = column_value[i:i + 5]
@@ -751,4 +750,4 @@ for transaction_idx, transaction_row in transaction_features.iterrows():
         transaction_id = transaction_data.iloc[transaction_idx]['transaction_id']
         invoice_id = invoice_data.iloc[best_match[2]]['invoice_id']
         matches.append((transaction_id, invoice_id, best_match[2], best_match[1], best_match[3]))
-        matched_indices.add(best_match[2])
+        matched_indices.add(best_match[2]) 
