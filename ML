@@ -493,13 +493,6 @@ unmatched_invoices_df = pd.DataFrame(unmatched_invoices_rows, columns=unmatched_
 
 
 
-
-
-
-
-
-
-
 import pandas as pd
 from fuzzywuzzy import fuzz
 
@@ -523,14 +516,14 @@ for transaction_idx, transaction_row in transaction_features.iterrows():
     best_match_pattern = ""
     for invoice_idx, invoice_name in enumerate(invoice_features):
         if invoice_idx not in matched_indices:  # Check if the invoice has already been matched
-            for column_name, column_value in transaction_row.items():
-                for i in range(len(column_value) - 4):
-                    substring = column_value[i:i + 5]
+            for column_name, column_value in transaction_row.to_frame().T.iterrows():
+                for i in range(len(column_value[0]) - 4):
+                    substring = column_value[0][i:i + 5]
                     similarity_score = fuzz.ratio(substring, invoice_name)
                     if similarity_score > best_match_score:
                         best_match_score = similarity_score
                         best_match_idx = invoice_idx
-                        best_match_pattern = f"Matched Pattern: {column_name} = {column_value}"
+                        best_match_pattern = f"Matched Pattern: {column_name} = {column_value[0]}"
                         break  # Break the inner loop if a match is found in any of the columns
 
     if best_match_score >= threshold:
@@ -549,3 +542,4 @@ with open(output_file, 'w') as file:
               f"Best Match Index: {match[2]}, Score: {match[3]}, {match[4]}")
 
 print(f"Matches saved to {output_file}")
+
