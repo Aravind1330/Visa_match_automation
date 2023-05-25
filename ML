@@ -517,3 +517,26 @@ with open(output_file, 'w') as file:
 print(f"Matches saved to {output_file}")
 
 
+threshold = 80  # Adjust the threshold based on your needs
+matches = []
+for transaction_idx, transaction_row in transaction_features.iterrows():
+    best_match_score = -1
+    best_match_idx = -1
+    best_match_pattern = ""
+    for invoice_idx, invoice_name in enumerate(invoice_features):
+        if invoice_idx not in matched_indices:  # Check if the invoice has already been matched
+            for column_name, column_value in transaction_row.iteritems():
+                for i in range(len(column_value) - 4):
+                    substring = column_value[i:i + 5]
+                    similarity_score = fuzz.ratio(substring, invoice_name)
+                    if similarity_score > best_match_score:
+                        best_match_score = similarity_score
+                        best_match_idx = invoice_idx
+                        best_match_pattern = f"Matched Pattern: {column_name} = {column_value}"
+                        break  # Break the inner loop if a match is found in any of the columns
+
+    if best_match_score >= threshold:
+        transaction_id = transaction_data.iloc[transaction_idx]['transaction_id']
+        invoice_id = invoice_data.iloc[best_match_idx]['invoice_id']
+        matches.append((transaction_id, invoice_id, best_match_idx, best_match_score, best_match_pattern))
+        matched_indices.add(best_match_idx)  # Add the matched invoice index to the set
