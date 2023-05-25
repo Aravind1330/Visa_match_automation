@@ -1161,3 +1161,11 @@ with open(output_file, 'w') as file:
         file.write(f"{match[0]}, {match[1]}, {match[2]}, {match[3]}\n")
         print(f"Match found: Transaction
 
+
+
+
+
+from distance import jaccard, levenshtein
+
+            supplier_name_score = 1 - jaccard(transaction_name, invoice_name)
+            source_amt_score = 1 - levenshtein(transaction_amt, invoice_amount)
