@@ -465,34 +465,6 @@ with pd.ExcelWriter(config['output_file']) as writer:
 
 
 
-# Define a DataFrame to store the unmatched invoices
-unmatched_invoices_columns = config['unmatched_invoices_columns']
-unmatched_invoices_rows = []
-
-
-# Process each invoice to identify unmatched invoices
-for Invoice in Invoice_table:
-    matched = False
-    for T5 in T5_table:
-        matching_invoices, _ = match_row(T5, [Invoice])
-        if matching_invoices:
-            matched = True
-            break
-    if not matched:
-        unmatched_invoice_row = {
-            column: Invoice[column] if column in Invoice else None for column in unmatched_invoices_columns
-        }
-        unmatched_invoices_rows.append(unmatched_invoice_row)
-
-# Create a DataFrame from the unmatched invoices
-unmatched_invoices_df = pd.DataFrame(unmatched_invoices_rows, columns=unmatched_invoices_columns)
-
-
-
-
-
-
-
 import pandas as pd
 from fuzzywuzzy import fuzz
 
@@ -501,7 +473,7 @@ transaction_data = pd.read_csv('transaction_data.csv')
 invoice_data = pd.read_csv('invoice_data.csv')
 
 # Select relevant columns for matching
-transaction_features = transaction_data.astype(str)
+transaction_features = transaction_data['supplier_name'].astype(str)
 invoice_features = invoice_data['ticket_number'].astype(str).str[:5]
 
 # Create a set to store matched invoice indices
@@ -510,20 +482,21 @@ matched_indices = set()
 # Find the best matches
 threshold = 80  # Adjust the threshold based on your needs
 matches = []
-for transaction_idx, transaction_row in transaction_features.iterrows():
+for transaction_idx, transaction_name in enumerate(transaction_features):
     best_match_score = -1
     best_match_idx = -1
     best_match_pattern = ""
     for invoice_idx, invoice_name in enumerate(invoice_features):
         if invoice_idx not in matched_indices:  # Check if the invoice has already been matched
-            for column_name, column_value in transaction_row.to_frame().T.iterrows():
-                for i in range(len(column_value[0]) - 4):
-                    substring = column_value[0][i:i + 5]
+            for column_name, column_value in transaction_data.iterrows():
+                column_value = str(column_value[1])
+                for i in range(len(column_value) - 4):
+                    substring = column_value[i:i + 5]
                     similarity_score = fuzz.ratio(substring, invoice_name)
                     if similarity_score > best_match_score:
                         best_match_score = similarity_score
                         best_match_idx = invoice_idx
-                        best_match_pattern = f"Matched Pattern: {column_name} = {column_value[0]}"
+                        best_match_pattern = f"Matched Pattern: {column_name} = {column_value}"
                         break  # Break the inner loop if a match is found in any of the columns
 
     if best_match_score >= threshold:
