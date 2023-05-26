@@ -1212,3 +1212,11 @@ for transaction_idx, transaction_row in transaction_features.iterrows():
         invoice_id = invoice_data.iloc[best_match_idx]['inv_unmatch_inv_id']
         matches.append((transaction_id, invoice_id, best_match_idx, best_match_score, transaction_debit_credit, invoice_debit_credit_indc))
         matched_indices.add(best_match_idx)
+
+
+
+
+            if (average_score > best_match_score and
+                    supplier_name_score >= thresholds['supplier_name'] and
+                    source_amt_score >= thresholds['source_amount'] and
+                    debit_credit_score >= thresholds['debit_credit_indc']):
