@@ -1346,3 +1346,14 @@ for transaction_id, invoice_id in zip(matched_transactions, matched_invoices):
     print("Invoice ID:", invoice_id)
     print("---")
 
+
+
+
+
+
+
+
+
+# Replace missing values (NaN) with empty strings
+transaction_features = transaction_features.fillna('')
+invoice_features = invoice_features.fillna('')
