@@ -1331,8 +1331,18 @@ for transaction_idx, transaction_row in transaction_features.iterrows():
                 best_match_idx = invoice_idx
     
     # Add the best match if the average score meets the threshold
+    # Add the best match if the average score meets the threshold
     if best_match_score >= threshold:
         matches.append((transaction_idx, best_match_idx))
         matched_indices.add(best_match_idx)
 
-#
+# Retrieve matched transaction and invoice IDs
+matched_transactions = transaction_data.iloc[[match[0] for match in matches]]['fin_record_key']
+matched_invoices = invoice_data.iloc[[match[1] for match in matches]]['inv_unmatch_inv_id']
+
+# Print the matched transaction and invoice IDs
+for transaction_id, invoice_id in zip(matched_transactions, matched_invoices):
+    print("Transaction ID:", transaction_id)
+    print("Invoice ID:", invoice_id)
+    print("---")
+
