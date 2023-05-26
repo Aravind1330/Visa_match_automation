@@ -1235,3 +1235,104 @@ for transaction_idx, transaction_row in transaction_features.iterrows():
     if best_match_score >= threshold:
         transaction_id = transaction_data.iloc[transaction_idx]['fin_record_key']
         invoice_id = invoice_data.iloc[best_match_idx]['inv_unmatch_inv_id']
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import pandas as pd
+import numpy as np
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import DBSCAN
+from fuzzywuzzy import fuzz
+
+# Load your transaction and invoice data into pandas DataFrames
+transaction_data = pd.read_csv('transaction_data.csv')
+invoice_data = pd.read_csv('invoice_data.csv')
+
+# Select relevant columns for matching
+transaction_columns = ['supplier_name', 'source_amount', 'debit_credit_indc']
+transaction_features = transaction_data[transaction_columns].astype(str)
+invoice_features = invoice_data['invnumber'].astype(str)
+invoice_amt = invoice_data['invoice_amt'].astype(str)
+invoice_debit_credit = invoice_data['debit_credit_indc'].astype(str)
+
+# Combine transaction and invoice data for vectorization
+combined_data = pd.concat([transaction_features, invoice_features], axis=0)
+
+# TF-IDF vectorization
+vectorizer = TfidfVectorizer()
+combined_vectors = vectorizer.fit_transform(combined_data.values.flatten())
+
+# Split back into transaction and invoice vectors
+transaction_vectors = combined_vectors[:len(transaction_features)]
+invoice_vectors = combined_vectors[len(transaction_features):]
+
+# Calculate cosine similarity matrix
+similarity_matrix = cosine_similarity(transaction_vectors, invoice_vectors)
+
+# Set individual thresholds for each column
+thresholds = {
+    'supplier_name': 0.8,
+    'source_amount': 0.9,
+    'debit_credit_indc': 100  # Adjust the threshold based on your needs
+}
+
+# Find the best matches using DBSCAN clustering and individual thresholds
+matches = []
+for transaction_idx, transaction_row in transaction_features.iterrows():
+    transaction_name = transaction_row['supplier_name']
+    transaction_amt = transaction_row['source_amount']
+    transaction_debit_credit = transaction_row['debit_credit_indc']
+    best_match_score = -1
+    best_match_idx = -1
+    for invoice_idx, invoice_row in invoice_features.iteritems():
+        if invoice_idx not in matched_indices:  # Check if the invoice has already been matched
+            invoice_name = invoice_row
+            invoice_amount = invoice_amt[invoice_idx]
+            invoice_debit_credit_indc = invoice_debit_credit[invoice_idx]
+            
+            # Calculate similarity scores for each column
+            if transaction_name and invoice_name:
+                supplier_name_score = fuzz.ratio(transaction_name, invoice_name)
+            else:
+                supplier_name_score = 0
+
+            if transaction_amt and invoice_amount:
+                source_amt_score = fuzz.ratio(transaction_amt, invoice_amount)
+            else:
+                source_amt_score = 0
+
+            if transaction_debit_credit and invoice_debit_credit_indc:
+                debit_credit_score = fuzz.ratio(transaction_debit_credit, invoice_debit_credit_indc)
+            else:
+                debit_credit_score = 0
+
+            # Calculate average score using individual thresholds
+            average_score = (supplier_name_score + source_amt_score + debit_credit_score) / 3
+            
+            # Check if the average score meets the individual thresholds
+            if (average_score > best_match_score and
+                    supplier_name_score >= thresholds['supplier_name'] and
+                    source_amt_score >= thresholds['source_amount'] and
+                    debit_credit_score >= thresholds['debit_credit_indc']):
+                best_match_score = average_score
+                best_match_idx = invoice_idx
+    
+    # Add the best match if the average score meets the threshold
+    if best_match_score >= threshold:
+        matches.append((transaction_idx, best_match_idx))
+        matched_indices.add(best_match_idx)
+
+#
