@@ -1352,8 +1352,83 @@ for transaction_id, invoice_id in zip(matched_transactions, matched_invoices):
 
 
 
+import pandas as pd
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import CountVectorizer
+from fuzzywuzzy import fuzz
+import random
 
+# Set the seed value for consistent results
+random.seed(42)
 
-# Replace missing values (NaN) with empty strings
-transaction_features = transaction_features.fillna('')
-invoice_features = invoice_features.fillna('')
+# Load your transaction and invoice data into pandas DataFrames
+transaction_data = pd.read_csv('transaction_data.csv')
+invoice_data = pd.read_csv('invoice_data.csv')
+
+# Select relevant columns for matching
+transaction_columns = ['supplier_name', 'source_amount', 'debit_credit_indc']
+transaction_features = transaction_data[transaction_columns].astype(str)
+invoice_features = invoice_data['invnumber'].astype(str)
+invoice_amt = invoice_data['invoice_amt'].astype(str)
+invoice_debit_credit = invoice_data['debit_credit_indc'].astype(str)
+
+# Create a set to store matched invoice indices
+matched_indices = set()
+
+# Create CountVectorizer to convert text data to vectors
+vectorizer = CountVectorizer()
+
+# Fit and transform the transaction names
+transaction_vectors = vectorizer.fit_transform(transaction_features['supplier_name'])
+
+# Transform the invoice names
+invoice_vectors = vectorizer.transform(invoice_features)
+
+# Calculate the cosine similarity matrix
+similarity_matrix = cosine_similarity(transaction_vectors, invoice_vectors)
+
+# Add threshold values for each column
+thresholds = {
+    'supplier_name': 0.8,
+    'source_amount': 0.9,
+    'debit_credit_indc': 100  # Adjust the threshold based on your needs
+}
+
+# Find the best matches
+threshold = 50  # Adjust the threshold based on your needs
+matches = []
+for transaction_idx, transaction_row in transaction_features.iterrows():
+    transaction_name = transaction_row['supplier_name']
+    transaction_amt = transaction_row['source_amount']
+    transaction_debit_credit = transaction_row['debit_credit_indc']
+    best_match_score = -1
+    best_match_idx = -1
+    for invoice_idx, invoice_row in invoice_features.iteritems():
+        if invoice_idx not in matched_indices:  # Check if the invoice has already been matched
+            invoice_name = invoice_row
+            invoice_amount = invoice_amt[invoice_idx]
+            invoice_debit_credit_indc = invoice_debit_credit[invoice_idx]
+            supplier_name_score = fuzz.ratio(transaction_name, invoice_name)
+            source_amt_score = fuzz.ratio(transaction_amt, invoice_amount)
+            debit_credit_score = fuzz.ratio(transaction_debit_credit, invoice_debit_credit_indc)
+            average_score = (supplier_name_score + source_amt_score + debit_credit_score) / 3
+            if average_score > best_match_score:
+                best_match_score = average_score
+                best_match_idx = invoice_idx
+    if best_match_score >= threshold:
+        transaction_id = transaction_data.iloc[transaction_idx]['fin_record_key']
+        invoice_id = invoice_data.iloc[best_match_idx]['inv_unmatch_inv_id']
+        pattern = ""
+        if supplier_name_score >= thresholds['supplier_name']:
+            pattern += "T1 matched with Inv Supplier Name, "
+        if source_amt_score >= thresholds['source_amount']:
+            pattern += "T2 matched with Inv Source Amount, "
+        if debit_credit_score >= thresholds['debit_credit_indc']:
+            pattern += "T3 matched with Inv Debit/Credit Indicator, "
+        matches.append((transaction_id, invoice_id, best_match_idx, best_match_score, transaction_debit_credit, invoice_debit_credit_indc, pattern))
+        matched_indices.add(best_match_idx)
+
+# Display and save the matches
+output_file = 'matches.csv'
+with open(output_file, 'w') as file:
+    file.write("Transaction ID, Invoice ID, Best Match Index, Score, Transaction
