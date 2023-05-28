@@ -127,3 +127,18 @@ else:
         unmatched_transaction_output_row = {column: T5[column] if column in T5 else None
                                              for column in unmatched_transaction_output_columns}
         unmatched_transaction_output_rows.append(unmatched_transaction_output_row)
+
+
+
+
+
+    else:
+        unmatched_output_row = {column: T5[column] if column in T5 else None for column in unmatched_output_columns}
+        unmatched_output_rows.append(unmatched_output_row)
+
+        # Add unmatched invoice to the list
+        unmatched_invoices.append(T5)
+
+    # Remove the matched invoices from Invoice_table
+    for matched_invoice in matched_invoices:
+        Invoice_table.remove(matched_invoice)
