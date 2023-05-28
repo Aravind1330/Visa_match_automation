@@ -107,3 +107,11 @@ unmatched_transaction_output_file = 'Z:/Desktop/Automation_output/Unmatched_Tran
 
 # Remove the matched invoices from the Invoice_table list
 Invoice_table = [invoice for invoice in Invoice_table if invoice not in matched_invoices]
+
+
+
+
+# Collect all unmatched invoices from the Invoice_table
+for unmatched_invoice in Invoice_table:
+    unmatched_invoice_row = {column: unmatched_invoice[column] for column in unmatched_output_columns}
+    unmatched_invoice_rows.append(unmatched_invoice_row)
