@@ -142,3 +142,8 @@ else:
     # Remove the matched invoices from Invoice_table
     for matched_invoice in matched_invoices:
         Invoice_table.remove(matched_invoice)
+
+
+
+        unmatched_invoice_row = {column: T5[column] if column in T5 else None for column in unmatched_invoice_columns}
+        unmatched_invoice_rows.append(unmatched_invoice_row)
