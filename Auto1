@@ -131,12 +131,15 @@ else:
 
 
 
-# Store unmatched invoices separately
-unmatched_invoice_output_rows = []
-for invoice in Invoice_table:
-    if invoice not in matched_invoices:
-        unmatched_invoice_output_row = {
-            column: invoice[column] if column in invoice else None
-            for column in unmatched_invoice_output_columns
-        }
-        unmatched_invoice_output_rows.append(unmatched_invoice_output_row)
+        for invoice, _ in matching_invoices:
+            unmatched_invoices.append(invoice)
+
+# Create a DataFrame from the output rows
+output_df = pd.DataFrame(output_rows, columns=output_columns)
+
+# Create a DataFrame for the unmatched invoices
+unmatched_df = pd.DataFrame(unmatched_invoices)
+
+# Store the unmatched invoices in a CSV file
+unmatched_invoices_file = 'Z:/Desktop/Automation_output/Unmatched_Invoices.csv'
+unmatched_df.to_csv(unmatched_invoices_file, index=False)
