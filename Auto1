@@ -14,3 +14,17 @@
         return matching_invoices, match_rule
     # Return the matching invoices and rule number
     return [], None
+
+
+
+
+
+
+
+
+
+
+            matched_invoices.append(invoice)  # Add matched invoice to the list
+    # Remove the matched invoices from Invoice_table
+    for matched_invoice in matched_invoices:
+        Invoice_table.remove(matched_invoice)
