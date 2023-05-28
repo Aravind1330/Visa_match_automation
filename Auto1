@@ -103,3 +103,7 @@ unmatched_transaction_output_file = 'Z:/Desktop/Automation_output/Unmatched_Tran
         # Print the count of matched transactions at desired intervals
         if matched_count % 100 == 0:
             print(f"Matched Transactions: {matched_count}")
+
+
+# Remove the matched invoices from the Invoice_table list
+Invoice_table = [invoice for invoice in Invoice_table if invoice not in matched_invoices]
