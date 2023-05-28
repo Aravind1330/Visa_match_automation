@@ -81,3 +81,14 @@ for T5 in T5_table:
 
     for matched_invoice in matched_invoices:
         Invoice_table.remove(matched_invoice)
+
+
+
+unmatched_invoice_df = pd.DataFrame(unmatched_invoice_rows, columns=unmatched_output_columns)
+unmatched_transaction_df = pd.DataFrame(unmatched_transaction_rows, columns=unmatched_output_columns)
+
+unmatched_invoice_df.to_csv(unmatched_invoice_output_file, index=False)
+unmatched_transaction_df.to_csv(unmatched_transaction_output_file, index=False)
+# Define the paths for the unmatched output files
+unmatched_invoice_output_file = 'Z:/Desktop/Automation_output/Unmatched_Invoices.csv'
+unmatched_transaction_output_file = 'Z:/Desktop/Automation_output/Unmatched_Transactions.csv'
