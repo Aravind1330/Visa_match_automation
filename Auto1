@@ -28,3 +28,12 @@
     # Remove the matched invoices from Invoice_table
     for matched_invoice in matched_invoices:
         Invoice_table.remove(matched_invoice)
+
+
+
+
+# Create a DataFrame from the unmatched invoices
+unmatched_invoices_df = pd.DataFrame(unmatched_invoices)
+
+# Write the unmatched invoices to a separate CSV file
+unmatched_invoices_df.to_csv(unmatched_invoices_file, index=False)
