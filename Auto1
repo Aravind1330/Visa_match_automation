@@ -115,3 +115,15 @@ Invoice_table = [invoice for invoice in Invoice_table if invoice not in matched_
 for unmatched_invoice in Invoice_table:
     unmatched_invoice_row = {column: unmatched_invoice[column] for column in unmatched_output_columns}
     unmatched_invoice_rows.append(unmatched_invoice_row)
+
+
+
+
+else:
+        unmatched_invoice_output_row = {column: invoice[column] if column in invoice else None
+                                         for column in unmatched_invoice_output_columns}
+        unmatched_invoice_output_rows.append(unmatched_invoice_output_row)
+
+        unmatched_transaction_output_row = {column: T5[column] if column in T5 else None
+                                             for column in unmatched_transaction_output_columns}
+        unmatched_transaction_output_rows.append(unmatched_transaction_output_row)
