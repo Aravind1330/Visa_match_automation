@@ -1,0 +1,16 @@
+    for i, Invoice in enumerate(Invoice_table):
+        if Invoice['matched']:
+            continue  # Skip the invoice if already matched
+        for rule_index, rule in enumerate(rules, start=1):
+            if rule(T5, Invoice=Invoice):  # Updated to use 'Invoice' as a keyword argument
+                matching_invoices.append((Invoice, i + 1))
+                total_invoice_source_amt += Invoice['inv_match_source_amt']
+                match_rule = rule_index
+                # Store the rule number when a match occurs
+                Invoice_table[i]['matched'] = True  # Mark the invoice as matched
+                break
+
+    if total_invoice_source_amt == T5['fin_source_amt']:
+        return matching_invoices, match_rule
+    # Return the matching invoices and rule number
+    return [], None
