@@ -131,8 +131,10 @@ else:
 
 
 
-
-        # Store unmatched invoices separately
+# Store unmatched invoices separately
+unmatched_invoice_output_rows = []
+for invoice in Invoice_table:
+    if invoice not in matched_invoices:
         unmatched_invoice_output_row = {
             column: invoice[column] if column in invoice else None
             for column in unmatched_invoice_output_columns
