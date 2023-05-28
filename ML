@@ -1432,3 +1432,9 @@ for transaction_idx, transaction_row in transaction_features.iterrows():
 output_file = 'matches.csv'
 with open(output_file, 'w') as file:
     file.write("Transaction ID, Invoice ID, Best Match Index, Score, Transaction
+
+
+
+
+
+filtered_invoice_df = filtered_invoice_df[filtered_invoice_df['acct_number'].isin(T5_table['acct_number'])]
