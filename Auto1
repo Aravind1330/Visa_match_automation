@@ -92,3 +92,14 @@ unmatched_transaction_df.to_csv(unmatched_transaction_output_file, index=False)
 # Define the paths for the unmatched output files
 unmatched_invoice_output_file = 'Z:/Desktop/Automation_output/Unmatched_Invoices.csv'
 unmatched_transaction_output_file = 'Z:/Desktop/Automation_output/Unmatched_Transactions.csv'
+
+
+
+
+
+
+        matched_count += 1
+        
+        # Print the count of matched transactions at desired intervals
+        if matched_count % 100 == 0:
+            print(f"Matched Transactions: {matched_count}")
