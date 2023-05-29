@@ -119,27 +119,23 @@ for unmatched_invoice in Invoice_table:
 
 
 
-else:
-        unmatched_invoice_output_row = {column: invoice[column] if column in invoice else None
-                                         for column in unmatched_invoice_output_columns}
-        unmatched_invoice_output_rows.append(unmatched_invoice_output_row)
+# Process each T5 transaction
+matched_indices = []
+for i, T5 in enumerate(T5_table):
+    matching_invoices, match_rule = match_row(T5, Invoice_table)
+    match_type = "one-to-one" if len(matching_invoices) == 1 else "bundle match"
 
-        unmatched_transaction_output_row = {column: T5[column] if column in T5 else None
-                                             for column in unmatched_transaction_output_columns}
-        unmatched_transaction_output_rows.append(unmatched_transaction_output_row)
+    if matching_invoices:
+        for invoice, rule_index in matching_invoices:
+            description = rule_descriptions.get(rule_index)
+            output_row = {column: T5[column] if column in T5 else invoice[column] for column in output_columns}
+            output_row['Match Rule'] = rule_index
+            output_row['description'] = description
+            output_row['Match Type'] = match_type
+            output_rows.append(output_row)
+            matched_invoices.append(invoice)  # Add matched invoice to the list
 
+            # Remove the matched invoice from Invoice_table
+            Invoice_table.remove(invoice)
 
-
-
-        for invoice, _ in matching_invoices:
-            unmatched_invoices.append(invoice)
-
-# Create a DataFrame from the output rows
-output_df = pd.DataFrame(output_rows, columns=output_columns)
-
-# Create a DataFrame for the unmatched invoices
-unmatched_df = pd.DataFrame(unmatched_invoices)
-
-# Store the unmatched invoices in a CSV file
-unmatched_invoices_file = 'Z:/Desktop/Automation_output/Unmatched_Invoices.csv'
-unmatched_df.to_csv(unmatched_invoices_file, index=False)
+        matched_indices.append(i)  # Store the index of the matched T5 transaction
