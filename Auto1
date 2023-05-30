@@ -261,3 +261,24 @@ rule = lambda row, row2: str(row['column_name']).zfill(10) == str(row2['column_n
             column: str(T5[column]) if column in T5 and isinstance(T5[column], (int, float)) else T5[column]
             if column in T5 else str(invoice[column]) if column in invoice and isinstance(invoice[column], (int, float)) else invoice[column]
             for column in output_columns
+
+
+
+
+def match_row(T5, Invoice_table):
+    matching_invoices = []
+    total_invoice_source_amt = 0
+    match_rule = None
+
+    for i, Invoice in enumerate(Invoice_table):
+        for rule_index, rule in enumerate(rules, start=1):
+            if rule(T5, Invoice=Invoice):
+                matching_invoices.append((Invoice, i + 1))
+                # Convert inv_match_source_amt to integer before adding
+                total_invoice_source_amt += int(Invoice['inv_match_source_amt'])
+                match_rule = rule_index
+                break
+
+    if total_invoice_source_amt == int(T5['fin_source_amt']):
+        return matching_invoices, match_rule
+    return [], None
