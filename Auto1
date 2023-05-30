@@ -255,3 +255,9 @@ def match_row(T5, Invoice_table):
 
 
 rule = lambda row, row2: str(row['column_name']).zfill(10) == str(row2['column_name']).zfill(10)  # Adjust 'column_name' to the relevant column name
+
+
+
+            column: str(T5[column]) if column in T5 and isinstance(T5[column], (int, float)) else T5[column]
+            if column in T5 else str(invoice[column]) if column in invoice and isinstance(invoice[column], (int, float)) else invoice[column]
+            for column in output_columns
