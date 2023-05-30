@@ -216,3 +216,38 @@ for T5 in T5_table:
 
 rule = lambda row, row2: str(eval(rule_string)).zfill(len(str(row['fin_source_amt']))) == str(row2['inv_match_source_amt']).zfill(len(str(row['fin_source_amt'])))
     
+    
+    
+    
+    
+    
+def compare_values(value1, value2):
+    """
+    Compare two values, handling leading zeros for numeric values.
+    """
+    if isinstance(value1, (int, float)) and isinstance(value2, (int, float)):
+        value1 = str(value1)
+        value2 = str(value2)
+        if value1.startswith('0') or value2.startswith('0'):
+            return value1 == value2  # Compare as strings if either value has leading zeros
+    return value1 == value2
+
+
+def match_row(T5, Invoice_table):
+    matching_invoices = []
+    total_invoice_source_amt = 0
+    match_rule = None  # Initialize the match_rule variable
+
+    for i, Invoice in enumerate(Invoice_table):
+        for rule_index, rule in enumerate(rules, start=1):
+            if rule(T5, Invoice=Invoice, compare_values=compare_values):  # Pass compare_values function as an argument
+                matching_invoices.append((Invoice, i + 1))
+                total_invoice_source_amt += Invoice['inv_match_source_amt']
+                match_rule = rule_index
+                # Store the rule number when a match occurs
+                break
+
+    if total_invoice_source_amt == T5['fin_source_amt']:
+        return matching_invoices, match_rule
+    # Return the matching invoices and rule number
+    return [], None
