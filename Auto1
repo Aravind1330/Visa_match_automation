@@ -156,3 +156,56 @@ for T5 in T5_table:
 
 # Rest of the code remains unchanged
 
+
+
+
+
+
+
+
+
+
+import pandas as pd
+import yaml
+
+# Rest of the code...
+
+def match_row(T5, Invoice_table):
+    matching_invoices = []
+    total_invoice_source_amt = 0
+    match_rule = None
+
+    for i, Invoice in enumerate(Invoice_table):
+        for rule_index, rule in enumerate(rules, start=1):
+            if rule(T5, Invoice=Invoice):
+                matching_invoices.append((Invoice, i + 1))
+                total_invoice_source_amt += Invoice['inv_match_source_amt']
+                match_rule = rule_index
+                break
+
+    if total_invoice_source_amt == T5['fin_source_amt']:
+        return matching_invoices, match_rule
+    return [], None
+
+
+# Process each T5 transaction
+for T5 in T5_table:
+    # Check if any match value starts with 0
+    match_starts_with_zero = any(str(value).startswith('0') for value in T5.values())
+
+    if match_starts_with_zero:
+        # Adjust the matching rules to handle values starting with 0
+        def match_rule(T5, Invoice):
+            # Assuming the field to compare is 'field_name' in both T5 and Invoice
+            t5_value = str(T5['field_name'])
+            invoice_value = str(Invoice['field_name'])
+
+            # Compare values after removing leading zeros
+            if t5_value.lstrip('0') == invoice_value.lstrip('0'):
+                return True
+            else:
+                return False
+
+    matching_invoices, match_rule = match_row(T5, Invoice_table)
+    
+    # Rest of the code...
