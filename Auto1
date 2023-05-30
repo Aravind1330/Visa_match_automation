@@ -251,3 +251,7 @@ def match_row(T5, Invoice_table):
         return matching_invoices, match_rule
     # Return the matching invoices and rule number
     return [], None
+
+
+
+rule = lambda row, row2: str(row['column_name']).zfill(10) == str(row2['column_name']).zfill(10)  # Adjust 'column_name' to the relevant column name
