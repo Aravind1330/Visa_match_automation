@@ -209,3 +209,10 @@ for T5 in T5_table:
     matching_invoices, match_rule = match_row(T5, Invoice_table)
     
     # Rest of the code...
+
+
+
+
+
+rule = lambda row, row2: str(eval(rule_string)).zfill(len(str(row['fin_source_amt']))) == str(row2['inv_match_source_amt']).zfill(len(str(row['fin_source_amt'])))
+    
