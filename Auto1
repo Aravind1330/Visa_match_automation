@@ -282,3 +282,12 @@ def match_row(T5, Invoice_table):
     if total_invoice_source_amt == int(T5['fin_source_amt']):
         return matching_invoices, match_rule
     return [], None
+
+
+
+
+
+
+
+T5_table = pd.read_excel(config['input_files']['T5_file'], dtype=str, converters={'invoice_match': lambda x: str(x)}).to_dict(orient='records')
+IV_table = pd.read_excel(config['input_files']['IV_file'], dtype=str, converters={'invoice_match': lambda x: str(x)}).to_dict(orient='records')
