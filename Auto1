@@ -343,3 +343,22 @@ for T5 in T5_table:
 
     # Remove the matched invoices from Invoice_table
     Invoice_table = [invoice for invoice in Invoice_table if invoice['fin_record_key'] not in matched_invoice_ids]
+
+
+
+
+
+
+
+# Function to match T5 transaction with Invoice
+def match_row(T5, Invoice_table):
+    for i, rule in enumerate(rules):
+        for invoice in Invoice_table:
+            if rule(T5, invoice):
+                # Check if the invoice ID has already been used
+                if invoice['fin_record_key'] not in matched_invoice_ids:
+                    matched_invoice_ids.add(invoice['fin_record_key'])
+                    return [(invoice, i + 1)]
+    return []
+
+            Invoice_table.remove(invoice)  # Remove matched invoice from Invoice_table
