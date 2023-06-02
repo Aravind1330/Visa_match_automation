@@ -399,9 +399,35 @@ def match_bundle(T5, Invoice_table):
     return [], None
 
 
+def match_one_to_one(T5, Invoice_table, matched_invoices):
+    for rule_index, rule in enumerate(rules, start=1):
+        if rule(T5, Invoice=Invoice_table) and Invoice_table not in matched_invoices:
+            return True, rule_index
+    return False, "Unmatched"
+
+def match_bundle(T5, Invoice_table, matched_invoices):
+    matching_invoices = []
+    total_invoice_source_amt = 0
+    match_rule = None
+
+    for i, Invoice in enumerate(Invoice_table):
+        if Invoice not in matched_invoices:  # Check if the invoice has already been matched
+            for rule_index, rule in enumerate(rules, start=1):
+                if rule(T5, Invoice=Invoice):
+                    matching_invoices.append((Invoice, i + 1))
+                    total_invoice_source_amt += Invoice['inv_match_source_amt']
+                    match_rule = rule_index
+                    break
+
+    if total_invoice_source_amt == T5['fin_source_amt']:
+        return matching_invoices, match_rule
+
+    return [], None
+
+
 # Process one-to-one transactions
 for T5 in T5_table:
-    match_found, match_rule = match_one_to_one(T5, IV_table)
+    match_found, match_rule = match_one_to_one(T5, IV_table, matched_invoices)
     if match_found:
         # Match found, process the transaction
         description = rule_descriptions.get(match_rule)
@@ -410,20 +436,18 @@ for T5 in T5_table:
         output_row['description'] = description
         output_row['Match Type'] = "one-to-one"
         output_rows.append(output_row)
+        matched_invoices.append(Invoice)  # Add matched invoice to the list
     else:
         # No match found, add to unmatched transactions
         unmatched_output_row = {column: T5[column] if column in T5 else None for column in unmatched_output_columns}
         unmatched_output_rows.append(unmatched_output_row)
 
     # Remove matched invoices from the Invoice_table
-    matched_invoices = []
-    for invoice, rule_index in matching_invoices:
-        Invoice_table.remove(invoice)
-        matched_invoices.append(invoice)
+    IV_table = [invoice for invoice in IV_table if invoice not in matched_invoices]
 
 # Process bundle matches
 for T5 in T5_table:
-    matching_invoices, match_rule = match_bundle(T5, IV_table)
+    matching_invoices, match_rule = match_bundle(T5, IV_table, matched_invoices)
     if matching_invoices:
         # Bundle match found, process the transactions
         match_type = "bundle match"
@@ -437,11 +461,11 @@ for T5 in T5_table:
             matched_invoices.append(invoice)
 
         # Remove matched invoices from the Invoice_table
-        for matched_invoice in matched_invoices:
-            Invoice_table.remove(matched_invoice)
+        IV_table = [invoice for invoice in IV_table if invoice not in matched_invoices]
     else:
         # No match found, add to unmatched transactions
         unmatched_output_row = {column: T5[column] if column in T5 else None for column in unmatched_output_columns}
         unmatched_output_rows.append(unmatched_output_row)
 
 # Continue with the rest of the code...
+
