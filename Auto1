@@ -677,18 +677,17 @@ print(matched_data)
 
 
 
+# Find the best matches
 matches = []
 for transaction_idx in range(len(transaction_data)):
     best_match_score = -1
     best_match_idx = -1
     for invoice_idx in range(len(invoice_data)):
-        if invoice_idx not in matched_indices:  # Check if the invoice has already been matched
-            similarity_score = similarity_matrix[transaction_idx][invoice_idx]
-            if similarity_score > best_match_score and similarity_score >= threshold:
-                best_match_score = similarity_score
-                best_match_idx = invoice_idx
-    if best_match_score >= threshold:
+        similarity_score = similarity_matrix[transaction_idx, invoice_idx]
+        if similarity_score > best_match_score and similarity_score >= threshold:
+            best_match_score = similarity_score
+            best_match_idx = invoice_idx
+    if best_match_idx != -1:
         transaction_id = transaction_data.iloc[transaction_idx]['fin_record_key']
         invoice_id = invoice_data.iloc[best_match_idx]['inv_unmatch_inv_id']
         matches.append((transaction_id, invoice_id))
-        matched_indices.add(best_match_idx)  # Add the matched invoice index to the set
