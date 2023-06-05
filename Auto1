@@ -825,3 +825,35 @@ for transaction_idx in range(len(transaction_data)):
 matched_data = pd.DataFrame(matches, columns=['Transaction ID', 'Invoice ID', 'Transaction Values', 'Invoice Values'])
 print(matched_data)
 
+
+
+
+
+
+
+
+
+
+
+
+# Create a Workbook object to write to Excel
+excel_writer = pd.ExcelWriter('matched_results.xlsx', engine='openpyxl')
+matched_data.to_excel(excel_writer, index=False, sheet_name='Matches')
+
+# Get the active worksheet
+worksheet = excel_writer.sheets['Matches']
+
+# Define the red fill pattern
+red_fill = PatternFill(start_color='FFFF0000', end_color='FFFF0000', fill_type='solid')
+
+# Apply formatting to highlight matching values
+for row in range(2, len(matches) + 2):
+    for col in range(3, len(transaction_columns) + 3):
+        transaction_value = worksheet.cell(row=row, column=col).value
+        invoice_value = worksheet.cell(row=row, column=col + len(transaction_columns)).value
+        if transaction_value == invoice_value:
+            worksheet.cell(row=row, column=col).fill = red_fill
+            worksheet.cell(row=row, column=col + len(transaction_columns)).fill = red_fill
+
+# Save the workbook
+excel_writer.save()
