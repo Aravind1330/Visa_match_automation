@@ -886,3 +886,5 @@ for transaction_idx in range(len(transaction_data)):
 # Output the matched results
 matched_data = pd.DataFrame(matches, columns=['Transaction ID', 'Invoice ID', 'Matching'])
 print(matched_data)
+        matching = debit_credit_ind == inv_debit_credit_ind
+        matches.append((transaction_id, invoice_id, matching))
