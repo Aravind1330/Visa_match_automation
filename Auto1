@@ -577,3 +577,28 @@ for T5 in T5_table:
 
     for matched_invoice in matched_invoices:
         Invoice_table.remove(matched_invoice)
+
+
+
+
+
+
+
+
+
+
+
+def match_one_to_one(T5, Invoice_table):
+    matching_invoices = []
+    match_rule = None
+
+    for i, Invoice in enumerate(Invoice_table):
+        for rule_index, rule in enumerate(rules, start=1):
+            if rule(T5, Invoice=Invoice) and T5['fin_source_amt'] == Invoice['fin_source_amt'] and T5['fin_credit_debit_ind'] == Invoice['fin_credit_debit_ind']:
+                matching_invoices.append((Invoice, i + 1))
+                match_rule = rule_index
+                break
+
+    if matching_invoices:
+        return matching_invoices, match_rule
+    return [], None
