@@ -763,3 +763,33 @@ for transaction_idx in range(len(transaction_data)):
 # Output the matched results
 matched_data = pd.DataFrame(matches, columns=['Transaction ID', 'Invoice ID'])
 print(matched_data)
+
+
+
+
+
+
+# Find the best matches
+matches = []
+for transaction_idx in range(len(transaction_data)):
+    best_match_score = -1
+    best_match_idx = -1
+    for invoice_idx in range(len(invoice_data)):
+        similarity_score = similarity_matrix[transaction_idx, invoice_idx]
+        if similarity_score > best_match_score and similarity_score >= threshold:
+            best_match_score = similarity_score
+            best_match_idx = invoice_idx
+    if best_match_idx != -1:
+        transaction_id = transaction_data.iloc[transaction_idx]['fin_record_key']
+        invoice_id = invoice_data.iloc[best_match_idx]['inv_unmatch_inv_id']
+        
+        # Get the matching column values
+        transaction_values = transaction_data.iloc[transaction_idx][transaction_columns]
+        invoice_values = invoice_data.iloc[best_match_idx][transaction_columns]
+        
+        # Add matched values to the matches list
+        matches.append((transaction_id, invoice_id, transaction_values, invoice_values))
+
+# Output the matched results
+matched_data = pd.DataFrame(matches, columns=['Transaction ID', 'Invoice ID', 'Transaction Values', 'Invoice Values'])
+print(matched_data)
