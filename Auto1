@@ -691,3 +691,75 @@ for transaction_idx in range(len(transaction_data)):
         transaction_id = transaction_data.iloc[transaction_idx]['fin_record_key']
         invoice_id = invoice_data.iloc[best_match_idx]['inv_unmatch_inv_id']
         matches.append((transaction_id, invoice_id))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import pandas as pd
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import CountVectorizer
+
+# Load your transaction and invoice data into pandas DataFrames
+transaction_data = pd.read_csv('transaction_data.csv')
+invoice_data = pd.read_csv('invoice_data.csv')
+
+# Select relevant columns for matching
+transaction_columns = ['supplier_name', 'source_amount', 'debit_credit_indc']
+transaction_features = transaction_data[transaction_columns].astype(str)
+invoice_features = invoice_data['invnumber'].astype(str)
+
+# Create CountVectorizer to convert text data to vectors
+vectorizer = CountVectorizer()
+
+# Fit and transform the transaction names
+transaction_vectors = vectorizer.fit_transform(transaction_features['supplier_name'])
+
+# Transform the invoice names
+invoice_vectors = vectorizer.transform(invoice_features)
+
+# Calculate the cosine similarity matrix
+similarity_matrix = cosine_similarity(transaction_vectors, invoice_vectors)
+
+# Set the thresholds for each column
+thresholds = {
+    'supplier_name': 0.8,
+    'source_amount': 0.9,
+    'debit_credit_indc': 0.7
+}
+
+# Find the best matches
+matches = []
+for transaction_idx in range(len(transaction_data)):
+    best_match_score = -1
+    best_match_idx = -1
+    for invoice_idx in range(len(invoice_data)):
+        match_scores = []
+        for column in transaction_columns:
+            transaction_value = transaction_data.iloc[transaction_idx][column]
+            invoice_value = invoice_data.iloc[invoice_idx][column]
+            similarity_score = cosine_similarity(vectorizer.transform([transaction_value]), vectorizer.transform([invoice_value]))[0][0]
+            match_scores.append(similarity_score)
+        average_score = sum(match_scores) / len(match_scores)
+        
+        if average_score > best_match_score:
+            best_match_score = average_score
+            best_match_idx = invoice_idx
+    
+    if best_match_idx != -1 and best_match_score >= thresholds['supplier_name']:
+        transaction_id = transaction_data.iloc[transaction_idx]['fin_record_key']
+        invoice_id = invoice_data.iloc[best_match_idx]['inv_unmatch_inv_id']
+        matches.append((transaction_id, invoice_id))
+
+# Output the matched results
+matched_data = pd.DataFrame(matches, columns=['Transaction ID', 'Invoice ID'])
+print(matched_data)
