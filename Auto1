@@ -780,7 +780,7 @@ invoice_data = pd.read_csv('invoice_data.csv')
 # Select relevant columns for matching
 transaction_columns = ['supplier_name', 'source_amount', 'debit_credit_indc']
 transaction_features = transaction_data[transaction_columns].astype(str)
-invoice_features = invoice_data['invnumber'].astype(str)
+invoice_features = invoice_data[transaction_columns].astype(str)
 
 # Create CountVectorizer to convert text data to vectors
 vectorizer = CountVectorizer()
@@ -789,7 +789,7 @@ vectorizer = CountVectorizer()
 transaction_vectors = vectorizer.fit_transform(transaction_features['supplier_name'])
 
 # Transform the invoice names
-invoice_vectors = vectorizer.transform(invoice_features)
+invoice_vectors = vectorizer.transform(invoice_features['supplier_name'])
 
 # Calculate the cosine similarity matrix
 similarity_matrix = cosine_similarity(transaction_vectors, invoice_vectors)
@@ -810,8 +810,8 @@ for transaction_idx in range(len(transaction_data)):
         similarity_score = similarity_matrix[transaction_idx, invoice_idx]
         if similarity_score > best_match_score:
             transaction_values = transaction_features.iloc[transaction_idx].values
-            invoice_values = invoice_data.iloc[invoice_idx][transaction_columns].values
-            column_scores = [similarity_score >= thresholds[col] for col, _ in enumerate(transaction_columns)]
+            invoice_values = invoice_features.iloc[invoice_idx].values
+            column_scores = [similarity_score >= thresholds[col] for col in transaction_columns]
             if all(column_scores):
                 best_match_score = similarity_score
                 best_match_idx = invoice_idx
