@@ -73,3 +73,9 @@ for invoice_idx, transaction_idx, score in invoice_matches:
     print("---")
 
 # Additional processing steps can be performed based on the matched invoices and transactions
+
+
+
+
+# Exclude the matched invoices from consideration in the next iterations
+Invoice_table = [Invoice for Invoice in Invoice_table if Invoice not in matched_invoices]
