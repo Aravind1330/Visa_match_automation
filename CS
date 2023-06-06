@@ -1,0 +1,56 @@
+import pandas as pd
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+# Load your transaction and invoice data into pandas DataFrames
+transaction_data = pd.read_csv('transaction_data.csv')
+invoice_data = pd.read_csv('invoice_data.csv')
+
+# Select relevant columns for matching
+transaction_columns = ['supplier_name', 'source_amount', 'debit_credit_indc']
+invoice_columns = ['invnumber']
+
+# Create an empty DataFrame to store the matching results
+matched_data = pd.DataFrame(columns=['Transaction ID', 'Invoice ID'])
+
+# Iterate over each column for matching
+for column in transaction_columns:
+    # Convert the transaction and invoice data to strings
+    transaction_features = transaction_data[column].astype(str)
+    invoice_features = invoice_data[column].astype(str)
+
+    # Create TF-IDF vectorizer
+    vectorizer = TfidfVectorizer()
+
+    # Fit and transform the transaction features
+    transaction_vectors = vectorizer.fit_transform(transaction_features)
+
+    # Transform the invoice features
+    invoice_vectors = vectorizer.transform(invoice_features)
+
+    # Calculate the cosine similarity matrix
+    similarity_matrix = cosine_similarity(transaction_vectors, invoice_vectors)
+
+    # Set the threshold for similarity
+    threshold = 0.8
+
+    # Find the best matches for the current column
+    matches = []
+    for transaction_idx in range(len(transaction_data)):
+        best_match_score = -1
+        best_match_idx = -1
+        for invoice_idx in range(len(invoice_data)):
+            similarity_score = similarity_matrix[transaction_idx, invoice_idx]
+            if similarity_score > best_match_score and similarity_score >= threshold:
+                best_match_score = similarity_score
+                best_match_idx = invoice_idx
+        if best_match_idx != -1:
+            transaction_id = transaction_data.iloc[transaction_idx]['fin_record_key']
+            invoice_id = invoice_data.iloc[best_match_idx]['inv_unmatch_inv_id']
+            matches.append((transaction_id, invoice_id))
+
+    # Append the matches to the overall matched_data DataFrame
+    matched_data = matched_data.append(pd.DataFrame(matches, columns=['Transaction ID', 'Invoice ID']))
+
+# Output the matched results
+print(matched_data)
