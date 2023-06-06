@@ -1,27 +1,75 @@
 import pandas as pd
+from gensim.models import Word2Vec
+import numpy as np
 
-# Load the transaction data and invoice data into DataFrames
-transaction_data = pd.read_csv('transaction_data.csv')
-invoice_data = pd.read_csv('invoice_data.csv')
+# Load the invoice and transaction data into pandas DataFrames
+invoices_df = pd.read_csv('invoices.csv')
+transactions_df = pd.read_csv('transactions.csv')
 
-# Match invoices with transactions based on the pattern
-matched_invoices = []
-for _, invoice_row in invoice_data.iterrows():
-    invoice_supplier = invoice_row['Supplier Name']
-    invoice_ticket = str(invoice_row['Ticket No'])[:5]  # Extract first 5 digits of the invoice ticket number
+# Preprocess and clean the text data
+def preprocess_text(text):
+    # Add your preprocessing steps here (e.g., lowercase, remove punctuation, etc.)
+    processed_text = text.lower()
+    # Add more preprocessing steps if needed
+    return processed_text
 
-    matched_transaction = transaction_data[
-        transaction_data['Supplier Name'].str.contains(invoice_supplier) &
-        transaction_data['Ticket No'].astype(str).str[:5].str.contains(invoice_ticket)
-    ]
+# Apply preprocessing to relevant columns in both DataFrames
+text_columns = ['supplier_name', 'ticket_number']
 
-    if not matched_transaction.empty:
-        matched_invoice = {
-            'Invoice': invoice_row['Ticket No'],
-            'Matched Transaction': matched_transaction['Transaction ID'].values[0]
-        }
-        matched_invoices.append(matched_invoice)
+for col in text_columns:
+    invoices_df[col] = invoices_df[col].apply(preprocess_text)
+    transactions_df[col] = transactions_df[col].apply(preprocess_text)
 
-# Display the matched results
-matched_df = pd.DataFrame(matched_invoices)
-print(matched_df)
+# Train Word2Vec models on each individual column
+word2vec_models = {}
+
+for col in text_columns:
+    text_data = pd.concat([invoices_df[col], transactions_df[col]])
+    sentences = [text.split() for text in text_data]
+    word2vec_model = Word2Vec(sentences, min_count=1, size=100)
+    word2vec_models[col] = word2vec_model
+
+# Match invoices with transactions based on supplier name and ticket number
+invoice_matches = []
+
+for _, invoice in invoices_df.iterrows():
+    best_match_score = 0
+    best_match_idx = None
+
+    for _, transaction in transactions_df.iterrows():
+        similarity_scores = []
+
+        for col in text_columns:
+            invoice_text = invoice[col]
+            transaction_text = transaction[col]
+
+            if invoice_text and transaction_text:
+                invoice_words = invoice_text.split()
+                transaction_words = transaction_text.split()
+
+                invoice_vector = np.mean([word2vec_models[col].wv[word] for word in invoice_words], axis=0)
+                transaction_vector = np.mean([word2vec_models[col].wv[word] for word in transaction_words], axis=0)
+
+                similarity_score = np.dot(invoice_vector, transaction_vector) / (
+                            np.linalg.norm(invoice_vector) * np.linalg.norm(transaction_vector))
+                similarity_scores.append(similarity_score)
+
+        overall_similarity_score = np.mean(similarity_scores)
+
+        if overall_similarity_score > best_match_score:
+            best_match_score = overall_similarity_score
+            best_match_idx = transaction.name
+
+    if best_match_score > 0.7:  # Adjust the threshold as needed
+        invoice_matches.append((invoice.name, best_match_idx, best_match_score))
+
+# Print the matched invoices and their corresponding transactions
+for invoice_idx, transaction_idx, score in invoice_matches:
+    invoice = invoices_df.loc[invoice_idx]
+    transaction = transactions_df.loc[transaction_idx]
+    print("Matched Invoice: ", invoice)
+    print("Matched Transaction: ", transaction)
+    print("Similarity Score: ", score)
+    print("---")
+
+# Additional processing steps can be performed based on the matched invoices and transactions
