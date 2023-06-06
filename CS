@@ -1,46 +1,27 @@
 import pandas as pd
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.feature_extraction.text import CountVectorizer
 
-# Load your transaction and invoice data into pandas DataFrames
+# Load the transaction data and invoice data into DataFrames
 transaction_data = pd.read_csv('transaction_data.csv')
 invoice_data = pd.read_csv('invoice_data.csv')
 
-# Select relevant columns for matching
-transaction_columns = ['supplier_name']
-transaction_features = transaction_data[transaction_columns].astype(str)
-invoice_features = invoice_data['invnumber'].astype(str)
+# Match invoices with transactions based on the pattern
+matched_invoices = []
+for _, invoice_row in invoice_data.iterrows():
+    invoice_supplier = invoice_row['Supplier Name']
+    invoice_ticket = str(invoice_row['Ticket No'])[:5]  # Extract first 5 digits of the invoice ticket number
 
-# Create CountVectorizer to convert text data to vectors
-vectorizer = CountVectorizer()
+    matched_transaction = transaction_data[
+        transaction_data['Supplier Name'].str.contains(invoice_supplier) &
+        transaction_data['Ticket No'].astype(str).str[:5].str.contains(invoice_ticket)
+    ]
 
-# Fit and transform the transaction names
-transaction_vectors = vectorizer.fit_transform(transaction_features['supplier_name'])
+    if not matched_transaction.empty:
+        matched_invoice = {
+            'Invoice': invoice_row['Ticket No'],
+            'Matched Transaction': matched_transaction['Transaction ID'].values[0]
+        }
+        matched_invoices.append(matched_invoice)
 
-# Fit and transform the invoice names
-invoice_vectors = vectorizer.transform(invoice_features)
-
-# Calculate the cosine similarity matrix
-similarity_matrix = cosine_similarity(transaction_vectors, invoice_vectors.transpose())
-
-# Set the threshold for similarity
-threshold = 0.8
-
-# Find the best matches
-matches = []
-for transaction_idx in range(len(transaction_data)):
-    best_match_score = -1
-    best_match_idx = -1
-    for invoice_idx in range(len(invoice_data)):
-        similarity_score = similarity_matrix[transaction_idx, invoice_idx]
-        if similarity_score > best_match_score and similarity_score >= threshold:
-            best_match_score = similarity_score
-            best_match_idx = invoice_idx
-    if best_match_idx != -1:
-        transaction_id = transaction_data.iloc[transaction_idx]['fin_record_key']
-        invoice_id = invoice_data.iloc[best_match_idx]['inv_unmatch_inv_id']
-        matches.append((transaction_id, invoice_id))
-
-# Output the matched results
-matched_data = pd.DataFrame(matches, columns=['Transaction ID', 'Invoice ID'])
-print(matched_data)
+# Display the matched results
+matched_df = pd.DataFrame(matched_invoices)
+print(matched_df)
