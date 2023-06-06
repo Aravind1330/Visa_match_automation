@@ -79,3 +79,20 @@ for invoice_idx, transaction_idx, score in invoice_matches:
 
 # Exclude the matched invoices from consideration in the next iterations
 Invoice_table = [Invoice for Invoice in Invoice_table if Invoice not in matched_invoices]
+# Exclude the matched invoices from consideration in the next iterations
+Invoice_table = [Invoice for Invoice in Invoice_table if Invoice not in matched_invoices]
+# Exclude the matched invoices from consideration in the next iterations
+Invoice_table = [invoice for invoice in Invoice_table if invoice not in matched_invoices]
+
+
+
+
+
+
+
+    # Remove the matched invoices from Invoice_table
+    for matched_invoice in matched_invoices:
+        Invoice_table.remove(matched_invoice)
+        
+    # Clear the list of matched invoices for the next iteration
+    matched_invoices = []
