@@ -1,6 +1,5 @@
 def bundle_match(T5, Invoice_table):
     matching_invoices = []
-    total_invoice_source_amt = 0
     match_rule = None
 
     # Group invoices by rule
@@ -14,10 +13,10 @@ def bundle_match(T5, Invoice_table):
                 invoices_grouped_by_rule[rule_index].append(Invoice)
 
     for rule_index, invoices in invoices_grouped_by_rule.items():
-        # Calculate the total invoice source amount for each rule group
-        total_invoice_source_amt = sum(invoice['inv_match_source_amt'] for invoice in invoices)
+        # Calculate the total invoice source amount for the rule group
+        total_invoice_source_amt = sum(Invoice['inv_match_source_amt'] for Invoice in invoices)
         if total_invoice_source_amt == T5['fin_source_amt']:
-            matching_invoices.extend([(invoice, rule_index) for invoice in invoices])
+            matching_invoices.extend([(Invoice, rule_index) for Invoice in invoices])
             match_rule = rule_index
 
     return matching_invoices, match_rule
