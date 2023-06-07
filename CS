@@ -16,3 +16,13 @@ def bundle_match(T5, Invoice_table):
     if total_invoice_source_amt == T5['fin_source_amt']:
         return matching_invoices, match_rule
     return [], None
+
+
+
+
+# Append the new unmatched transactions to the existing unmatched transactions file
+unmatched_output_file = "path/to/unmatched_transactions.csv"
+
+with open(unmatched_output_file, "a") as file:
+    for unmatched_row in unmatched_output_rows:
+        file.write(",".join(str(value) for value in unmatched_row.values()) + "\n")
