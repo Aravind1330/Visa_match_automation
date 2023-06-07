@@ -1,98 +1,28 @@
-import pandas as pd
-from gensim.models import Word2Vec
-import numpy as np
+def bundle_match(T5, Invoice_table):
+    matching_invoices = []
+    total_invoice_source_amt = 0
+    match_rule = None
 
-# Load the invoice and transaction data into pandas DataFrames
-invoices_df = pd.read_csv('invoices.csv')
-transactions_df = pd.read_csv('transactions.csv')
+    for rule_index, rule in enumerate(rules, start=1):
+        rule_matching_invoices = []
+        rule_total_invoice_source_amt = 0
 
-# Preprocess and clean the text data
-def preprocess_text(text):
-    # Add your preprocessing steps here (e.g., lowercase, remove punctuation, etc.)
-    processed_text = text.lower()
-    # Add more preprocessing steps if needed
-    return processed_text
+        # Find all invoices that match the current rule
+        for Invoice in Invoice_table:
+            if rule(T5, Invoice):
+                rule_matching_invoices.append((Invoice, rule_index))
+                rule_total_invoice_source_amt += Invoice['inv_match_source_amt']
 
-# Apply preprocessing to relevant columns in both DataFrames
-text_columns = ['supplier_name', 'ticket_number']
+        # Check if the total invoice source amount matches T5's fin_source_amt
+        if rule_total_invoice_source_amt >= T5['fin_source_amt']:
+            matching_invoices.extend(rule_matching_invoices)
+            total_invoice_source_amt += rule_total_invoice_source_amt
+            match_rule = rule_index
 
-for col in text_columns:
-    invoices_df[col] = invoices_df[col].apply(preprocess_text)
-    transactions_df[col] = transactions_df[col].apply(preprocess_text)
+    if total_invoice_source_amt >= T5['fin_source_amt']:
+        return matching_invoices, match_rule
 
-# Train Word2Vec models on each individual column
-word2vec_models = {}
+    return [], None
 
-for col in text_columns:
-    text_data = pd.concat([invoices_df[col], transactions_df[col]])
-    sentences = [text.split() for text in text_data]
-    word2vec_model = Word2Vec(sentences, min_count=1, size=100)
-    word2vec_models[col] = word2vec_model
-
-# Match invoices with transactions based on supplier name and ticket number
-invoice_matches = []
-
-for _, invoice in invoices_df.iterrows():
-    best_match_score = 0
-    best_match_idx = None
-
-    for _, transaction in transactions_df.iterrows():
-        similarity_scores = []
-
-        for col in text_columns:
-            invoice_text = invoice[col]
-            transaction_text = transaction[col]
-
-            if invoice_text and transaction_text:
-                invoice_words = invoice_text.split()
-                transaction_words = transaction_text.split()
-
-                invoice_vector = np.mean([word2vec_models[col].wv[word] for word in invoice_words], axis=0)
-                transaction_vector = np.mean([word2vec_models[col].wv[word] for word in transaction_words], axis=0)
-
-                similarity_score = np.dot(invoice_vector, transaction_vector) / (
-                            np.linalg.norm(invoice_vector) * np.linalg.norm(transaction_vector))
-                similarity_scores.append(similarity_score)
-
-        overall_similarity_score = np.mean(similarity_scores)
-
-        if overall_similarity_score > best_match_score:
-            best_match_score = overall_similarity_score
-            best_match_idx = transaction.name
-
-    if best_match_score > 0.7:  # Adjust the threshold as needed
-        invoice_matches.append((invoice.name, best_match_idx, best_match_score))
-
-# Print the matched invoices and their corresponding transactions
-for invoice_idx, transaction_idx, score in invoice_matches:
-    invoice = invoices_df.loc[invoice_idx]
-    transaction = transactions_df.loc[transaction_idx]
-    print("Matched Invoice: ", invoice)
-    print("Matched Transaction: ", transaction)
-    print("Similarity Score: ", score)
-    print("---")
-
-# Additional processing steps can be performed based on the matched invoices and transactions
-
-
-
-
-# Exclude the matched invoices from consideration in the next iterations
-Invoice_table = [Invoice for Invoice in Invoice_table if Invoice not in matched_invoices]
-# Exclude the matched invoices from consideration in the next iterations
-Invoice_table = [Invoice for Invoice in Invoice_table if Invoice not in matched_invoices]
-# Exclude the matched invoices from consideration in the next iterations
-Invoice_table = [invoice for invoice in Invoice_table if invoice not in matched_invoices]
-
-
-
-
-
-
-
-    # Remove the matched invoices from Invoice_table
-    for matched_invoice in matched_invoices:
-        Invoice_table.remove(matched_invoice)
-        
-    # Clear the list of matched invoices for the next iteration
-    matched_invoices = []
+# Usage example
+matching_invoices, match_rule = bundle_match(T5, Invoice_table)
