@@ -1,16 +1,18 @@
+from itertools import combinations
+
+
 def bundle_match(T5, Invoice_table):
     matching_invoices = []
-    total_invoice_source_amt = 0
     match_rule = None
 
-    for i, Invoice in enumerate(Invoice_table):
-        for rule_index, rule in enumerate(rules, start=1):
-            if rule(T5, Invoice=Invoice):
-                matching_invoices.append((Invoice, rule_index))
-                total_invoice_source_amt += Invoice['inv_match_source_amt']
-                match_rule = rule_index
-                break
+    for i in range(1, len(Invoice_table) + 1):
+        for combination in combinations(Invoice_table, i):
+            total_invoice_source_amt = sum(invoice['inv_match_source_amt'] for invoice in combination)
+            if total_invoice_source_amt == T5['fin_source_amt']:
+                for invoice in combination:
+                    matching_invoices.append((invoice, i))
+                match_rule = i
 
-    if total_invoice_source_amt == T5['fin_source_amt']:
+    if matching_invoices:
         return matching_invoices, match_rule
     return [], None
