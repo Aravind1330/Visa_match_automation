@@ -9,20 +9,18 @@ def bundle_match(T5, Invoice_table):
 
         # Find all invoices that match the current rule
         for Invoice in Invoice_table:
-            if rule(T5, Invoice):
+            if rule(T5, Invoice=Invoice):
                 rule_matching_invoices.append((Invoice, rule_index))
                 rule_total_invoice_source_amt += Invoice['inv_match_source_amt']
 
         # Check if the total invoice source amount matches T5's fin_source_amt
-        if rule_total_invoice_source_amt >= T5['fin_source_amt']:
+        if rule_total_invoice_source_amt == T5['fin_source_amt']:
             matching_invoices.extend(rule_matching_invoices)
             total_invoice_source_amt += rule_total_invoice_source_amt
             match_rule = rule_index
+            break  # Exit the loop if a match is found
 
-    if total_invoice_source_amt >= T5['fin_source_amt']:
+    if total_invoice_source_amt == T5['fin_source_amt']:
         return matching_invoices, match_rule
 
     return [], None
-
-# Usage example
-matching_invoices, match_rule = bundle_match(T5, Invoice_table)
