@@ -131,3 +131,9 @@ output_df.to_csv(config['output_files']['output_file'], index=False)
 # Write the aggregated data to Excel
 with pd.ExcelWriter(config['output_files']['output_file']) as writer:
     output_df.to_excel(writer, sheet_name='Output', index=False)
+
+
+
+
+# Append the new unmatched transactions to the existing unmatched_transactions_df
+unmatched_transactions_df = pd.concat([unmatched_transactions_df, unmatched_output_rows], ignore_index=True)
