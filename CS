@@ -109,7 +109,6 @@ with pd.ExcelWriter(config['output_files']['output_file']) as writer:
 
 
 
-
 # Create a DataFrame from the output rows
 output_df = pd.DataFrame(output_rows, columns=output_columns)
 
