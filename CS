@@ -1,2 +1,4 @@
-        unmatched_output_row = {column: T5[column] if column in T5 else None for column in unmatched_output_columns}
-        unmatched_output_df = unmatched_output_df.append(unmatched_output_row, ignore_index=True)
+# Write the unmatched transactions to a separate CSV file
+unmatched_output_file = 'path/to/unmatched_transactions.csv'
+unmatched_output_df = pd.DataFrame(unmatched_output_rows, columns=unmatched_output_columns)
+unmatched_output_df.to_csv(unmatched_output_file, index=False)
