@@ -80,3 +80,12 @@ output_df.to_csv(config['output_files']['output_file'], index=False)
 with pd.ExcelWriter(config['output_files']['output_file']) as writer:
     output_df.to_excel(writer, sheet_name='Output', index=False)
 
+
+
+
+
+
+
+        unmatched_output_row = {column: T5[column] if column in T5 else None for column in unmatched_output_columns}
+        unmatched_output_rows_one_to_one.append(unmatched_output_row)
+        unmatched_t5_rows.append(T5) 
