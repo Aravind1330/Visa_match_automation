@@ -64,3 +64,7 @@ output_df.to_csv(config['output_files']['output_file'], index=False)
 
 
         unmatched_output_df.drop(unmatched_indices, inplace=True)
+
+
+
+        unmatched_output_df = unmatched_output_df.append(unmatched_output_row, ignore_index=True)
