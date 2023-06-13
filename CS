@@ -39,12 +39,9 @@ for T5 in T5_table:
         output_rows_one_to_one.append(output_row)
         matched_invoices.append(matching_invoice)
 
-        # Remove the matched transaction from unmatched_output_df
-        unmatched_output_df = unmatched_output_df[
-            ~((unmatched_output_df['fin_record_key'] == T5['fin_record_key']) &
-              (unmatched_output_df['fin_source_amt'] == T5['fin_source_amt']) &
-              (unmatched_output_df['fin_credit_debit_ind'] == T5['fin_credit_debit_ind']))
-        ]
+        # Remove the matched transaction from T5_table
+        T5_table = [T5_row for T5_row in T5_table if T5_row['fin_record_key'] != T5['fin_record_key']]
+        unmatched_fin_record_keys.remove(T5['fin_record_key'])  # Remove matched fin_record_key
     else:
         unmatched_output_row = {column: T5[column] if column in T5 else None for column in unmatched_output_columns}
         unmatched_output_rows_one_to_one.append(unmatched_output_row)
@@ -66,11 +63,9 @@ for T5 in unmatched_output_rows_one_to_one:
             output_rows_bundle.append(output_row)
             matched_invoices.append(invoice)
 
-            # Remove the matched transaction from unmatched_output_df
-            unmatched_output_df = unmatched_output_df[
-                ~((unmatched_output_df['fin_record_key'] == T5['fin_record_key']) &
-                  (unmatched_output_df['fin_source_amt'] == T5['fin_source_amt']))
-            ]
+            # Remove the matched transaction from T5_table
+            T5_table = [T5_row for T5_row in T5_table if T5_row['fin_record_key'] != T5['fin_record_key']]
+            unmatched_fin_record_keys.remove(T5['fin_record_key'])  # Remove matched fin_record_key
     else:
         unmatched_output_rows_bundle.append(T5)
 
@@ -81,23 +76,11 @@ unmatched_output_rows = unmatched_output_rows_bundle
 # Create a DataFrame from the output rows
 output_df = pd.DataFrame(output_rows, columns=output_columns)
 
-# Remove duplicates from unmatched_output_df
-unmatched_output_df.drop_duplicates(subset=['fin_record_key'], inplace=True)
+# Create a DataFrame for unmatched transactions from T5_table
+unmatched_transactions_df = pd.DataFrame([T5 for T5 in T5_table if T5['fin_record_key'] in unmatched_fin_record_keys])
 
-# Append the new unmatched transactions to the existing unmatched_output_df
-unmatched_output_df = unmatched_output_df.append(unmatched_output_rows, ignore_index=True)
-
-# Get unmatched transactions from T5 data
-unmatched_t5_rows = [T5 for T5 in T5_table if T5['fin_record_key'] in unmatched_fin_record_keys]
-
-# Create a DataFrame from the unmatched T5 rows
-unmatched_t5_df = pd.DataFrame(unmatched_t5_rows, columns=output_columns)
-
-# Write the unmatched transactions to a separate CSV file
-unmatched_output_df.to_csv(unmatched_output_file, index=False)
-
-# Write the unmatched T5 transactions to a separate CSV file
-unmatched_t5_df.to_csv(unmatched_t5_file, index=False)
+# Write the unmatched transactions to a CSV file
+unmatched_transactions_df.to_csv("unmatched_transactions.csv", index=False)
 
 # Write the output data to a CSV file
 output_df.to_csv(config['output_files']['output_file'], index=False)
