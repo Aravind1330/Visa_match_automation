@@ -136,31 +136,20 @@ def bundle_match(T5, Invoice_table):
 # Process one-to-one matches
 output_rows_one_to_one = []
 unmatched_output_rows_one_to_one = []
-unmatched_fin_record_keys = set(T5['fin_record_key'] for T5 in T5_table)  # Set to store unmatched fin_record_keys
+matched_invoice_ids = set()
 
 for T5 in T5_table:
     match_found, match_rule = one_to_one_match(T5, IV_table)
     if match_found:
         matching_invoice, rule_index = match_found
-        description = rule_descriptions.get(match_rule)
         output_row = {column: T5[column] if column in T5 else matching_invoice[column] for column in output_columns}
-        output_row['Match Rule'] = rule_numbers.get(match_rule)
-        output_row['description'] = description
-        output_row['Match Type'] = "one-to-one"
         output_rows_one_to_one.append(output_row)
-        matched_invoices.append(matching_invoice)
-
-        # Remove the matched transaction from T5_table
-        T5_table = [T5_row for T5_row in T5_table if T5_row['fin_record_key'] != T5['fin_record_key']]
-        unmatched_fin_record_keys.discard(T5['fin_record_key'])  # Remove matched fin_record_key
-    else:
-        unmatched_output_row = {column: T5[column] if column in T5 else None for column in unmatched_output_columns}
-        unmatched_output_rows_one_to_one.append(unmatched_output_row)
-        unmatched_fin_record_keys.add(T5['fin_record_key'])  # Add unmatched fin_record_key
+        matched_invoice_ids.add(matching_invoice['unmacy_id'])
 
 # Process bundle matches
 output_rows_bundle = []
 unmatched_output_rows_bundle = []
+unmatched_fin_record_keys = set(T5['fin_record_key'] for T5 in T5_table)  # Set to store unmatched fin_record_keys
 
 for T5 in unmatched_output_rows_one_to_one:
     matching_invoices, match_rule = bundle_match(T5, IV_table)
@@ -182,22 +171,19 @@ for T5 in unmatched_output_rows_one_to_one:
 
 # Combine the output rows from one-to-one matches and bundle matches
 output_rows = output_rows_one_to_one + output_rows_bundle
+
+unmatched_output_rows_bundle.extend(T5 for T5 in T5_table if T5['fin_record_key'] in unmatched_fin_record_keys)
 unmatched_output_rows = unmatched_output_rows_bundle
 
 # Create a DataFrame from the output rows
 output_df = pd.DataFrame(output_rows, columns=output_columns)
 
 # Create a DataFrame for unmatched transactions from T5_table
-unmatched_transactions_df = pd.DataFrame([T5 for T5 in T5_table if T5['fin_record_key'] in unmatched_fin_record_keys])
+unmatched_invoices = [invoice for invoice in IV_table if invoice['unmacy_id'] not in matched_invoice_ids]
+unmatched_invoices_df = pd.DataFrame(unmatched_invoices)
 
-# Append the new unmatched transactions to the existing unmatched_transactions_df
-unmatched_transactions_df = unmatched_transactions_df.append(unmatched_output_rows, ignore_index=True)
-
-# Remove duplicates from unmatched_transactions_df based on fin_record_key
-unmatched_transactions_df.drop_duplicates(subset=['fin_record_key'], inplace=True)
-
-# Write the unmatched transactions to a CSV file
-unmatched_transactions_df.to_csv("unmatched_transactions.csv", index=False)
+# Write the unmatched invoices to a CSV file
+unmatched_invoices_df.to_csv("unmatched_invoice.csv", index=False)
 
 # Write the output data to a CSV file
 output_df.to_csv(config['output_files']['output_file'], index=False)
