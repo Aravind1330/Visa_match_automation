@@ -109,11 +109,12 @@ with pd.ExcelWriter(config['output_files']['output_file']) as writer:
 
 
 
-# Create a DataFrame from the output rows
-output_df = pd.DataFrame(output_rows, columns=output_columns)
-
 # Create a DataFrame for unmatched transactions from T5_table
-unmatched_transactions_df = pd.DataFrame([T5 for T5 in T5_table if T5['fin_record_key'] in unmatched_fin_record_keys])
+unmatched_transactions_df = pd.DataFrame()
+
+for T5 in T5_table:
+    if T5['fin_record_key'] in unmatched_fin_record_keys:
+        unmatched_transactions_df = unmatched_transactions_df.append(T5, ignore_index=True)
 
 # Append the new unmatched transactions to the existing unmatched_transactions_df
 unmatched_transactions_df = unmatched_transactions_df.append(unmatched_output_rows, ignore_index=True)
