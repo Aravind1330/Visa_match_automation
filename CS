@@ -1,5 +1,3 @@
-invoices_to_remove = []  # List to store matched invoices for removal
-
 for T5 in T5_table:
     matching_invoices, match_rule = match_one_to_one(T5, Invoice_table)
     match_type = "one-to-one"
@@ -13,38 +11,27 @@ for T5 in T5_table:
             output_row['Match Type'] = match_type
             output_rows_one_to_one.append(output_row)
             matched_invoices.append(invoice)
-            invoices_to_remove.append(invoice)
 
-        T5_table = [T5_row for T5_row in T5_table if T5_row['fin_record_key'] != T5['fin_record_key']]
-        unmatched_fin_record_keys.remove(T5['fin_record_key'])
-
-    else:
-        unmatched_output_row = {column: T5[column] if column in T5 else None for column in unmatched_output_columns}
-        unmatched_output_rows_one_to_one.append(unmatched_output_row)
-        unmatched_fin_record_keys.add(T5['fin_record_key'])
+        T5['matched'] = True
 
 for T5 in T5_table:
-    matching_invoices, match_rule = match_bundle(T5, Invoice_table)
-    match_type = "bundle match"
+    if not T5.get('matched'):
+        matching_invoices, match_rule = match_bundle(T5, Invoice_table)
+        match_type = "bundle match"
 
-    if matching_invoices:
-        for invoice, rule_index in matching_invoices:
-            description = rule_descriptions.get(rule_index)
-            output_row = {column: T5[column] if column in T5 else invoice[column] for column in output_columns}
-            output_row['Match Rule'] = rule_numbers.get(match_rule)
-            output_row['description'] = description
-            output_row['Match Type'] = match_type
-            output_rows_bundle.append(output_row)
-            matched_invoices.append(invoice)
-            invoices_to_remove.append(invoice)
+        if matching_invoices:
+            for invoice, rule_index in matching_invoices:
+                description = rule_descriptions.get(rule_index)
+                output_row = {column: T5[column] if column in T5 else invoice[column] for column in output_columns}
+                output_row['Match Rule'] = rule_numbers.get(match_rule)
+                output_row['description'] = description
+                output_row['Match Type'] = match_type
+                output_rows_bundle.append(output_row)
+                matched_invoices.append(invoice)
 
-        T5_table = [T5_row for T5_row in T5_table if T5_row['fin_record_key'] != T5['fin_record_key']]
-        unmatched_fin_record_keys.remove(T5['fin_record_key'])
+        else:
+            unmatched_output_row = {column: T5[column] if column in T5 else None for column in unmatched_output_columns}
+            unmatched_output_rows_bundle.append(unmatched_output_row)
 
-    else:
-        unmatched_output_row = {column: T5[column] if column in T5 else None for column in unmatched_output_columns}
-        unmatched_output_rows_bundle.append(unmatched_output_row)
-        unmatched_fin_record_keys.add(T5['fin_record_key'])
-
-# Remove the matched invoices from Invoice_table
-Invoice_table = [invoice for invoice in Invoice_table if invoice not in invoices_to_remove]
+# Filter out matched invoices from the Invoice_table
+Invoice_table = [invoice for invoice in Invoice_table if invoice not in matched_invoices]
