@@ -1,37 +1,49 @@
+matched_invoices = set()
+unmatched_output_rows_one_to_one = []
+unmatched_output_rows_bundle = []
+
 for T5 in T5_table:
+    if T5['fin_record_key'] in matched_invoices:
+        continue
+
     matching_invoices, match_rule = match_one_to_one(T5, Invoice_table)
     match_type = "one-to-one"
 
     if matching_invoices:
         for invoice, rule_index in matching_invoices:
-            description = rule_descriptions.get(rule_index)
-            output_row = {column: T5[column] if column in T5 else invoice[column] for column in output_columns}
-            output_row['Match Rule'] = rule_numbers.get(match_rule)
-            output_row['description'] = description
-            output_row['Match Type'] = match_type
-            output_rows_one_to_one.append(output_row)
-            matched_invoices.append(invoice)
+            if invoice['fin_record_key'] not in matched_invoices:
+                description = rule_descriptions.get(rule_index)
+                output_row = {column: T5[column] if column in T5 else invoice[column] for column in output_columns}
+                output_row['Match Rule'] = rule_numbers.get(match_rule)
+                output_row['description'] = description
+                output_row['Match Type'] = match_type
+                output_rows_one_to_one.append(output_row)
+                matched_invoices.add(invoice['fin_record_key'])
+                break
 
-        T5['matched'] = True
+    if T5['fin_record_key'] not in matched_invoices:
+        unmatched_output_row = {column: T5[column] if column in T5 else None for column in unmatched_output_columns}
+        unmatched_output_rows_one_to_one.append(unmatched_output_row)
 
 for T5 in T5_table:
-    if not T5.get('matched'):
-        matching_invoices, match_rule = match_bundle(T5, Invoice_table)
-        match_type = "bundle match"
+    if T5['fin_record_key'] in matched_invoices:
+        continue
 
-        if matching_invoices:
-            for invoice, rule_index in matching_invoices:
+    matching_invoices, match_rule = match_bundle(T5, Invoice_table)
+    match_type = "bundle match"
+
+    if matching_invoices:
+        for invoice, rule_index in matching_invoices:
+            if invoice['fin_record_key'] not in matched_invoices:
                 description = rule_descriptions.get(rule_index)
                 output_row = {column: T5[column] if column in T5 else invoice[column] for column in output_columns}
                 output_row['Match Rule'] = rule_numbers.get(match_rule)
                 output_row['description'] = description
                 output_row['Match Type'] = match_type
                 output_rows_bundle.append(output_row)
-                matched_invoices.append(invoice)
+                matched_invoices.add(invoice['fin_record_key'])
+                break
 
-        else:
-            unmatched_output_row = {column: T5[column] if column in T5 else None for column in unmatched_output_columns}
-            unmatched_output_rows_bundle.append(unmatched_output_row)
-
-# Filter out matched invoices from the Invoice_table
-Invoice_table = [invoice for invoice in Invoice_table if invoice not in matched_invoices]
+    if T5['fin_record_key'] not in matched_invoices:
+        unmatched_output_row = {column: T5[column] if column in T5 else None for column in unmatched_output_columns}
+        unmatched_output_rows_bundle.append(unmatched_output_row)
