@@ -21,6 +21,13 @@ def match_bundle(T5, Invoice_table):
             if rule(T5, Invoice=Invoice):
                 matching_invoices.append((Invoice, rule_index))
                 total_invoice_source_amt += float(Invoice['inv_match_source_amt'])
+
+
+
+
+
+Invoice_table = [invoice_row for invoice_row in Invoice_table if invoice_row['invoice_key'] != matched_invoice['invoice_key']]
+
                 match_rule = rule_index
 
     return matching_invoices, match_rule
