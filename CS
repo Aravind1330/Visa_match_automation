@@ -116,8 +116,9 @@ def match_bundle(T5, Invoice_table, matched_invoices):
                     total_invoice_source_amt += float(Invoice['inv_match_source_amt'])
                     break  # Exit the inner loop after finding a match
 
-            if total_invoice_source_amt == float(T5['fin_source_amt']):
+            if abs(total_invoice_source_amt - float(T5['fin_source_amt'])) < 0.0001:  # Adjust the tolerance value as needed
                 match_rule = matching_invoices[-1][1]  # Get the rule index from the last matched invoice
                 break  # Exit the outer loop if the amounts match
 
     return matching_invoices, match_rule
+
