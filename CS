@@ -26,5 +26,6 @@ def match_bundle(T5, Invoice_table):
 
 
 
-# Remove the matched invoices from Invoice_table
-Invoice_table = [invoice_row for invoice_row in Invoice_table if invoice_row not in matched_invoices_to_remove]
+    # Remove the matched invoices from Invoice_table
+    Invoice_table = [invoice_row for invoice_row in Invoice_table if invoice_row not in matched_invoices]
+    matched_invoices = []
