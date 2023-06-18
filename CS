@@ -115,6 +115,17 @@ for T5 in T5_table:
 
 
 
+import re
+
+def is_valid_rule(T5, Invoice):
+    authno_T5 = T5['authno']
+    authno_Invoice = Invoice['authno']
+
+    if authno_T5.isalpha() and authno_Invoice.isalpha():
+        return False  # Both values are alphabetic, so not a valid match
+    else:
+        return authno_T5 == authno_Invoice
+
 def match_one_to_one(T5, Invoice_table):
     matching_invoices = []
     match_rule = None
@@ -122,7 +133,11 @@ def match_one_to_one(T5, Invoice_table):
 
     for Invoice in Invoice_table:
         for rule_index, rule in enumerate(rules, start=1):
-            if rule(T5, Invoice=Invoice) and float(T5['fin_source_amt']) == float(Invoice['inv_match_source_amt']):
+            if (
+                rule(T5, Invoice=Invoice)
+                and float(T5['fin_source_amt']) == float(Invoice['inv_match_source_amt'])
+                and is_valid_rule(T5, Invoice)  # Check if the rule is valid
+            ):
                 matching_invoices.append((Invoice, rule_index))
                 match_rule = rule_index
                 invoices_to_remove.append(Invoice)
@@ -145,11 +160,13 @@ def match_bundle(T5, Invoice_table):
 
     for Invoice in Invoice_table:
         for rule_index, rule in enumerate(rules, start=1):
-            if rule(T5, Invoice=Invoice):
+            if (
+                rule(T5, Invoice=Invoice)
+                and is_valid_rule(T5, Invoice)  # Check if the rule is valid
+            ):
                 matching_invoices.append((Invoice, rule_index))
                 total_invoice_source_amt += float(Invoice['inv_match_source_amt'])
                 invoices_to_remove.append(Invoice)
-                break
 
         if total_invoice_source_amt == float(T5['fin_source_amt']):
             break
