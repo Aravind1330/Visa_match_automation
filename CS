@@ -178,3 +178,12 @@ def match_bundle(T5, Invoice_table):
         return matching_invoices, match_rule
     else:
         return [], None
+
+
+
+
+
+    if isinstance(authno_T5, str) and isinstance(authno_Invoice, str):
+        return not (authno_T5.isalpha() and authno_Invoice.isalpha())
+    else:
+        return True
