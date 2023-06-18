@@ -115,22 +115,63 @@ for T5 in T5_table:
 
 
 
-def match_bundle(T5, Invoice_table):
-    matching_invoices = []
-    total_invoice_source_amt = 0
-    match_rule = None
+def match_transactions(T5_table, Invoice_table):
+    matched_invoices = []
+    output_rows = []
+    unmatched_transactions = []
 
-    for rule_index, rule in enumerate(rules, start=1):
-        for Invoice in Invoice_table:
-            if rule(T5, Invoice=Invoice):
-                invoice_source_amt = float(Invoice['inv_match_source_amt'])
-                total_invoice_source_amt += invoice_source_amt
-                matching_invoices.append((Invoice, rule_index))
-                match_rule = rule_index
+    for T5 in T5_table:
+        matching_invoices = []
+        match_rule = None
+        match_type = None
 
-    if total_invoice_source_amt == float(T5['fin_source_amt']):
-        return matching_invoices, match_rule
-    else:
-        return [], None
+        for rule_index, rule in enumerate(rules, start=1):
+            total_invoice_amt = 0  # Variable to track the total invoice amount
 
+            for Invoice in Invoice_table:
+                if rule(T5, Invoice=Invoice):
+                    total_invoice_amt += float(Invoice['inv_match_source_amt'])
+                    matching_invoices.append((Invoice, rule_index))
+                    match_rule = rule_index
+                    match_type = "bundle match"
+
+            if total_invoice_amt == float(T5['fin_source_amt']):
+                break  # Stop searching further if the total invoice amount matches
+
+        if matching_invoices:
+            for invoice, rule_index in matching_invoices:
+                description = rule_descriptions.get(rule_index)
+                output_row = {column: T5[column] if column in T5 else invoice[column] for column in output_columns}
+                output_row['Match Rule'] = rule_numbers.get(match_rule)
+                output_row['Description'] = description
+                output_row['Match Type'] = match_type
+                output_rows.append(output_row)
+                matched_invoices.append(invoice)
+
+        else:
+            unmatched_transactions.append(T5)
+
+    unmatched_invoices = [invoice for invoice in Invoice_table if invoice not in matched_invoices]
+
+    return output_rows, unmatched_transactions, unmatched_invoices
+
+
+# Initialize variables and data structures
+T5_table = [...]  # Your T5 transaction data
+Invoice_table = [...]  # Your Invoice data
+rules = [...]  # List of rules for matching
+rule_numbers = {...}  # Dictionary mapping rule indexes to rule numbers
+rule_descriptions = {...}  # Dictionary mapping rule indexes to rule descriptions
+output_columns = [...]  # List of output column names
+
+# Call the match_transactions function
+output_rows, unmatched_transactions, unmatched_invoices = match_transactions(T5_table, Invoice_table)
+
+# Print the results or perform further processing
+print("Matched Transactions:")
+print(output_rows)
+print("Unmatched Transactions:")
+print(unmatched_transactions)
+print("Unmatched Invoices:")
+print(unmatched_invoices)
 
