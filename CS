@@ -22,11 +22,11 @@ for T5 in T5_table:
 
         unmatched_output_df.drop(unmatched_indices, inplace=True)
 
-    # Process bundle matches
+    # Process bundle matches, excluding previously matched invoices
     elif matching_invoices_bundle:
         match_type = "bundle match"
         for invoice, rule_index in matching_invoices_bundle:
-            if invoice not in matched_invoices:  # Skip if the invoice is already matched
+            if invoice not in matched_invoices:
                 description = rule_descriptions.get(rule_index)
                 output_row = {column: T5[column] if column in T5 else invoice[column] for column in output_columns}
                 output_row['Match Rule'] = rule_numbers.get(match_rule_bundle)
@@ -46,3 +46,6 @@ for T5 in T5_table:
     else:
         unmatched_output_row = {column: T5[column] if column in T5 else None for column in unmatched_output_columns}
         unmatched_output_rows_bundle.append(unmatched_output_row)
+
+    # Remove the matched transaction from T5_table
+    T5_table = [T5_row for T5_row in T5_table if T5_row['fin_record_key'] != T5['fin_record_key']]
