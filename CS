@@ -7,7 +7,7 @@ def match_one_to_one(T5, Invoice_table):
             if rule(T5, Invoice=Invoice) and float(T5['fin_source_amt']) == float(Invoice['inv_match_source_amt']):
                 matching_invoices.append((Invoice, rule_index))
                 match_rule = rule_index
-                break  # Exit the loop after finding a match
+                break
 
         if matching_invoices:
             return matching_invoices, match_rule
@@ -25,9 +25,81 @@ def match_bundle(T5, Invoice_table):
             if rule(T5, Invoice=Invoice):
                 matching_invoices.append((Invoice, rule_index))
                 total_invoice_source_amt += float(Invoice['inv_match_source_amt'])
-                break  # Exit the loop after finding a match
+                break
 
         if total_invoice_source_amt == float(T5['fin_source_amt']):
             return matching_invoices, match_rule
 
     return [], None
+
+
+output_rows_one_to_one = []
+unmatched_output_rows_one_to_one = []
+output_rows_bundle = []
+unmatched_output_rows_bundle = []
+matched_invoices = []
+
+for T5 in T5_table:
+    matching_invoices, match_rule = match_one_to_one(T5, Invoice_table)
+    match_type = "one-to-one"
+
+    if matching_invoices:
+        for invoice, rule_index in matching_invoices:
+            description = rule_descriptions.get(rule_index)
+            output_row = {column: T5[column] if column in T5 else invoice[column] for column in output_columns}
+            output_row['Match Rule'] = rule_numbers.get(match_rule)
+            output_row['Description'] = description
+            output_row['Match Type'] = match_type
+            output_rows_one_to_one.append(output_row)
+            matched_invoices.append(invoice)
+
+        # Remove the matched invoice from Invoice_table
+        Invoice_table = [inv for inv in Invoice_table if inv not in matched_invoices]
+
+        # Remove the matched transaction from T5_table
+        T5_table = [T5_row for T5_row in T5_table if T5_row['fin_record_key'] != T5['fin_record_key']]
+        unmatched_fin_record_keys.remove(T5['fin_record_key'])
+
+        unmatched_indices = unmatched_output_df[
+            (unmatched_output_df['fin_record_key'] == T5['fin_record_key']) &
+            (unmatched_output_df['fin_source_amt'] == T5['fin_source_amt']) &
+            (unmatched_output_df['fin_debit_credit_ind'] == T5['fin_debit_credit_ind'])
+        ].index
+
+        unmatched_output_df.drop(unmatched_indices, inplace=True)
+
+    else:
+        unmatched_output_row = {column: T5[column] if column in T5 else None for column in unmatched_output_columns}
+        unmatched_output_rows_one_to_one.append(unmatched_output_row)
+        unmatched_fin_record_keys.add(T5['fin_record_key'])
+
+for T5 in T5_table:
+    matching_invoices, match_rule = match_bundle(T5, Invoice_table)
+    match_type = "bundle match"
+
+    if matching_invoices:
+        for invoice, rule_index in matching_invoices:
+            description = rule_descriptions.get(rule_index)
+            output_row = {column: T5[column] if column in T5 else invoice[column] for column in output_columns}
+            output_row['Match Rule'] = rule_numbers.get(match_rule)
+            output_row['Description'] = description
+            output_row['Match Type'] = match_type
+            output_rows_bundle.append(output_row)
+            matched_invoices.append(invoice)
+
+        # Remove the matched invoices from Invoice_table
+        Invoice_table = [inv for inv in Invoice_table if inv not in matched_invoices]
+
+        # Remove the matched transaction from T5_table
+        T5_table = [T5_row for T5_row in T5_table if T5_row['fin_record_key'] != T5['fin_record_key']]
+        unmatched_fin_record_keys.discard(T5['fin_record_key'])
+
+        unmatched_indices = unmatched_output_df[
+            (unmatched_output_df['fin_record_key'] == T5['fin_record_key']) &
+            (unmatched_output_df['fin_source_amt'] == T5['fin_source_amt'])
+        ].index
+
+        unmatched_output_df.drop(unmatched_indices, inplace=True)
+
+    else:
+        unmatched_output_rows_bundle.append(T5)
