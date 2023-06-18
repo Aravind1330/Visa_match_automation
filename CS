@@ -117,20 +117,20 @@ for T5 in T5_table:
 
 def match_bundle(T5, Invoice_table):
     matching_invoices = []
-    total_transaction_source_amt = float(T5['fin_source_amt'])
+    total_invoice_source_amt = 0
     match_rule = None
 
     for Invoice in Invoice_table:
         for rule_index, rule in enumerate(rules, start=1):
             if rule(T5, Invoice=Invoice):
                 invoice_source_amt = float(Invoice['inv_match_source_amt'])
-                if invoice_source_amt <= total_transaction_source_amt:
-                    matching_invoices.append((Invoice, rule_index))
-                    total_transaction_source_amt -= invoice_source_amt
-                    match_rule = rule_index
-                    break
+                total_invoice_source_amt += invoice_source_amt
+                matching_invoices.append((Invoice, rule_index))
+                match_rule = rule_index
+                break
 
-    if total_transaction_source_amt == 0:
+    if total_invoice_source_amt == float(T5['fin_source_amt']):
         return matching_invoices, match_rule
     else:
         return [], None
+
