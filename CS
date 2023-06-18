@@ -115,22 +115,49 @@ for T5 in T5_table:
 
 
 
-def match_bundle(T5, Invoice_table, matched_invoices):
+def match_one_to_one(T5, Invoice_table):
     matching_invoices = []
-    remaining_amount = float(T5['fin_source_amt'])
     match_rule = None
+    invoices_to_remove = []
 
     for Invoice in Invoice_table:
-        if Invoice in matched_invoices:
-            continue
+        for rule_index, rule in enumerate(rules, start=1):
+            if rule(T5, Invoice=Invoice) and float(T5['fin_source_amt']) == float(Invoice['inv_match_source_amt']):
+                matching_invoices.append((Invoice, rule_index))
+                match_rule = rule_index
+                invoices_to_remove.append(Invoice)
+                break
+
+    for invoice in invoices_to_remove:
+        Invoice_table.remove(invoice)
+
+    if matching_invoices:
+        return matching_invoices, match_rule
+    else:
+        return [], None
+
+
+def match_bundle(T5, Invoice_table):
+    matching_invoices = []
+    total_invoice_source_amt = 0
+    match_rule = None
+    invoices_to_remove = []
+
+    for Invoice in Invoice_table:
         for rule_index, rule in enumerate(rules, start=1):
             if rule(T5, Invoice=Invoice):
                 matching_invoices.append((Invoice, rule_index))
-                remaining_amount -= float(Invoice['inv_match_source_amt'])
+                total_invoice_source_amt += float(Invoice['inv_match_source_amt'])
+                invoices_to_remove.append(Invoice)
                 break
 
-        if remaining_amount == 0:
-            return matching_invoices, match_rule
+        if total_invoice_source_amt == float(T5['fin_source_amt']):
+            break
 
-    return [], None
+    for invoice in invoices_to_remove:
+        Invoice_table.remove(invoice)
 
+    if matching_invoices:
+        return matching_invoices, match_rule
+    else:
+        return [], None
