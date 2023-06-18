@@ -1,20 +1,50 @@
+remaining_T5_table = T5_table.copy()
+
 for T5 in T5_table:
+    matching_invoices, match_rule = match_one_to_one(T5, Invoice_table)
+    match_type = "one-to-one"
+
+    if matching_invoices:
+        for invoice, rule_index in matching_invoices:
+            description = rule_descriptions.get(rule_index)
+            output_row = {column: T5[column] if column in T5 else invoice[column] for column in output_columns}
+            output_row['Match Rule'] = rule_numbers.get(match_rule)
+            output_row['Description'] = description
+            output_row['Match Type'] = match_type
+            output_rows_one_to_one.append(output_row)
+            matched_invoices.append(invoice)
+
+        # Remove the matched transaction from T5_table
+        remaining_T5_table = [T5_row for T5_row in remaining_T5_table if T5_row['fin_record_key'] != T5['fin_record_key']]
+
+        unmatched_indices = unmatched_output_df[
+            (unmatched_output_df['fin_record_key'] == T5['fin_record_key']) &
+            (unmatched_output_df['fin_source_amt'] == T5['fin_source_amt']) &
+            (unmatched_output_df['fin_debit_credit_ind'] == T5['fin_debit_credit_ind'])
+        ].index
+
+        unmatched_output_df.drop(unmatched_indices, inplace=True)
+
+    else:
+        unmatched_output_row = {column: T5[column] if column in T5 else None for column in unmatched_output_columns}
+        unmatched_output_rows_one_to_one.append(unmatched_output_row)
+
+for T5 in remaining_T5_table:
     matching_invoices, match_rule = match_bundle(T5, Invoice_table)
     match_type = "bundle match"
 
-    if len(matching_invoices) == len(rules):
-        for rule_index, invoices in matching_invoices.items():
+    if matching_invoices:
+        for invoice, rule_index in matching_invoices:
             description = rule_descriptions.get(rule_index)
-            for invoice in invoices:
-                output_row = {column: T5[column] if column in T5 else invoice[column] for column in output_columns}
-                output_row['Match Rule'] = rule_numbers.get(rule_index)
-                output_row['Description'] = description
-                output_row['Match Type'] = match_type
-                output_rows_bundle.append(output_row)
+            output_row = {column: T5[column] if column in T5 else invoice[column] for column in output_columns}
+            output_row['Match Rule'] = rule_numbers.get(match_rule)
+            output_row['Description'] = description
+            output_row['Match Type'] = match_type
+            output_rows_bundle.append(output_row)
+            matched_invoices.append(invoice)
 
         # Remove the matched transaction from T5_table
-        T5_table = [T5_row for T5_row in T5_table if T5_row['fin_record_key'] != T5['fin_record_key']]
-        unmatched_fin_record_keys.discard(T5['fin_record_key'])
+        remaining_T5_table = [T5_row for T5_row in remaining_T5_table if T5_row['fin_record_key'] != T5['fin_record_key']]
 
         unmatched_indices = unmatched_output_df[
             (unmatched_output_df['fin_record_key'] == T5['fin_record_key']) &
@@ -24,4 +54,8 @@ for T5 in T5_table:
         unmatched_output_df.drop(unmatched_indices, inplace=True)
 
     else:
-        unmatched_output_rows_bundle.append(T5)
+        unmatched_output_rows_bundle.append({column: T5[column] if column in T5 else None for column in unmatched_output_columns})
+
+    # Remove the matched invoices from Invoice_table
+    Invoice_table = [invoice_row for invoice_row in Invoice_table if invoice_row not in matched_invoices]
+    matched_invoices = []
