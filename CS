@@ -184,32 +184,60 @@ def match_bundle(T5, Invoice_table):
 
 
 
-def match_bundle(T5, Invoice_table, rules):
-    matching_invoices = []
-    total_invoice_source_amt = 0
-    match_rule = None
-    invoices_to_remove = []
+import pandas as pd
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import CountVectorizer
 
-    for Invoice in Invoice_table:
-        for rule_index, rule in enumerate(rules, start=1):
-            if rule(T5, Invoice=Invoice):
-                total_invoice_source_amt += float(Invoice['inv_match_source_amt'])
-                if total_invoice_source_amt <= float(T5['fin_source_amt']):
-                    matching_invoices.append((Invoice, rule_index))
-                    invoices_to_remove.append(Invoice)
-                    match_rule = rule_index
-                else:
-                    break
+# Load your transaction and invoice data into pandas DataFrames
+transaction_data = pd.read_csv('transaction_data.csv')
+invoice_data = pd.read_csv('invoice_data.csv')
 
-        if total_invoice_source_amt == float(T5['fin_source_amt']):
-            break
+# Select relevant columns for matching
+transaction_columns = ['supplier_name', 'source_amount', 'debit_credit_indc']
+transaction_features = transaction_data[transaction_columns].astype(str)
+invoice_features = invoice_data['invnumber'].astype(str)
 
-    for invoice in invoices_to_remove:
-        Invoice_table.remove(invoice)
+# Create CountVectorizer to convert text data to vectors
+vectorizer = CountVectorizer()
 
-    if matching_invoices:
-        return matching_invoices, match_rule
-    else:
-        return [], None
+# Fit and transform the transaction names
+transaction_vectors = vectorizer.fit_transform(transaction_features['supplier_name'])
 
+# Transform the invoice names
+invoice_vectors = vectorizer.transform(invoice_features)
 
+# Calculate the cosine similarity matrix
+similarity_matrix = cosine_similarity(transaction_vectors, invoice_vectors)
+
+# Set the thresholds for each column
+thresholds = {
+    'supplier_name': 0.8,
+    'source_amount': 0.9,
+    'debit_credit_indc': 0.85
+}
+
+# Find the best matches
+matches = []
+for transaction_idx in range(len(transaction_data)):
+    best_match_score = {}
+    best_match_idx = {}
+    for invoice_idx in range(len(invoice_data)):
+        for column in thresholds.keys():
+            similarity_score = similarity_matrix[transaction_idx, invoice_idx]
+            if similarity_score >= thresholds[column]:
+                if column not in best_match_score or similarity_score > best_match_score[column]:
+                    best_match_score[column] = similarity_score
+                    best_match_idx[column] = invoice_idx
+    transaction_id = transaction_data.iloc[transaction_idx]['fin_record_key']
+    matching_results = []
+    for column in thresholds.keys():
+        if column in best_match_idx:
+            invoice_id = invoice_data.iloc[best_match_idx[column]]['inv_unmatch_inv_id']
+            matching = transaction_data.iloc[transaction_idx][column] == invoice_data.iloc[best_match_idx[column]]['debit1_credit1_ind']
+            matching_results.append((invoice_id, matching))
+    matches.append((transaction_id, matching_results))
+
+# Output the matched results
+matched_data = pd.DataFrame(matches, columns=['Transaction ID', 'Matching Results'])
+print(matched_data)
+matched_data.to_csv('matched_results.csv', index=False)
