@@ -184,33 +184,30 @@ def match_bundle(T5, Invoice_table):
 
 
 
-def match_bundle(T5, Invoice_table):
+def match_bundle(T5, Invoice_table, rules):
     matching_invoices = []
     total_invoice_source_amt = 0
     match_rule = None
     invoices_to_remove = []
 
-    rules = [...]  # Define the matching rules here
-
     for Invoice in Invoice_table:
-        match_found = False
         for rule_index, rule in enumerate(rules, start=1):
             if rule(T5, Invoice=Invoice):
-                invoice_source_amt = float(Invoice['inv_match_source_amt'])
-                if total_invoice_source_amt + invoice_source_amt <= float(T5['fin_source_amt']):
+                total_invoice_source_amt += float(Invoice['inv_match_source_amt'])
+                if total_invoice_source_amt <= float(T5['fin_source_amt']):
                     matching_invoices.append((Invoice, rule_index))
                     invoices_to_remove.append(Invoice)
-                    total_invoice_source_amt += invoice_source_amt
-                    match_found = True
+                    match_rule = rule_index
+                else:
                     break
 
-        if match_found:
+        if total_invoice_source_amt == float(T5['fin_source_amt']):
             break
 
     for invoice in invoices_to_remove:
         Invoice_table.remove(invoice)
 
-    if matching_invoices and total_invoice_source_amt == float(T5['fin_source_amt']):
+    if matching_invoices:
         return matching_invoices, match_rule
     else:
         return [], None
