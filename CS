@@ -247,3 +247,7 @@ def match_bundle_and_one_to_one(T5, Invoice_table):
         return match_bundle(T5, Invoice_table)
 
 
+
+
+
+and T5['fin_source_amt'] != '' and Invoice['inv_match_source_amt'] != '':
