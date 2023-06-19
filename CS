@@ -203,10 +203,12 @@ def match_bundle(T5, Invoice_table):
             break
 
     for invoice in invoices_to_remove:
-        Invoice_table.remove(invoice)
+        if invoice in Invoice_table:
+            Invoice_table.remove(invoice)
 
     if matching_invoices:
         return matching_invoices, match_rule
     else:
         return [], None
+
 
