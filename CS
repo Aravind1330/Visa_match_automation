@@ -204,14 +204,9 @@ def match_bundle(T5, Invoice_table):
         if total_invoice_source_amt == float(T5['fin_source_amt']):
             break
 
-    if matching_invoices:
+    if total_invoice_source_amt == float(T5['fin_source_amt']):
         return matching_invoices, match_rule
     else:
         return [], None
-
-
-
-
-
 
 
