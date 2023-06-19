@@ -210,6 +210,10 @@ def match_one_to_one(T5, Invoice_table):
         return [], None
 
 
+
+
+
+
 def match_bundle(T5, Invoice_table):
     matching_invoices = []
     total_invoice_source_amt = 0
@@ -224,30 +228,16 @@ def match_bundle(T5, Invoice_table):
                 if invoice_amt <= remaining_amt:
                     matching_invoices.append((Invoice, rule_index))
                     total_invoice_source_amt += invoice_amt
-                    break  # Exit the inner loop after finding a match
+                    Invoice_table.remove(Invoice)
+                    match_rule = rule_index  # Update the matched rule index
+
+                # Continue the loop even if total_invoice_source_amt == fin_source_amt
 
         if total_invoice_source_amt == float(T5['fin_source_amt']):
             break
 
-    for invoice, _ in matching_invoices:
-        Invoice_table.remove(invoice)
-
-    if matching_invoices:
+    if total_invoice_source_amt == float(T5['fin_source_amt']):
         return matching_invoices, match_rule
     else:
         return [], None
 
-
-def match_bundle_and_one_to_one(T5, Invoice_table):
-    one_to_one_matching, match_rule = match_one_to_one(T5, Invoice_table)
-
-    if one_to_one_matching:
-        return one_to_one_matching, match_rule
-    else:
-        return match_bundle(T5, Invoice_table)
-
-
-
-
-
-and T5['fin_source_amt'] != '' and Invoice['inv_match_source_amt'] != '':
