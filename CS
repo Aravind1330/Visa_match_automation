@@ -251,3 +251,4 @@ def match_bundle(T5, Invoice_table):
 
 
 and (Invoice['auth_no'] != '' or T5['auth_no'] != ''):
+(T5(auth) != '' AND Inv(auth) != '')
