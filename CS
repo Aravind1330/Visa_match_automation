@@ -215,7 +215,7 @@ def match_one_to_one(T5, Invoice_table):
 
 def match_bundle(T5, Invoice_table):
     matching_invoices = []
-    unmatched_invoices = Invoice_table[:]  # Create a copy of the original list
+    unmatched_invoices = Invoice_table[:]
     total_invoice_source_amt = 0
     match_rule = None
 
@@ -229,8 +229,8 @@ def match_bundle(T5, Invoice_table):
 
                 if invoice_amt <= remaining_amt:
                     matching_invoices.append((Invoice, rule_index))
-                    total_invoice_source_amt += invoice_amt
                     invoices_to_remove.append(Invoice)
+                    total_invoice_source_amt += invoice_amt
 
         for invoice in invoices_to_remove:
             unmatched_invoices.remove(invoice)
