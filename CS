@@ -215,7 +215,7 @@ def match_one_to_one(T5, Invoice_table):
 
 def match_bundle(T5, Invoice_table):
     matching_invoices = []
-    unmatched_invoices = Invoice_table[:]  # Create a copy of the original list
+    unmatched_invoices = Invoice_table[:]
     match_rule = None
     total_invoice_source_amt = 0
 
