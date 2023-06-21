@@ -280,3 +280,26 @@ def match_bundle(T5, Invoice_table):
     else:
         return [], unmatched_invoices
 
+
+
+
+
+
+def match_one_to_one(T5, Invoice_table):
+    matching_invoices = []
+    match_rule = None
+
+    for i, Invoice in enumerate(Invoice_table):
+        for rule_index, rule in enumerate(rules, start=1):
+            if rule_index == 25 and (T5['fin_orig_supplier_nm'] is None or Invoice['inv_ticket_num'] is None):
+                continue
+
+            if rule(T5, Invoice=Invoice) and float(T5['fin_source_amt']) == float(Invoice['inv_match_source_amt']):
+                matching_invoices.append((Invoice, rule_index))
+                match_rule = rule_index
+                break
+
+        if matching_invoices:
+            break
+
+    return matching_invoices, match_rule
