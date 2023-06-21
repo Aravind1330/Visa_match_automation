@@ -313,12 +313,8 @@ def match_one_to_one(T5, Invoice_table):
 
 
 
-if (
-    rule_index == 25 and
-    (
-        (T5['fin_orig_supplier_nm'] is None or str(T5['fin_orig_supplier_nm']).strip() == '') or
-        (Invoice['inv_ticket_num'] is None or str(Invoice['inv_ticket_num']).strip() == '')
-    )
-):
-    continue
-
+            if rule_index == 25 and (
+                (T5['fin_orig_supplier_nm'] is None or math.isnan(T5['fin_orig_supplier_nm'])) and
+                (Invoice['inv_ticket_num'] is None or math.isnan(Invoice['inv_ticket_num']))
+            ):
+                continue
