@@ -309,3 +309,16 @@ def match_one_to_one(T5, Invoice_table):
 
     return matching_invoices, match_rule
 
+
+
+
+
+if (
+    rule_index == 25 and
+    (
+        (T5['fin_orig_supplier_nm'] is None or str(T5['fin_orig_supplier_nm']).strip() == '') or
+        (Invoice['inv_ticket_num'] is None or str(Invoice['inv_ticket_num']).strip() == '')
+    )
+):
+    continue
+
