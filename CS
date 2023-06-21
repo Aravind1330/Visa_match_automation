@@ -285,13 +285,18 @@ def match_bundle(T5, Invoice_table):
 
 
 
+import pandas as pd
+
 def match_one_to_one(T5, Invoice_table):
     matching_invoices = []
     match_rule = None
 
     for i, Invoice in enumerate(Invoice_table):
         for rule_index, rule in enumerate(rules, start=1):
-            if rule_index == 25 and (T5['fin_orig_supplier_nm'] is None or Invoice['inv_ticket_num'] is None):
+            if rule_index == 25 and (
+                (T5['fin_orig_supplier_nm'] is None or pd.isnull(T5['fin_orig_supplier_nm'])) and
+                (Invoice['inv_ticket_num'] is None or pd.isnull(Invoice['inv_ticket_num']))
+            ):
                 continue
 
             if rule(T5, Invoice=Invoice) and float(T5['fin_source_amt']) == float(Invoice['inv_match_source_amt']):
@@ -303,3 +308,4 @@ def match_one_to_one(T5, Invoice_table):
             break
 
     return matching_invoices, match_rule
+
