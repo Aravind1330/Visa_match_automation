@@ -317,11 +317,16 @@ def match_one_to_one(T5, Invoice_table):
 
 
 
+import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 
+# Assuming you have two DataFrames representing the tables
+finrecord_df = pd.DataFrame(data={'finrecord_key': [1, 2, 3], 'column1': [...], 'column2': [...]})
+invoice_df = pd.DataFrame(data={'invoice_id': [101, 102, 103], 'column1': [...], 'column2': [...]})
+
 # Assuming you have two arrays representing the desired columns for each table
-table1_columns = [table1_column1, table1_column2, ...]
-table2_columns = [table2_column1, table2_column2, ...]
+table1_columns = finrecord_df[['column1', 'column2', ...]].values
+table2_columns = invoice_df[['column1', 'column2', ...]].values
 
 similarity_matrix = cosine_similarity(table1_columns, table2_columns)
 
@@ -340,13 +345,13 @@ for i, row in enumerate(similarity_matrix):
 unmatched_invoice_ids = set(range(len(table2_columns)))
 
 for pair in matching_pairs:
-    finrecord_key = table1['finrecord_key'][pair[0]]  # finrecord_key from Table 1
-    invoice_id = table2['invoice_id'][pair[1]]  # invoice_id from Table 2
+    finrecord_key = finrecord_df['finrecord_key'].iloc[pair[0]]  # finrecord_key from Table 1
+    invoice_id = invoice_df['invoice_id'].iloc[pair[1]]  # invoice_id from Table 2
     unmatched_invoice_ids.remove(pair[1])
     print(f"Matching pair: finrecord_key={finrecord_key}, invoice_id={invoice_id}")
 
 for unmatched_id in unmatched_invoice_ids:
-    invoice_id = table2['invoice_id'][unmatched_id]  # invoice_id from Table 2
+    invoice_id = invoice_df['invoice_id'].iloc[unmatched_id]  # invoice_id from Table 2
     print(f"Unmatched invoice_id: {invoice_id}")
 
 
