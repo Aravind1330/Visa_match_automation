@@ -313,25 +313,40 @@ def match_one_to_one(T5, Invoice_table):
 
 
 
-import math
 
-def match_one_to_one(T5, Invoice_table):
-    matching_invoices = []
-    match_rule = None
 
-    for i, Invoice in enumerate(Invoice_table):
-        for rule_index, rule in enumerate(rules, start=1):
-            if rule_index == 25:
-                if (math.isnan(T5['fin_orig_supplier_nm']) and math.isnan(Invoice['inv_ticket_num'])):
-                    continue
 
-            if rule(T5, Invoice=Invoice) and float(T5['fin_source_amt']) == float(Invoice['inv_match_source_amt']):
-                matching_invoices.append((Invoice, rule_index))
-                match_rule = rule_index
-                break
 
-        if matching_invoices:
-            break
+from sklearn.metrics.pairwise import cosine_similarity
 
-    return matching_invoices, match_rule
+# Assuming you have two arrays representing the desired columns for each table
+table1_columns = [table1_column1, table1_column2, ...]
+table2_columns = [table2_column1, table2_column2, ...]
+
+similarity_matrix = cosine_similarity(table1_columns, table2_columns)
+
+column_thresholds = {
+    'column1': 0.8,
+    'column2': 0.9,
+    ...
+}
+
+matching_pairs = []
+for i, row in enumerate(similarity_matrix):
+    for j, score in enumerate(row):
+        if all(score >= threshold for threshold in column_thresholds.values()):
+            matching_pairs.append((i, j))
+
+unmatched_invoice_ids = set(range(len(table2_columns)))
+
+for pair in matching_pairs:
+    finrecord_key = table1['finrecord_key'][pair[0]]  # finrecord_key from Table 1
+    invoice_id = table2['invoice_id'][pair[1]]  # invoice_id from Table 2
+    unmatched_invoice_ids.remove(pair[1])
+    print(f"Matching pair: finrecord_key={finrecord_key}, invoice_id={invoice_id}")
+
+for unmatched_id in unmatched_invoice_ids:
+    invoice_id = table2['invoice_id'][unmatched_id]  # invoice_id from Table 2
+    print(f"Unmatched invoice_id: {invoice_id}")
+
 
