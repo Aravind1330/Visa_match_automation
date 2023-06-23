@@ -433,16 +433,29 @@ for unmatched_id in unmatched_invoice_ids:
 
 
 
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
+
 # Assuming you have the necessary data and variables
 threshold = 0.1
 
+# Get the transaction and invoice features
+transaction_columns = ['fin_orig_supplier_nm']
+invoice_columns = ['inv_invnumber']
+
+transaction_features = transaction_data[transaction_columns].astype(str).values
+invoice_features = invoice_data[invoice_columns].astype(str).values
+
+# Calculate the cosine similarity matrix
+similarity_matrix = cosine_similarity(transaction_features, invoice_features)
+
 # Find the best matches
 matches = []
-for transaction_idx, transaction_row in transaction_data.iterrows():
+for transaction_idx, transaction_row in enumerate(transaction_data.iterrows()):
     best_match_score = -1
     best_match_idx = -1
     
-    for invoice_idx, invoice_row in invoice_data.iterrows():
+    for invoice_idx, invoice_row in enumerate(invoice_data.iterrows()):
         similarity_score = similarity_matrix[transaction_idx, invoice_idx]
         
         if similarity_score > best_match_score and similarity_score >= threshold:
@@ -450,26 +463,10 @@ for transaction_idx, transaction_row in transaction_data.iterrows():
             best_match_idx = invoice_idx
     
     if best_match_idx != -1:
-        transaction_id = transaction_row['fin_record_key']
+        transaction_id = transaction_data.iloc[transaction_idx]['fin_record_key']
         invoice_id = invoice_data.iloc[best_match_idx]['inv_unmatch_inv_id']
         matches.append((transaction_id, invoice_id))
 
-# Get the matching column values
-matching_values = []
-for match in matches:
-    transaction_id, invoice_id = match
-    
-    transaction_values = transaction_data.loc[transaction_data['fin_record_key'] == transaction_id, transaction_columns].values.flatten()
-    invoice_values = invoice_data.loc[invoice_data['inv_unmatch_inv_id'] == invoice_id, invoice_columns].values.flatten()
-    
-    if len(transaction_values) > 0 and len(invoice_values) > 0:  # Check if matching values exist
-        matching_values.append((transaction_id, invoice_id, transaction_values, invoice_values))
-
-# Print the matching values
-for match in matching_values:
-    transaction_id, invoice_id, transaction_values, invoice_values = match
+# Print the matching pairs
+for transaction_id, invoice_id in matches:
     print(f"Matching pair: finrecord_key={transaction_id}, invoice_id={invoice_id}")
-    print("Transaction values:", transaction_values)
-    print("Invoice values:", invoice_values)
-    print()
-
