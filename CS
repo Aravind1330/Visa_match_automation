@@ -438,11 +438,11 @@ threshold = 0.1
 
 # Find the best matches
 matches = []
-for transaction_idx in range(len(transaction_data)):
+for transaction_idx, transaction_row in transaction_data.iterrows():
     best_match_score = -1
     best_match_idx = -1
     
-    for invoice_idx in range(len(invoice_data)):
+    for invoice_idx, invoice_row in invoice_data.iterrows():
         similarity_score = similarity_matrix[transaction_idx, invoice_idx]
         
         if similarity_score > best_match_score and similarity_score >= threshold:
@@ -450,7 +450,7 @@ for transaction_idx in range(len(transaction_data)):
             best_match_idx = invoice_idx
     
     if best_match_idx != -1:
-        transaction_id = transaction_data.iloc[transaction_idx]['fin_record_key']
+        transaction_id = transaction_row['fin_record_key']
         invoice_id = invoice_data.iloc[best_match_idx]['inv_unmatch_inv_id']
         matches.append((transaction_id, invoice_id))
 
@@ -472,3 +472,4 @@ for match in matching_values:
     print("Transaction values:", transaction_values)
     print("Invoice values:", invoice_values)
     print()
+
