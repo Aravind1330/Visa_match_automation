@@ -497,3 +497,32 @@ with open(output_file, 'w') as file:
 
 print(f"Matches saved to {output_file}")
 
+
+
+
+
+
+
+
+
+
+
+# Find the best matches
+matches = []
+for transaction_idx, transaction_name in enumerate(transaction_features['supplier_name']):
+    best_match_score = -1
+    best_match_idx = -1
+    for invoice_idx, _ in enumerate(invoice_features):
+        if invoice_idx not in matched_indices:  # Check if the invoice has already been matched
+            similarity_score = similarity_matrix[transaction_idx, invoice_idx]
+            if similarity_score > best_match_score:
+                best_match_score = similarity_score
+                best_match_idx = invoice_idx
+    # Check if the best match score meets the threshold for each column
+    if (best_match_score >= thresholds['supplier_name'] and
+        float(transaction_features.iloc[transaction_idx]['source_amount']) >= thresholds['source_amount'] and
+        float(transaction_features.iloc[transaction_idx]['other_column']) >= thresholds['other_column']):
+        transaction_id = transaction_data.iloc[transaction_idx]['fin_record_key']
+        invoice_id = invoice_data.iloc[best_match_idx]['inv_unmatch_inv_id']
+        matches.append((transaction_id, invoice_id, best_match_idx, best_match_score))
+        matched_indices.add(best_match_idx)
