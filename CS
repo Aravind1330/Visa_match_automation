@@ -355,3 +355,67 @@ for unmatched_id in unmatched_invoice_ids:
     print(f"Unmatched invoice_id: {invoice_id}")
 
 
+
+
+
+
+
+import pandas as pd
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.feature_extraction.text import CountVectorizer
+
+# Assuming you have two DataFrames representing the tables
+finrecord_df = pd.DataFrame(data={'finrecord_key': [1, 2, 3], 'column1': ['text1', 'text2', 'text3'], 'column2': ['A', 'B', 'C']})
+invoice_df = pd.DataFrame(data={'invoice_id': [101, 102, 103], 'column1': ['text2', 'text4', 'text1'], 'column2': ['B', 'D', 'A']})
+
+# Text preprocessing
+text_cols = ['column1']
+for col in text_cols:
+    finrecord_df[col] = finrecord_df[col].str.lower().replace('[^a-zA-Z0-9]', '', regex=True)
+    invoice_df[col] = invoice_df[col].str.lower().replace('[^a-zA-Z0-9]', '', regex=True)
+
+# One-hot encoding for alphanumeric columns
+alphanumeric_cols = ['column2']
+encoder = OneHotEncoder(sparse=False, handle_unknown='ignore')
+
+# Fit and transform the encoder on the combined dataset of both tables
+combined_df = pd.concat([finrecord_df[alphanumeric_cols], invoice_df[alphanumeric_cols]])
+encoded_features = encoder.fit_transform(combined_df)
+
+# Split the encoded features back into separate arrays for each table
+num_finrecord_rows = len(finrecord_df)
+encoded_finrecord = encoded_features[:num_finrecord_rows]
+encoded_invoice = encoded_features[num_finrecord_rows:]
+
+# Assuming you have two arrays representing the desired columns for each table
+table1_columns = np.concatenate((finrecord_df[text_cols].values, encoded_finrecord), axis=1)
+table2_columns = np.concatenate((invoice_df[text_cols].values, encoded_invoice), axis=1)
+
+# Calculate cosine similarity
+similarity_matrix = cosine_similarity(table1_columns, table2_columns)
+
+column_thresholds = {
+    'column1': 0.8,
+    'column2': 0.9,
+    ...
+}
+
+matching_pairs = []
+for i, row in enumerate(similarity_matrix):
+    for j, score in enumerate(row):
+        if all(score >= threshold for threshold in column_thresholds.values()):
+            matching_pairs.append((i, j))
+
+unmatched_invoice_ids = set(range(len(table2_columns)))
+
+for pair in matching_pairs:
+    finrecord_key = finrecord_df['finrecord_key'].iloc[pair[0]]  # finrecord_key from Table 1
+    invoice_id = invoice_df['invoice_id'].iloc[pair[1]]  # invoice_id from Table 2
+    unmatched_invoice_ids.remove(pair[1])
+    print(f"Matching pair: finrecord_key={finrecord_key}, invoice_id={invoice_id}")
+
+for unmatched_id in unmatched_invoice_ids:
+    invoice_id = invoice_df['invoice_id'].iloc[unmatched_id]  # invoice_id from Table 2
+    print(f"Unmatched invoice_id: {invoice_id}")
