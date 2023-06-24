@@ -558,22 +558,22 @@ columns_to_check = ['Name', 'Location']
 for col in columns_to_check:
     if col in df1.columns and col in df2.columns:
         vectorizer = TfidfVectorizer()
-        tfidf_matrix1 = vectorizer.fit_transform(df1[col])
-        tfidf_matrix2 = vectorizer.transform(df2[col])
+        tfidf_matrix1 = vectorizer.fit_transform(df1[col].astype(str))
+        tfidf_matrix2 = vectorizer.transform(df2[col].astype(str))
         similarity_matrix = cosine_similarity(tfidf_matrix1, tfidf_matrix2)
 
-        # Iterate through each row of the similarity matrix
-        for i in range(similarity_matrix.shape[0]):
-            record_key = df1.loc[i, 'RecordKey']
-            match_ids = []
+        # Iterate through each row of df1
+        for i, row1 in df1.iterrows():
+            record_key = row1['RecordKey']
             
+            # Find the maximum similarity value for the current record_key
+            max_similarity = max(similarity_matrix[i])
+
             # Iterate through each column of the similarity matrix
             for j in range(similarity_matrix.shape[1]):
-                if similarity_matrix[i][j] >= thresholds[col]:
-                    match_ids.append(df2.loc[j, 'MatchID'])
-            
-            if match_ids:
-                print(f"Record key {record_key} matches with match IDs {match_ids} in column {col}.")
+                if similarity_matrix[i][j] >= thresholds[col] and similarity_matrix[i][j] == max_similarity:
+                    match_id = df2.loc[j, 'MatchID']
+                    print(f"Record key {record_key} matches with match ID {match_id} in column {col}.")
     else:
         print(f"Column '{col}' not found in one or both tables.")
 
