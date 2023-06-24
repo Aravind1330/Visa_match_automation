@@ -564,11 +564,16 @@ for col in columns_to_check:
 
         # Iterate through each row of the similarity matrix
         for i in range(similarity_matrix.shape[0]):
-            max_similarity = max(similarity_matrix[i])
-            if max_similarity >= thresholds[col]:
-                record_key = df1.loc[i, 'RecordKey']
-                match_id = df2.loc[similarity_matrix[i] >= thresholds[col], 'MatchID'].tolist()
-                print(f"Record key {record_key} matches with match IDs {match_id} in column {col}.")
+            record_key = df1.loc[i, 'RecordKey']
+            match_ids = []
+            
+            # Iterate through each column of the similarity matrix
+            for j in range(similarity_matrix.shape[1]):
+                if similarity_matrix[i][j] >= thresholds[col]:
+                    match_ids.append(df2.loc[j, 'MatchID'])
+            
+            if match_ids:
+                print(f"Record key {record_key} matches with match IDs {match_ids} in column {col}.")
     else:
         print(f"Column '{col}' not found in one or both tables.")
 
