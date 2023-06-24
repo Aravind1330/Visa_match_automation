@@ -534,50 +534,40 @@ for transaction_idx, transaction_name in enumerate(transaction_features['supplie
 
 
 
-import pandas as pd
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.feature_extraction.text import TfidfVectorizer
+def match_one_to_one(TS, Invoice_table):
+    matching_invoices = []
+    match_rule = None
+    invoices_to_remove = []
 
-# Define the thresholds for each column
-thresholds = {'Name': 0.8, 'Location': 0.7}
-
-# Sample data for demonstration
-data1 = {'RecordKey': [1, 2, 3, 4],
-         'Name': ['John Smith', 'Jane Doe', 'Adam Johnson', 'Emily Brown'],
-         'Location': ['New York', 'London', 'Paris', 'Sydney']}
-data2 = {'MatchID': [5, 6, 7, 8],
-         'Full Name': ['Jon Smith', 'Jane D.', 'Adam J.', 'Emily B.'],
-         'Place': ['NY', 'London', 'Paris', 'Sydney']}
-df1 = pd.DataFrame(data1)
-df2 = pd.DataFrame(data2)
-
-# Columns for similarity check
-columns_to_check = ['Name', 'Location']
-
-# Perform cosine similarity check
-for col in columns_to_check:
-    if col in df1.columns and col in df2.columns:
-        vectorizer = TfidfVectorizer()
-        tfidf_matrix1 = vectorizer.fit_transform(df1[col].astype(str))
-        tfidf_matrix2 = vectorizer.transform(df2[col].astype(str))
-        similarity_matrix = cosine_similarity(tfidf_matrix1, tfidf_matrix2)
-
-        # Iterate through each row of df1
-        for i, row1 in df1.iterrows():
-            record_key = row1['RecordKey']
-            
-            # Find the indices where the similarity exceeds the threshold
-            indices = [j for j, similarity in enumerate(similarity_matrix[i]) if similarity >= thresholds[col]]
-            
-            if indices:
-                match_ids = df2.loc[indices, 'MatchID'].tolist()
-                print(f"Record key {record_key} matches with match IDs {match_ids} in column {col}.")
+    for Invoice in Invoice_table:
+        for rule_index, rule in enumerate(rules, start=1):
+            if rule_index in [23, 26, 27]:
+                t5_authno = T5['authno']
+                inv_authno = Invoice['authno']
+                
+                # Check if both values are fully alphabetic
+                if t5_authno.isalpha() and inv_authno.isalpha():
+                    continue
+                
+                if t5_authno == inv_authno:
+                    matching_invoices.append((Invoice, rule_index))
+                    match_rule = rule_index
+                    invoices_to_remove.append(Invoice)
+                    break
             else:
-                print(f"No matches found for record key {record_key} in column {col}.")
+                if rule(TS, Invoice=Invoice) and \
+                        float(T5['fin_source_amt']) == float(Invoice['inv_match_source_amt']):
+                    matching_invoices.append((Invoice, rule_index))
+                    match_rule = rule_index
+                    invoices_to_remove.append(Invoice)
+                    break
 
+    for invoice in invoices_to_remove:
+        Invoice_table.remove(invoice)
+
+    if matching_invoices:
+        return matching_invoices, match_rule
     else:
-        print(f"No matches found for record key {record_key}.")
-
-
+        return [], None
 
 
