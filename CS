@@ -534,7 +534,6 @@ for transaction_idx, transaction_name in enumerate(transaction_features['supplie
 
 
 
-
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -552,7 +551,7 @@ data2 = {'MatchID': [5, 6, 7, 8],
 df1 = pd.DataFrame(data1)
 df2 = pd.DataFrame(data2)
 
-# Columns and thresholds for similarity check
+# Columns for similarity check
 columns_to_check = ['Name', 'Location']
 
 # Perform cosine similarity check
@@ -565,11 +564,12 @@ for col in columns_to_check:
 
         # Iterate through each row of the similarity matrix
         for i in range(similarity_matrix.shape[0]):
-            for j in range(similarity_matrix.shape[1]):
-                if similarity_matrix[i][j] >= thresholds[col]:
-                    record_key = df1.loc[i, 'RecordKey']
-                    match_id = df2.loc[j, 'MatchID']
-                    print(f"Record key {record_key} matches with match ID {match_id} in column {col}.")
+            max_similarity = max(similarity_matrix[i])
+            if max_similarity >= thresholds[col]:
+                record_key = df1.loc[i, 'RecordKey']
+                match_id = df2.loc[similarity_matrix[i] >= thresholds[col], 'MatchID'].tolist()
+                print(f"Record key {record_key} matches with match IDs {match_id} in column {col}.")
     else:
         print(f"Column '{col}' not found in one or both tables.")
+
 
