@@ -554,25 +554,30 @@ df2 = pd.DataFrame(data2)
 # Columns for similarity check
 columns_to_check = ['Name', 'Location']
 
-# Perform cosine similarity check
-for col in columns_to_check:
-    if col in df1.columns and col in df2.columns:
-        vectorizer = TfidfVectorizer()
-        tfidf_matrix1 = vectorizer.fit_transform(df1[col].astype(str))
-        tfidf_matrix2 = vectorizer.transform(df2[col].astype(str))
-        similarity_matrix = cosine_similarity(tfidf_matrix1, tfidf_matrix2)
+# Combine the data from both tables
+combined_data = pd.concat([df1[col].astype(str) for col in columns_to_check] +
+                          [df2[col].astype(str) for col in columns_to_check])
 
-        # Iterate through each row of df1
-        for i, row1 in df1.iterrows():
-            record_key = row1['RecordKey']
-            
-            # Find the indices where the similarity exceeds the threshold
-            indices = [j for j, similarity in enumerate(similarity_matrix[i]) if similarity >= thresholds[col]]
-            
-            if indices:
-                match_ids = df2.loc[indices, 'MatchID'].tolist()
-                print(f"Record key {record_key} matches with match IDs {match_ids} in column {col}.")
+# Perform TF-IDF vectorization on the combined data
+vectorizer = TfidfVectorizer()
+tfidf_matrix = vectorizer.fit_transform(combined_data)
+
+# Calculate cosine similarity between the rows of df1 and df2
+similarity_matrix = cosine_similarity(tfidf_matrix[:len(df1)], tfidf_matrix[len(df1):])
+
+# Iterate through each row of df1
+for i, row1 in df1.iterrows():
+    record_key = row1['RecordKey']
+    
+    # Find the indices where the similarity exceeds the threshold
+    indices = [j for j, similarity in enumerate(similarity_matrix[i]) if similarity >= thresholds[col]]
+    
+    if indices:
+        match_ids = df2.loc[indices, 'MatchID'].tolist()
+        print(f"Record key {record_key} matches with match IDs {match_ids}.")
     else:
-        print(f"Column '{col}' not found in one or both tables.")
+        print(f"No matches found for record key {record_key}.")
+
+
 
 
