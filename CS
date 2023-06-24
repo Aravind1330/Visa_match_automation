@@ -535,46 +535,41 @@ for transaction_idx, transaction_name in enumerate(transaction_features['supplie
 
 
 
-def match_one_to_one(TS, Invoice_table):
-    matching_invoices = []
-    match_rule = None
-    invoices_to_remove = []
+import pandas as pd
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import TfidfVectorizer
 
-    for Invoice in Invoice_table:
-        for rule_index, rule in enumerate(rules, start=1):
-            if rule_index == 23:
-                t5_authno = T5['authno']
-                inv_authno = Invoice['authno']
-                
-                # Check if both values are fully alphabetic
-                if t5_authno.isalpha() and inv_authno.isalpha():
-                    continue
-                
-                if t5_authno == inv_authno:
-                    matching_invoices.append((Invoice, rule_index))
-                    match_rule = rule_index
-                    invoices_to_remove.append(Invoice)
-                    break
-            else:
-                if rule(TS, Invoice=Invoice):
-                    fin_source_amt = T5['fin_source_amt']
-                    inv_match_source_amt = Invoice['inv_match_source_amt']
-                    
-                    # Check if either value is empty or NaN
-                    if (not fin_source_amt or not inv_match_source_amt or
-                            math.isnan(fin_source_amt) or math.isnan(inv_match_source_amt)):
-                        continue
-                    
-                    if float(fin_source_amt) == float(inv_match_source_amt):
-                        matching_invoices.append((Invoice, rule_index))
-                        match_rule = rule_index
-                        invoices_to_remove.append(Invoice)
-                        break
+# Define the thresholds for each column
+thresholds = {'Name': 0.8, 'Location': 0.7}
 
-    for invoice in invoices_to_remove:
-        Invoice_table.remove(invoice)
+# Sample data for demonstration
+data1 = {'RecordKey': [1, 2, 3, 4],
+         'Name': ['John Smith', 'Jane Doe', 'Adam Johnson', 'Emily Brown'],
+         'Location': ['New York', 'London', 'Paris', 'Sydney']}
+data2 = {'MatchID': [5, 6, 7, 8],
+         'Full Name': ['Jon Smith', 'Jane D.', 'Adam J.', 'Emily B.'],
+         'Place': ['NY', 'London', 'Paris', 'Sydney']}
+df1 = pd.DataFrame(data1)
+df2 = pd.DataFrame(data2)
 
-    if matching_invoices:
-        return matching_invoices, match_rule
+# Columns and thresholds for similarity check
+columns_to_check = ['Name', 'Location']
+
+# Perform cosine similarity check
+for col in columns_to_check:
+    if col in df1.columns and col in df2.columns:
+        vectorizer = TfidfVectorizer()
+        tfidf_matrix1 = vectorizer.fit_transform(df1[col])
+        tfidf_matrix2 = vectorizer.transform(df2[col])
+        similarity_matrix = cosine_similarity(tfidf_matrix1, tfidf_matrix2)
+
+        # Iterate through each row of the similarity matrix
+        for i in range(similarity_matrix.shape[0]):
+            for j in range(similarity_matrix.shape[1]):
+                if similarity_matrix[i][j] >= thresholds[col]:
+                    record_key = df1.loc[i, 'RecordKey']
+                    match_id = df2.loc[j, 'MatchID']
+                    print(f"Record key {record_key} matches with match ID {match_id} in column {col}.")
     else:
-        return [], None
+        print(f"Column '{col}' not found in one or both tables.")
+
