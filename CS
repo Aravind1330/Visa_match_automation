@@ -1173,6 +1173,10 @@ with open(output_file, 'w') as file:
 
 
 
+    # Check if transaction is already matched
+    if transaction_id in matched_invoices:
+        continue
+    
     for invoice_idx, invoice_row in invoice_data.iterrows():
         invoice_id = invoice_row['inv_unmatch_inv_id']
         
