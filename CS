@@ -1165,3 +1165,18 @@ with open(output_file, 'w') as file:
         file.write(f"{transaction_id}, {invoice_id}, {transaction_values}, {invoice_values}, {similarity_score}\n")
 
 
+
+
+
+
+
+
+
+
+    for invoice_idx, invoice_row in invoice_data.iterrows():
+        invoice_id = invoice_row['inv_unmatch_inv_id']
+        
+        # Skip already matched invoices
+        if invoice_id in matched_invoices:
+            continue
+        
