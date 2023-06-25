@@ -784,3 +784,43 @@ for transaction_idx, transaction_row in transaction_features.iterrows():
                 count += 1
 
 print(count)
+
+
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.preprocessing import LabelEncoder
+
+threshold = 70
+matches = []
+count = 0
+
+# Label encoding for debit_credit_indicator column
+label_encoder = LabelEncoder()
+label_encoder.fit(transaction_features['fin debit credit_ind'])
+
+for transaction_idx, transaction_row in transaction_features.iterrows():
+    amt = np.array(transaction_row['fin_source_amt']).reshape(1, -1)
+    debit_credit_indicator = np.array(label_encoder.transform([transaction_row['fin debit credit_ind']])).reshape(1, -1)
+    transaction_account_no = np.array(transaction_row['fin_acct_num (masked)']).reshape(1, -1)
+
+    best_match_score = -1
+    best_match_idx = -1
+
+    for invoice_idx, invoice_row in invoice_features.items():
+        if invoice_idx not in matched_indices: # Check if the invoice has already been matched
+            invoice_amount = np.array(invoice_amt[invoice_idx]).reshape(1, -1)
+            invoice_credit_debit = np.array(label_encoder.transform([invoice_debit_credit_indicator[invoice_idx]])).reshape(1, -1)
+            inv_account = invoice_account_number[invoice_idx]
+            inv_account_final = np.array(inv_account[-4:]).reshape(1, -1)
+
+            source_amt_score = cosine_similarity(amt, invoice_amount)[0][0]
+            c_or_d_indicator_score = cosine_similarity(debit_credit_indicator, invoice_credit_debit)[0][0]
+            account_no_score = cosine_similarity(transaction_account_no, inv_account_final)[0][0]
+
+            average_score = (source_amt_score + c_or_d_indicator_score + account_no_score) / 3
+
+            if source_amt_score >= threshold and c_or_d_indicator_score >= threshold:
+                matches.append((transaction_idx, invoice_idx, average_score))
+                count += 1
+
+print(count)
