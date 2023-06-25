@@ -571,36 +571,41 @@ for transaction_idx in range(len(transaction_data)):
     best_match_score = -1
     best_match_idx = -1
     for invoice_idx in range(len(invoice_data)):
-        similarity_score = similarity_matrix[transaction_idx, invoice_idx]
-        match_scores = []
-        for column in transaction_columns:
-            if column in invoice_columns:
-                column_index = invoice_columns.index(column)
-                threshold = thresholds[column]
-                column_similarity_score = cosine_similarity(
-                    vectorizer.transform([transaction_features.loc[transaction_idx, column]]),
-                    vectorizer.transform([invoice_features.loc[invoice_idx, column_index]])
-                )[0][0]
-                match_scores.append(column_similarity_score)
-        if all(score >= threshold for score, threshold in zip(match_scores, thresholds.values())):
-            if similarity_score > best_match_score:
-                best_match_score = similarity_score
-                best_match_idx = invoice_idx
+        if invoice_idx not in matched_indices:  # Skip already matched invoices
+            similarity_score = similarity_matrix[transaction_idx, invoice_idx]
+            match_scores = []
+            for column in transaction_columns:
+                if column in invoice_columns:
+                    column_index = invoice_columns.index(column)
+                    threshold = thresholds[column]
+                    column_similarity_score = cosine_similarity(
+                        vectorizer.transform([transaction_features.loc[transaction_idx, column]]),
+                        vectorizer.transform([invoice_features.loc[invoice_idx, column_index]])
+                    )[0][0]
+                    match_scores.append(column_similarity_score)
+            if all(score >= threshold for score, threshold in zip(match_scores, thresholds.values())):
+                if similarity_score > best_match_score:
+                    best_match_score = similarity_score
+                    best_match_idx = invoice_idx
     if best_match_idx != -1:
+        matched_indices.add(best_match_idx)  # Add the matched invoice index to the set
         transaction_id = transaction_data.iloc[transaction_idx]['fin_record_key']
         invoice_id = invoice_data.iloc[best_match_idx]['inv_unmatch_inv_id']
+        matched_column = [column for column, score in zip(transaction_columns, match_scores) if score >= thresholds[column]]
         transaction_values = transaction_data.iloc[transaction_idx][transaction_columns]
         invoice_values = invoice_data.iloc[best_match_idx][invoice_columns]
-        matches.append((transaction_id, invoice_id, transaction_values, invoice_values))
+        matches.append((transaction_id, invoice_id, transaction_values, invoice_values, matched_column))
 
 # Display and save the matches
 output_file = 'matches.csv'
 with open(output_file, 'w') as file:
-    file.write("Transaction ID, Invoice ID, Transaction Values, Invoice Values\n")
+    file.write("Transaction ID, Invoice ID, Matched Column, Transaction Values, Invoice Values\n")
     for match in matches:
-        file.write(f"{match[0]}, {match[1]}, {match[2]}, {match[3]}\n")
+        file.write(f"{match[0]}, {match[1]}, {match[4]}, {match[2]}, {match[3]}\n")
         print(f"Match found: Transaction ID {match[0]} -> Invoice ID {match[1]}")
+        print(f"Matched Column: {match[4]}")
         print(f"Transaction Values: {match[2]}")
         print(f"Invoice Values: {match[3]}\n")
 
 print(f"Matches saved to {output_file}")
+
