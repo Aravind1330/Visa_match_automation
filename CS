@@ -1085,7 +1085,7 @@ with open(output_file, 'w') as file:
 
 
 # Fit and transform the transaction features
-transaction_vectors = vectorizer.fit_transform(transaction_features.values.flatten())
+transaction_vectors = vectorizer.fit_transform(transaction_data[transaction_columns].values.flatten())
 
 # Transform the invoice features
-invoice_vectors = vectorizer.transform(invoice_features.values.flatten())
+invoice_vectors = vectorizer.transform(invoice_data[invoice_columns].values.flatten())
