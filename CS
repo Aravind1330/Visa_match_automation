@@ -714,83 +714,36 @@ print(f"Matches saved to {output_file}")
 
 
 
-import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.feature_extraction.text import CountVectorizer
 
-# Load your transaction and invoice data into pandas DataFrames
-transaction_data = pd.read_csv('transaction_data.csv')
-invoice_data = pd.read_csv('invoice_data.csv')
-
-# Select relevant columns for matching
-transaction_columns = ['supplier_name', 'purchase_id']
-transaction_features = transaction_data[transaction_columns].astype(str)
-invoice_features = invoice_data[['supplier_name', 'purchase_id']].astype(str)
-
-# Create a set to store matched invoice indices
-matched_indices = set()
-
-# Create CountVectorizer to convert text data to vectors
-vectorizer = CountVectorizer()
-
-# Fit and transform the transaction names
-transaction_vectors = vectorizer.fit_transform(transaction_features.apply(' '.join, axis=1))
-
-# Transform the invoice names
-invoice_vectors = vectorizer.transform(invoice_features.apply(' '.join, axis=1))
-
-# Calculate the cosine similarity matrix
-similarity_matrix = cosine_similarity(transaction_vectors, invoice_vectors)
-
-# Define the thresholds for each column
-column_thresholds = {
-    'supplier_name': 0.1,
-    'purchase_id': 0.2
-}
-
-# Find the best matches
+threshold = 70
 matches = []
+count = 0
 
-for transaction_idx in range(len(transaction_data)):
+for transaction_idx, transaction_row in transaction_features.iterrows():
+    amt = transaction_row['fin_source_amt']
+    debit_credit_indicator = transaction_row['fin debit credit_ind']
+    transaction_account_no = transaction_row['fin_acct_num (masked)']
+
     best_match_score = -1
     best_match_idx = -1
-    
-    for invoice_idx in range(len(invoice_data)):
-        similarity_score = similarity_matrix[transaction_idx, invoice_idx]
-        
-        transaction_amt = float(transaction_data.iloc[transaction_idx]['source_amount'])
-        invoice_amt = float(invoice_data.iloc[invoice_idx]['invoice_amount'])
-        
-        if similarity_score > best_match_score:
-            best_match_score = similarity_score
-            best_match_idx = invoice_idx
-        
-        # Check if thresholds are satisfied for each column
-        for column in column_thresholds:
-            threshold = column_thresholds[column]
-            
-            if transaction_features.iloc[transaction_idx][column] == invoice_features.iloc[invoice_idx][column]:
-                if similarity_score >= threshold and transaction_amt == invoice_amt:
-                    best_match_idx = invoice_idx
-                    break
-                
-    if best_match_idx != -1:
-        transaction_id = transaction_data.iloc[transaction_idx]['fin_record_key']
-        invoice_id = invoice_data.iloc[best_match_idx]['invoice_id']
-        
-        transaction_values = transaction_data.iloc[transaction_idx][transaction_columns]
-        invoice_values = invoice_data.iloc[best_match_idx][invoice_features.columns]
-        
-        matches.append((transaction_id, invoice_id, transaction_values, invoice_values))
 
-# Display and save the matches
-output_file = 'matches.csv'
-with open(output_file, 'w') as file:
-    file.write("Transaction ID, Invoice ID, Transaction Values, Invoice Values\n")
-    for match in matches:
-        file.write(f"{match[0]}, {match[1]}, {match[2]}, {match[3]}\n")
-        print(f"Match found: Transaction ID {match[0]} -> Invoice ID {match[1]}")
-        print(f"Transaction Values: {match[2]}")
-        print(f"Invoice Values: {match[3]}\n")
+    for invoice_idx, invoice_row in invoice_features.items():
+        if invoice_idx not in matched_indices: # Check if the invoice has already been matched
+            invoice_amount = invoice_amt[invoice_idx]
+            invoice_credit_debit = invoice_debit_credit_indicator[invoice_idx]
+            inv_account = invoice_account_number[invoice_idx]
+            inv_account_final = inv_account[-4:]
 
-print(f"Matches saved to {output_file}")
+            source_amt_score = cosine_similarity(amt, invoice_amount)
+            c_or_d_indicator_score = cosine_similarity(debit_credit_indicator, invoice_credit_debit)
+            account_no_score = cosine_similarity(transaction_account_no, inv_account_final)
+
+            average_score = (source_amt_score + c_or_d_indicator_score + account_no_score) / 3
+
+            if source_amt_score >= threshold and c_or_d_indicator_score >= threshold:
+                matches.append((transaction_idx, invoice_idx, average_score))
+                count += 1
+
+print(count)
+
