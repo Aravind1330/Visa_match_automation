@@ -615,3 +615,4 @@ with open(output_file, 'w') as file:
 
 print(f"Matches saved to {output_file}")
 
+    invoice_values = np.ndarray.tolist(invoice_values)  # Convert NumPy array to list
