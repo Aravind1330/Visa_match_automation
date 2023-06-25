@@ -889,3 +889,33 @@ with open(output_file, 'w') as file:
 
 print(f"Matches saved to {output_file}")
 
+
+
+
+
+
+
+
+
+
+threshold = 0.1
+# Find the best matches
+matches = []
+for transaction_idx in range(len(transaction_data)):
+    best_match_score = -1
+    best_match_idx = -1
+    for invoice_idx in range(len(invoice_data)):
+        similarity_score = similarity_matrix[transaction_idx, invoice_idx]
+        if similarity_score > best_match_score and similarity_score >= threshold:
+            # Check if the source_amounts match exactly
+            if transaction_data.iloc[transaction_idx]['source_amount'] == invoice_data.iloc[invoice_idx]['inv_source_amt']:
+                best_match_score = similarity_score
+                best_match_idx = invoice_idx
+    if best_match_idx != -1:
+        transaction_id = transaction_data.iloc[transaction_idx]['fin_record_key']
+        invoice_id = invoice_data.iloc[best_match_idx]['inv_unmatch_inv_id']
+        # Get the matching column values
+        transaction_values = transaction_data.iloc[transaction_idx][transaction_columns]
+        invoice_values = invoice_data.iloc[best_match_idx][['ticket_number', 'inv_number', 'inv_source_amt']]
+        # Add matched values to the matches list
+        matches.append((transaction_id, invoice_id, transaction_values, invoice_values))
