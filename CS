@@ -1099,7 +1099,8 @@ for transaction_idx in range(len(transaction_data)):
                  similarity_matrix[transaction_idx, invoice_idx] >= thresholds['supplier_name_ticket']) or
                 (transaction_data.iloc[transaction_idx]['supplier_name'] == invoice_data.iloc[invoice_idx]['inv_number'] and
                  similarity_matrix[transaction_idx, invoice_idx] >= thresholds['supplier_name_inv']) or
-                transaction_data.iloc[transaction_idx]['auth_no'] == invoice_data.iloc[invoice_idx]['auth_no']) and \
+                (transaction_data.iloc[transaction_idx]['auth_no'] == invoice_data.iloc[invoice_idx]['auth_no'] and
+                 similarity_matrix[transaction_idx, invoice_idx] >= thresholds['auth_no'])) and \
                     float(transaction_data.iloc[transaction_idx]['source_amount']) == float(invoice_data.iloc[invoice_idx]['amount']) and \
                     transaction_data.iloc[transaction_idx]['company_id'] == invoice_data.iloc[invoice_idx]['company_id']:
                 best_match_score = min(similarity_scores)
