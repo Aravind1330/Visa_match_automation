@@ -1079,6 +1079,9 @@ print(f"Matches saved to {output_file}")
 
 
 
+
+
+
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import CountVectorizer
@@ -1088,9 +1091,9 @@ transaction_data = pd.read_csv('transaction_data.csv')
 invoice_data = pd.read_csv('invoice_data.csv')
 
 # Select relevant columns for matching
-transaction_columns = ['supplier_name', 'source_amount', 'auth_number']
+transaction_columns = ['supplier_name', 'source_amount', 'other_column']
 transaction_features = transaction_data[transaction_columns].astype(str)
-invoice_features = invoice_data[['ticket_number', 'auth_number']].astype(str)
+invoice_features = invoice_data['ticket_number'].astype(str).str[:5]
 
 # Create a set to store matched invoice indices
 matched_indices = set()
@@ -1102,61 +1105,19 @@ vectorizer = CountVectorizer()
 transaction_vectors = vectorizer.fit_transform(transaction_features['supplier_name'])
 
 # Transform the invoice names
-invoice_vectors = vectorizer.transform(invoice_features['ticket_number'])
+invoice_vectors = vectorizer.transform(invoice_features)
 
-# Calculate the cosine similarity matrix for supplier_name
-similarity_matrix_supplier = cosine_similarity(transaction_vectors, invoice_vectors)
-
-# Fit and transform the transaction auth numbers
-transaction_vectors_auth = vectorizer.fit_transform(transaction_features['auth_number'])
-
-# Transform the invoice auth numbers
-invoice_vectors_auth = vectorizer.transform(invoice_features['auth_number'])
-
-# Calculate the cosine similarity matrix for auth_number
-similarity_matrix_auth = cosine_similarity(transaction_vectors_auth, invoice_vectors_auth)
+# Calculate the cosine similarity matrix
+similarity_matrix = cosine_similarity(transaction_vectors, invoice_vectors)
 
 # Set thresholds for each column
 thresholds = {
-    'supplier_name': 0.1,
-    'source_amount': 0.2,  # Adjust the threshold value as per your requirement
-    'auth_number': 0.3,  # Adjust the threshold value as per your requirement
+    'supplier_name_ticket': 0.1,
+    'supplier_name_inv': 0.1,
+    'auth_no': 0.1,
+    'source_amount': 0.2,
     # Add more columns and their respective thresholds if needed
 }
-
-# Find the best matches
-matches = []
-for transaction_idx in range(len(transaction_data)):
-    best_match_score = -1
-    best_match_idx = -1
-    for invoice_idx in range(len(invoice_data)):
-        similarity_scores = []
-        for col in transaction_columns:
-            similarity_score = globals()[f'similarity_matrix_{col}'][transaction_idx, invoice_idx]
-            if col in thresholds and similarity_score >= thresholds[col]:
-                similarity_scores.append(similarity_score)
-        if similarity_scores and min(similarity_scores) > best_match_score:
-            # Check if either the supplier_name or the auth_number matches within the threshold
-            if similarity_matrix_supplier[transaction_idx, invoice_idx] >= thresholds['supplier_name'] or similarity_matrix_auth[transaction_idx, invoice_idx] >= thresholds['auth_number']:
-                # Check if the source_amounts match within the threshold
-                if abs(float(transaction_data.iloc[transaction_idx]['source_amount']) - float(invoice_data.iloc[invoice_idx]['amount'])) <= thresholds['source_amount']:
-                    # Check if the company IDs match exactly
-                    if transaction_data.iloc[transaction_idx]['company_id'] == invoice_data.iloc[invoice_idx]['company_id']:
-                        best_match_score = min(similarity_scores)
-                        best_match_idx = invoice_idx
-    if best_match_idx != -1:
-        transaction_id = transaction_data.iloc[transaction_idx]['fin_record_key']
-        invoice_id = invoice_data.iloc[best_match_idx]['inv_unmatch_inv_id']
-        
-        # Get the matching column values
-        transaction_values = transaction_data.iloc[transaction_idx][transaction_columns]
-        invoice_values = invoice_data.iloc[best_match_idx][invoice_features.columns]
-
-
-
-
-
-
 
 # Find the best matches
 matches = []
@@ -1171,11 +1132,13 @@ for transaction_idx in range(len(transaction_data)):
                 similarity_scores.append(similarity_score)
         if similarity_scores and min(similarity_scores) > best_match_score:
             # Check if any condition is a match
-            if (transaction_data.iloc[transaction_idx]['supplier_name'] == invoice_data.iloc[invoice_idx]['ticket_number'] \
-                    or transaction_data.iloc[transaction_idx]['supplier_name'] == invoice_data.iloc[invoice_idx]['inv_number'] \
-                    or transaction_data.iloc[transaction_idx]['auth_no'] == invoice_data.iloc[invoice_idx]['auth_no']) \
-                    and transaction_data.iloc[transaction_idx]['source_amount'] == invoice_data.iloc[invoice_idx]['amount'] \
-                    and transaction_data.iloc[transaction_idx]['company_id'] == invoice_data.iloc[invoice_idx]['company_id']:
+            if ((transaction_data.iloc[transaction_idx]['supplier_name'] == invoice_data.iloc[invoice_idx]['ticket_number'] and
+                 similarity_matrix[transaction_idx, invoice_idx] >= thresholds['supplier_name_ticket']) or
+                (transaction_data.iloc[transaction_idx]['supplier_name'] == invoice_data.iloc[invoice_idx]['inv_number'] and
+                 similarity_matrix[transaction_idx, invoice_idx] >= thresholds['supplier_name_inv']) or
+                transaction_data.iloc[transaction_idx]['auth_no'] == invoice_data.iloc[invoice_idx]['auth_no']) and \
+                    float(transaction_data.iloc[transaction_idx]['source_amount']) >= thresholds['source_amount'] and \
+                    transaction_data.iloc[transaction_idx]['company_id'] == invoice_data.iloc[invoice_idx]['company_id']:
                 best_match_score = min(similarity_scores)
                 best_match_idx = invoice_idx
     if best_match_idx != -1:
@@ -1192,4 +1155,13 @@ for transaction_idx in range(len(transaction_data)):
         # Update matched indices
         matched_indices.add(best_match_idx)
 
+# Display and save the matches
+output_file = 'matches.csv'
+with open(output_file, 'w') as file:
+    file.write("Transaction ID, Invoice ID, Transaction Values, Invoice Values, Similarity Score\n")
+    for match in matches:
+        file.write(f"{match[0]}, {match[1]}, {match[2]}, {match[3]}, {match[4]}\n")
+        print(f"Match found: Transaction ID {match[0]} -> Invoice ID {match[1]}")
+        print(f"Transaction Values: {match[2]}")
+        print
 
