@@ -698,3 +698,9 @@ with open(output_file, 'w') as file:
         print(f"Invoice Amount: {match[4]}\n")
 
 print(f"Matches saved to {output_file}")
+
+
+
+
+        if transaction_amt == invoice_amt:
+            matches.append((transaction_id, invoice_id, matched_columns, transaction_amt, invoice_amt))
