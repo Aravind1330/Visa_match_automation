@@ -1071,3 +1071,21 @@ with open(output_file, 'w') as file:
     for match in matches:
         transaction_id, invoice_id, transaction_values, invoice_values, similarity_score = match
         file.write(f"{transaction_id}, {invoice_id}, {transaction_values}, {invoice_values}, {similarity_score}\n")
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Fit and transform the transaction features
+transaction_vectors = vectorizer.fit_transform(transaction_features.values.flatten())
+
+# Transform the invoice features
+invoice_vectors = vectorizer.transform(invoice_features.values.flatten())
