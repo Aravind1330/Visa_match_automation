@@ -692,5 +692,9 @@ with open(output_file, 'w') as file:
     file.write("Fin Record Key, Invoice ID, Matched Columns, Transaction Amount, Invoice Amount\n")
     for match in matches:
         file.write(f"{match[0]}, {match[1]}, {', '.join(match[2])}, {match[3]}, {match[4]}\n")
-        print(f"Match found: Fin Record Key {match[0]} -> Invoice ID
+        print(f"Match found: Fin Record Key {match[0]} -> Invoice ID {match[1]}")
+        print(f"Matched Columns: {', '.join(match[2])}")
+        print(f"Transaction Amount: {match[3]}")
+        print(f"Invoice Amount: {match[4]}\n")
 
+print(f"Matches saved to {output_file}")
