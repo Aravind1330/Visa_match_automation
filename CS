@@ -884,3 +884,4 @@ matches = find_matches(table1, table2, thresholds)
 
 for match in matches:
     print(f"Match found!\nRow 1: {match['Row1']}\nRow 2: {match['Row2']}\nSimilarity: {match['Similarity']}%\n")
+
