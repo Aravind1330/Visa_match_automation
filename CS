@@ -542,10 +542,12 @@ from sklearn.feature_extraction.text import CountVectorizer
 transaction_data = pd.read_csv('transaction_data.csv')
 invoice_data = pd.read_csv('invoice_data.csv')
 
-# Select relevant columns for matching
-transaction_columns = ['supplier_name', 'source_amount', 'other_column']
-transaction_features = transaction_data[transaction_columns].astype(str)
-invoice_features = invoice_data['ticket_number'].astype(str).str[:5]
+# Define the columns to use for matching and their corresponding thresholds
+match_columns = {
+    'supplier_name': 0.1,
+    'source_amount': 0.2,
+    'other_column': 0.3
+}
 
 # Create a set to store matched invoice indices
 matched_indices = set()
@@ -553,44 +555,53 @@ matched_indices = set()
 # Create CountVectorizer to convert text data to vectors
 vectorizer = CountVectorizer()
 
-# Fit and transform the transaction names
-transaction_vectors = vectorizer.fit_transform(transaction_features['supplier_name'])
-
-# Transform the invoice names
-invoice_vectors = vectorizer.transform(invoice_features)
-
-# Calculate the cosine similarity matrix
-similarity_matrix = cosine_similarity(transaction_vectors, invoice_vectors)
-
-# Set the thresholds for each column
-thresholds = {
-    'supplier_name': 0.8,
-    'source_amount': 0.9,
-    'other_column': 0.7
-}
-
-# Find the best matches
+# Initialize an empty list to store the matches
 matches = []
-for transaction_idx in range(len(transaction_data)):
+
+# Iterate over each transaction
+for transaction_idx, transaction_row in transaction_data.iterrows():
+    transaction_values = transaction_row[match_columns.keys()].astype(str)
+    transaction_vectors = vectorizer.fit_transform(transaction_values.values)
+
+    # Initialize variables to store the best match for the current transaction
     best_match_score = -1
     best_match_idx = -1
-    for invoice_idx in range(len(invoice_data)):
-        if invoice_idx not in matched_indices:  # Check if the invoice has already been matched
-            similarity_score = similarity_matrix[transaction_idx, invoice_idx]
-            if similarity_score > best_match_score:
-                # Check if the similarity score meets the threshold for each column
-                if (similarity_score >= thresholds['supplier_name'] and
-                        float(transaction_features.iloc[transaction_idx]['source_amount']) >= thresholds['source_amount'] and
-                        float(transaction_features.iloc[transaction_idx]['other_column']) >= thresholds['other_column']):
-                    best_match_score = similarity_score
-                    best_match_idx = invoice_idx
+
+    # Iterate over each invoice
+    for invoice_idx, invoice_row in invoice_data.iterrows():
+        invoice_values = invoice_row[match_columns.keys()].astype(str)
+        invoice_vectors = vectorizer.transform(invoice_values.values)
+
+        # Calculate the cosine similarity matrix
+        similarity_matrix = cosine_similarity(transaction_vectors, invoice_vectors)
+
+        # Calculate the weighted average similarity score
+        weighted_similarity_score = 0
+        total_weight = 0
+
+        # Iterate over each matching column and calculate the weighted similarity score
+        for column, threshold in match_columns.items():
+            similarity_score = similarity_matrix[0, 0]  # Assuming only one row and one column in the matrix
+            if similarity_score >= threshold:
+                weighted_similarity_score += similarity_score * threshold
+                total_weight += threshold
+
+        if total_weight > 0:
+            average_similarity_score = weighted_similarity_score / total_weight
+
+            # Update the best match if the current match is better
+            if average_similarity_score > best_match_score:
+                best_match_score = average_similarity_score
+                best_match_idx = invoice_idx
+
     if best_match_idx != -1:
-        transaction_id = transaction_data.iloc[transaction_idx]['fin_record_key']
-        invoice_id = invoice_data.iloc[best_match_idx]['inv_unmatch_inv_id']
-        transaction_values = transaction_data.iloc[transaction_idx][transaction_columns]
-        invoice_values = invoice_data.iloc[best_match_idx][transaction_columns]
+        transaction_id = transaction_row['fin_record_key']
+        invoice_id = invoice_data.iloc[best_match_idx]['inv_unmatch_id']
+        transaction_values = transaction_row[match_columns.keys()]
+        invoice_values = invoice_data.iloc[best_match_idx][match_columns.keys()]
+
+        # Add matched values to the matches list
         matches.append((transaction_id, invoice_id, transaction_values, invoice_values))
-        matched_indices.add(best_match_idx)
 
 # Display and save the matches
 output_file = 'matches.csv'
@@ -603,3 +614,4 @@ with open(output_file, 'w') as file:
         print(f"Invoice Values: {match[3]}\n")
 
 print(f"Matches saved to {output_file}")
+
