@@ -898,50 +898,6 @@ print(f"Matches saved to {output_file}")
 
 
 
-import pandas as pd
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.feature_extraction.text import CountVectorizer
-
-# Load your transaction and invoice data into pandas DataFrames
-transaction_data = pd.read_csv('transaction_data.csv')
-invoice_data = pd.read_csv('invoice_data.csv')
-
-# Select relevant columns for matching
-transaction_columns = ['supplier_name', 'fin_purc_id', 'source_amt', 'other_column']
-transaction_features = transaction_data[transaction_columns].astype(str)
-invoice_features = invoice_data[['supplier_name', 'ticket_number', 'inv_number', 'source_amt']].astype(str)
-
-# Create a set to store matched invoice indices
-matched_indices = set()
-
-# Create CountVectorizer to convert text data to vectors
-vectorizer = CountVectorizer()
-
-# Fit and transform the transaction names
-transaction_supplier_vectors = vectorizer.fit_transform(transaction_features['supplier_name'])
-transaction_fin_purc_vectors = vectorizer.transform(transaction_features['fin_purc_id'])
-transaction_source_amt_vectors = vectorizer.transform(transaction_features['source_amt'])
-
-# Transform the invoice names
-invoice_supplier_vectors = vectorizer.transform(invoice_features['supplier_name'])
-invoice_ticket_vectors = vectorizer.transform(invoice_features['ticket_number'])
-invoice_inv_vectors = vectorizer.transform(invoice_features['inv_number'])
-invoice_source_amt_vectors = vectorizer.transform(invoice_features['source_amt'])
-
-# Calculate the cosine similarity matrix for supplier_name
-supplier_similarity_matrix = cosine_similarity(transaction_supplier_vectors, invoice_supplier_vectors)
-
-# Calculate the cosine similarity matrix for fin_purc_id
-fin_purc_similarity_matrix = cosine_similarity(transaction_fin_purc_vectors, invoice_ticket_vectors)
-
-# Calculate the cosine similarity matrix for source_amt
-source_amt_similarity_matrix = cosine_similarity(transaction_source_amt_vectors, invoice_source_amt_vectors)
-
-# Set the thresholds for each column
-supplier_threshold = 0.1
-fin_purc_threshold = 0.2
-source_amt_threshold = 0.3
-
 # Find the best matches
 matches = []
 for transaction_idx in range(len(transaction_data)):
@@ -954,27 +910,21 @@ for transaction_idx in range(len(transaction_data)):
         
         if (
             supplier_similarity_score > best_match_score and
-            supplier_similarity_score >= supplier_threshold and
-            (
-                transaction_data.iloc[transaction_idx]['supplier_name'] == invoice_data.iloc[invoice_idx]['supplier_name'] or
-                transaction_data.iloc[transaction_idx]['supplier_name'] == invoice_data.iloc[invoice_idx]['inv_number']
-            )
+            supplier_similarity_score >= supplier_threshold
         ):
             best_match_score = supplier_similarity_score
             best_match_idx = invoice_idx
             
         if (
             fin_purc_similarity_score > best_match_score and
-            fin_purc_similarity_score >= fin_purc_threshold and
-            transaction_data.iloc[transaction_idx]['fin_purc_id'] == invoice_data.iloc[invoice_idx]['ticket_number']
+            fin_purc_similarity_score >= fin_purc_threshold
         ):
             best_match_score = fin_purc_similarity_score
             best_match_idx = invoice_idx
             
         if (
             source_amt_similarity_score > best_match_score and
-            source_amt_similarity_score >= source_amt_threshold and
-            transaction_data.iloc[transaction_idx]['source_amt'] == invoice_data.iloc[invoice_idx]['source_amt']
+            source_amt_similarity_score >= source_amt_threshold
         ):
             best_match_score = source_amt_similarity_score
             best_match_idx = invoice_idx
