@@ -1158,6 +1158,7 @@ for transaction_idx in range(len(transaction_data)):
 
 
 
+# Find the best matches
 matches = []
 for transaction_idx in range(len(transaction_data)):
     best_match_score = -1
@@ -1170,12 +1171,25 @@ for transaction_idx in range(len(transaction_data)):
                 similarity_scores.append(similarity_score)
         if similarity_scores and min(similarity_scores) > best_match_score:
             # Check if any condition is a match
-            if transaction_data.iloc[transaction_idx]['supplier_name'] == invoice_data.iloc[invoice_idx]['ticket_number'] \
+            if (transaction_data.iloc[transaction_idx]['supplier_name'] == invoice_data.iloc[invoice_idx]['ticket_number'] \
                     or transaction_data.iloc[transaction_idx]['supplier_name'] == invoice_data.iloc[invoice_idx]['inv_number'] \
-                    or transaction_data.iloc[transaction_idx]['auth_no'] == invoice_data.iloc[invoice_idx]['auth_no']:
+                    or transaction_data.iloc[transaction_idx]['auth_no'] == invoice_data.iloc[invoice_idx]['auth_no']) \
+                    and transaction_data.iloc[transaction_idx]['source_amount'] == invoice_data.iloc[invoice_idx]['amount'] \
+                    and transaction_data.iloc[transaction_idx]['company_id'] == invoice_data.iloc[invoice_idx]['company_id']:
                 best_match_score = min(similarity_scores)
                 best_match_idx = invoice_idx
     if best_match_idx != -1:
         transaction_id = transaction_data.iloc[transaction_idx]['fin_record_key']
         invoice_id = invoice_data.iloc[best_match_idx]['inv_unmatch_inv_id']
+        
+        # Get the matching column values
+        transaction_values = transaction_data.iloc[transaction_idx][transaction_columns]
+        invoice_values = invoice_data.iloc[best_match_idx][invoice_features.name]
+        
+        # Add matched values to the matches list
+        matches.append((transaction_id, invoice_id, transaction_values, invoice_values, best_match_score))
+        
+        # Update matched indices
+        matched_indices.add(best_match_idx)
+
 
