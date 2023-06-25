@@ -829,118 +829,63 @@ print(count)
 
 
 
+import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import CountVectorizer
 
-def find_matches(table1, table2, thresholds):
-    matches = []
-    
-    vectorizers = {}
-    for column, threshold in thresholds.items():
-        vectorizer = CountVectorizer().fit_transform([str(row[column]) for row in table1])
-        table1_vectors = vectorizer.toarray()
-        vectorizers[column] = (vectorizer, table1_vectors)
-    
-    for row1 in table1:
-        for row2 in table2:
-            similarity_sum = 0.0
-            for column, threshold in thresholds.items():
-                vectorizer, table1_vectors = vectorizers[column]
-                vector2 = vectorizer.transform([str(row2[column])]).toarray()
-                similarity = cosine_similarity(table1_vectors, vector2)
-                max_similarity = similarity.max()
-                similarity_sum += max_similarity
-            average_similarity = similarity_sum / len(thresholds)
-            
-            if average_similarity >= threshold:
-                match = {
-                    'Row1': row1,
-                    'Row2': row2,
-                    'Similarity': average_similarity
-                }
-                matches.append(match)
-    
-    return matches
+# Load your transaction and invoice data into pandas DataFrames
+transaction_data = pd.read_csv('transaction_data.csv')
+invoice_data = pd.read_csv('invoice_data.csv')
 
-# Example usage
-table1 = [
-    {'Supplier Name': 'ABC Company', 'Ticket Number': '123', 'Invoice Number': '456'},
-    {'Supplier Name': 'XYZ Corp', 'Ticket Number': '789', 'Invoice Number': '012'}
-]
+# Select relevant columns for matching
+transaction_columns = ['supplier_name', 'inv_number', 'source_amount', 'other_column']
+transaction_features = transaction_data[transaction_columns].astype(str)
+invoice_features = invoice_data[['ticket_number', 'inv_number']].astype(str).apply(lambda x: ' '.join(x), axis=1)
 
-table2 = [
-    {'Ticket Number': '123', 'Invoice Number': '457'},
-    {'Ticket Number': '789', 'Invoice Number': '011'},
-    {'Ticket Number': '999', 'Invoice Number': '888'}
-]
+# Create a set to store matched invoice indices
+matched_indices = set()
 
-thresholds = {
-    'Supplier Name': 0.8,
-    'Ticket Number': 0.9,
-    'Invoice Number': 0.7
-}
+# Create CountVectorizer to convert text data to vectors
+vectorizer = CountVectorizer()
 
-matches = find_matches(table1, table2, thresholds)
+# Fit and transform the transaction names
+transaction_vectors = vectorizer.fit_transform(transaction_features['supplier_name'] + ' ' + transaction_features['inv_number'])
 
-for match in matches:
-    print(f"Match found!\nRow 1: {match['Row1']}\nRow 2: {match['Row2']}\nSimilarity: {match['Similarity']}%\n")
+# Transform the invoice names
+invoice_vectors = vectorizer.transform(invoice_features)
 
+# Calculate the cosine similarity matrix
+similarity_matrix = cosine_similarity(transaction_vectors, invoice_vectors)
 
+threshold = 0.1
+# Find the best matches
+matches = []
+for transaction_idx in range(len(transaction_data)):
+    best_match_score = -1
+    best_match_idx = -1
+    for invoice_idx in range(len(invoice_data)):
+        similarity_score = similarity_matrix[transaction_idx, invoice_idx]
+        if similarity_score > best_match_score and similarity_score >= threshold:
+            best_match_score = similarity_score
+            best_match_idx = invoice_idx
+    if best_match_idx != -1:
+        transaction_id = transaction_data.iloc[transaction_idx]['fin_record_key']
+        invoice_id = invoice_data.iloc[best_match_idx]['inv_unmatch_inv_id']
+        # Get the matching column values
+        transaction_values = transaction_data.iloc[transaction_idx][transaction_columns]
+        invoice_values = invoice_data.iloc[best_match_idx][['ticket_number', 'inv_number']]
+        # Add matched values to the matches list
+        matches.append((transaction_id, invoice_id, transaction_values, invoice_values))
 
+# Display and save the matches
+output_file = 'matches.csv'
+with open(output_file, 'w') as file:
+    file.write("Transaction ID, Invoice ID, Supplier Name, Inv Number, Transaction Values, Invoice Values\n")
+    for match in matches:
+        file.write(f"{match[0]}, {match[1]}, {match[2]}, {match[3]}\n")
+        print(f"Match found: Transaction ID {match[0]} -> Invoice ID {match[1]}")
+        print(f"Transaction Values: {match[2]}")
+        print(f"Invoice Values: {match[3]}\n")
 
+print(f"Matches saved to {output_file}")
 
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.feature_extraction.text import CountVectorizer
-
-def find_matches(table1, table2, thresholds):
-    matches = []
-    
-    vectorizers = {}
-    for column, threshold in thresholds.items():
-        vectorizer = CountVectorizer().fit([str(row[column]) for row in table1])
-        table1_vectors = vectorizer.transform([str(row[column]) for row in table1])
-        vectorizers[column] = (vectorizer, table1_vectors)
-    
-    for row1 in table1:
-        for row2 in table2:
-            similarity_sum = 0.0
-            for column, threshold in thresholds.items():
-                vectorizer, table1_vectors = vectorizers[column]
-                vector2 = vectorizer.transform([str(row2[column])])
-                similarity = cosine_similarity(table1_vectors, vector2)
-                max_similarity = similarity.max()
-                similarity_sum += max_similarity
-            average_similarity = similarity_sum / len(thresholds)
-            
-            if average_similarity >= threshold:
-                match = {
-                    'Row1': row1,
-                    'Row2': row2,
-                    'Similarity': average_similarity
-                }
-                matches.append(match)
-    
-    return matches
-
-# Example usage
-table1 = [
-    {'Supplier Name': 'ABC Company', 'Ticket Number': '123', 'Invoice Number': '456'},
-    {'Supplier Name': 'XYZ Corp', 'Ticket Number': '789', 'Invoice Number': '012'}
-]
-
-table2 = [
-    {'Ticket Number': '123', 'Invoice Number': '457'},
-    {'Ticket Number': '789', 'Invoice Number': '011'},
-    {'Ticket Number': '999', 'Invoice Number': '888'}
-]
-
-thresholds = {
-    'Supplier Name': 0.8,
-    'Ticket Number': 0.9,
-    'Invoice Number': 0.7
-}
-
-matches = find_matches(table1, table2, thresholds)
-
-for match in matches:
-    print(f"Match found!\nRow 1: {match['Row1']}\nRow 2: {match['Row2']}\nSimilarity: {match['Similarity']}%\n")
