@@ -824,3 +824,63 @@ for transaction_idx, transaction_row in transaction_features.iterrows():
                 count += 1
 
 print(count)
+
+
+
+
+
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import CountVectorizer
+
+def find_matches(table1, table2, thresholds):
+    matches = []
+    
+    vectorizers = {}
+    for column, threshold in thresholds.items():
+        vectorizer = CountVectorizer().fit_transform([str(row[column]) for row in table1])
+        table1_vectors = vectorizer.toarray()
+        vectorizers[column] = (vectorizer, table1_vectors)
+    
+    for row1 in table1:
+        for row2 in table2:
+            similarity_sum = 0.0
+            for column, threshold in thresholds.items():
+                vectorizer, table1_vectors = vectorizers[column]
+                vector2 = vectorizer.transform([str(row2[column])]).toarray()
+                similarity = cosine_similarity(table1_vectors, vector2)
+                max_similarity = similarity.max()
+                similarity_sum += max_similarity
+            average_similarity = similarity_sum / len(thresholds)
+            
+            if average_similarity >= threshold:
+                match = {
+                    'Row1': row1,
+                    'Row2': row2,
+                    'Similarity': average_similarity
+                }
+                matches.append(match)
+    
+    return matches
+
+# Example usage
+table1 = [
+    {'Supplier Name': 'ABC Company', 'Ticket Number': '123', 'Invoice Number': '456'},
+    {'Supplier Name': 'XYZ Corp', 'Ticket Number': '789', 'Invoice Number': '012'}
+]
+
+table2 = [
+    {'Ticket Number': '123', 'Invoice Number': '457'},
+    {'Ticket Number': '789', 'Invoice Number': '011'},
+    {'Ticket Number': '999', 'Invoice Number': '888'}
+]
+
+thresholds = {
+    'Supplier Name': 0.8,
+    'Ticket Number': 0.9,
+    'Invoice Number': 0.7
+}
+
+matches = find_matches(table1, table2, thresholds)
+
+for match in matches:
+    print(f"Match found!\nRow 1: {match['Row1']}\nRow 2: {match['Row2']}\nSimilarity: {match['Similarity']}%\n")
