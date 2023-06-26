@@ -1173,14 +1173,13 @@ with open(output_file, 'w') as file:
 
 
 
-    # Check if transaction is already matched
-    if transaction_id in matched_invoices:
-        continue
-    
-    for invoice_idx, invoice_row in invoice_data.iterrows():
-        invoice_id = invoice_row['inv_unmatch_inv_id']
-        
-        # Skip already matched invoices
-        if invoice_id in matched_invoices:
-            continue
-        
+# Create CountVectorizer to convert text data to vectors
+vectorizer = CountVectorizer()
+
+# Calculate the cosine similarity for each relevant column
+similarity_scores = {}
+for column in transaction_columns + invoice_columns:
+    transaction_vectors = vectorizer.fit_transform(transaction_data[column].astype(str))
+    invoice_vectors = vectorizer.transform(invoice_data[column].astype(str))
+    similarity_matrix = cosine_similarity(transaction_vectors, invoice_vectors)
+    similarity_scores[column] = similarity_matrix
