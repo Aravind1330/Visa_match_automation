@@ -1173,13 +1173,12 @@ with open(output_file, 'w') as file:
 
 
 
-# Create CountVectorizer to convert text data to vectors
-vectorizer = CountVectorizer()
-
-# Calculate the cosine similarity for each relevant column
+# Calculate the cosine similarity for each column
 similarity_scores = {}
-for column in transaction_columns + invoice_columns:
+for column in transaction_columns:
+    vectorizer = CountVectorizer()
     transaction_vectors = vectorizer.fit_transform(transaction_data[column].astype(str))
     invoice_vectors = vectorizer.transform(invoice_data[column].astype(str))
     similarity_matrix = cosine_similarity(transaction_vectors, invoice_vectors)
     similarity_scores[column] = similarity_matrix
+
