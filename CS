@@ -1182,3 +1182,11 @@ for column in transaction_columns:
     similarity_matrix = cosine_similarity(transaction_vectors, invoice_vectors)
     similarity_scores[column] = similarity_matrix
 
+
+
+
+
+final_match = pd.DataFrame(matches, columns=['Transaction ID', 'Invoice ID', 'Transaction Values', 'Invoice Values', 'Similarity Score'])
+final_match = final_match.sort_values('Similarity Score', ascending=False)
+final_match = final_match.drop_duplicates(subset='Invoice ID', keep='first')
+print(final_match.head(50))
