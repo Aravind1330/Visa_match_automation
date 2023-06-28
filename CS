@@ -1190,3 +1190,22 @@ final_match = pd.DataFrame(matches, columns=['Transaction ID', 'Invoice ID', 'Tr
 final_match = final_match.sort_values('Similarity Score', ascending=False)
 final_match = final_match.drop_duplicates(subset='Invoice ID', keep='first')
 print(final_match.head(50))
+
+
+
+
+
+
+
+        # Check if all conditions are met
+        if (transaction_row['supplier_name'] == invoice_row['ticket_number'] or
+            transaction_row['supplier_name'] == invoice_row['supplier_name']) and \
+           transaction_auth_no == invoice_auth_no and \
+           abs(transaction_source_amount - invoice_source_amount) <= thresholds['source_amount'] and \
+           transaction_row['company_id'] == invoice_company_id and \
+           average_similarity_score >= thresholds['supplier_name_ticket']:
+            
+            if average_similarity_score > best_match_score:
+                best_match_score = average_similarity_score
+                best_match_idx = invoice_idx
+    
