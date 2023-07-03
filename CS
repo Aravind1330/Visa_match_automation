@@ -1323,4 +1323,17 @@ with open(output_file, 'w') as file:
 
         file.write(f"{transaction_id}, {invoice_id}, {transaction_values_string}, {invoice_values_string}, {similarity_score}\n")
 
+# Create a DataFrame from the matches
+final_match = pd.DataFrame(matches, columns=['Transaction ID', 'Invoice ID', 'Transaction Values', 'Invoice Values', 'Similarity Score'])
+
+# Sort the DataFrame by 'Similarity Score' in ascending order
+final_match = final_match.sort_values('Similarity Score', ascending=False)
+
+# Drop duplicate invoices, keeping only the first occurrence
+final_match = final_match.drop_duplicates(subset='Invoice ID', keep='first')
+
+# Print the first 50 rows of the final matches DataFrame
+print(final_match.head(50))
+
+
 
