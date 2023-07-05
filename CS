@@ -1337,3 +1337,24 @@ print(final_match.head(50))
 
 
 
+
+
+
+# Create CountVectorizer for each column
+vectorizers = {col: CountVectorizer() for col in transaction_columns}
+
+# Calculate the cosine similarity for each column
+similarity_matrices = {}
+for col in transaction_columns:
+    vectorizer = vectorizers[col]
+
+    # Fit and transform the transaction column
+    transaction_vectors = vectorizer.fit_transform(transaction_data[col].astype(str))
+    
+    # Transform the invoice column
+    invoice_vectors = vectorizer.transform(invoice_data[col].astype(str))
+    
+    # Calculate the cosine similarity matrix
+    similarity_matrix = cosine_similarity(transaction_vectors, invoice_vectors)
+    similarity_matrices[col] = similarity_matrix
+
