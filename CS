@@ -1339,12 +1339,12 @@ print(final_match.head(50))
 
 
 
-
 similarity_matrices = {}
+vectorizers = {}
 for col in transaction_columns:
     vectorizer = CountVectorizer()
     transaction_vectors = vectorizer.fit_transform(transaction_data[col].astype(str))
     invoice_vectors = vectorizer.transform(invoice_data[col].astype(str))
     similarity_matrix = cosine_similarity(transaction_vectors, invoice_vectors)
     similarity_matrices[col] = similarity_matrix
-
+    vectorizers[col] = vectorizer
