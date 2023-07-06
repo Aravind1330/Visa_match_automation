@@ -1688,3 +1688,11 @@ def cosine_similarity(set_a, set_b, error_log):
         return similarity
     except Exception as e:
         error_log.append(e)
+
+
+
+
+        if len(matching_invoices) == 1:
+            output_row['Match Type'] = "one-to-one"
+        else:
+            output_row['Match Type'] = "bundle match"
