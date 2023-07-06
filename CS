@@ -1676,23 +1676,28 @@ print(filtered_result)
 
 
 
-import math
+for T5 in T5_table:
+    match_found, match_rule = one_to_one_match(T5, IV_table)
+    matching_invoices, bundle_rule = bundle_match(T5, IV_table)
 
-def cosine_similarity(set_a, set_b, error_log):
-    try:
-        dot_product = sum(a * b for a, b in zip(set_a, set_b))
-        magnitude_a = math.sqrt(sum(a * a for a in set_a))
-        magnitude_b = math.sqrt(sum(b * b for b in set_b))
-        
-        similarity = dot_product / (magnitude_a * magnitude_b)
-        return similarity
-    except Exception as e:
-        error_log.append(e)
-
-
-
-
-        if len(matching_invoices) == 1:
-            output_row['Match Type'] = "one-to-one"
-        else:
+    if match_found:
+        matching_invoice, rule_index = match_found
+        description = rule_descriptions.get(match_rule)
+        output_row = {column: T5[column] if column in T5 else matching_invoice[column] for column in output_columns}
+        output_row['Match Rule'] = rule_numbers.get(match_rule)
+        output_row['description'] = description
+        output_row['Match Type'] = "one-to-one"
+        output_rows.append(output_row)
+        matched_invoices.append(matching_invoice)
+    elif matching_invoices:
+        for invoice, rule_index in matching_invoices:
+            description = rule_descriptions.get(rule_index)
+            output_row = {column: T5[column] if column in T5 else invoice[column] for column in output_columns}
+            output_row['Match Rule'] = rule_numbers.get(bundle_rule)
+            output_row['description'] = description
             output_row['Match Type'] = "bundle match"
+            output_rows.append(output_row)
+            matched_invoices.append(invoice)
+    else:
+        unmatched_output_row = {column: T5[column] if column in T5 else None for column in unmatched_output_columns}
+        unmatched_output_rows.append(unmatched_output_row)
