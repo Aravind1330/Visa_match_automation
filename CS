@@ -1672,3 +1672,19 @@ filtered_result = result[(transaction['supplier_name'] == invoice['ticket_number
 
 print(filtered_result)
 
+
+
+
+
+import math
+
+def cosine_similarity(set_a, set_b, error_log):
+    try:
+        dot_product = sum(a * b for a, b in zip(set_a, set_b))
+        magnitude_a = math.sqrt(sum(a * a for a in set_a))
+        magnitude_b = math.sqrt(sum(b * b for b in set_b))
+        
+        similarity = dot_product / (magnitude_a * magnitude_b)
+        return similarity
+    except Exception as e:
+        error_log.append(e)
