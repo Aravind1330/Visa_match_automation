@@ -1543,7 +1543,7 @@ def calculate_cosine_similarity(vector1, vector2):
 # Function to convert columns to vectors
 def convert_to_vectors(df):
     vectors = []
-    for column in df.columns:
+    for column in df:
         vector = df[column].values
         vectors.append(vector)
     return vectors
@@ -1590,4 +1590,3 @@ transaction_row = transaction_df.iloc[0]
 invoice_row = invoice_df.iloc[0]
 is_match = calculate_match(transaction_row, invoice_row, thresholds)
 print(is_match)
-
