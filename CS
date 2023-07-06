@@ -1395,11 +1395,50 @@ for transaction_idx, transaction_row in transaction_data.iterrows():
 
 
 
+import pandas as pd
+import numpy as np
+
+def cosine_similarity(vector1, vector2):
+    dot_product = np.dot(vector1, vector2)
+    norm_vector1 = np.linalg.norm(vector1)
+    norm_vector2 = np.linalg.norm(vector2)
+    similarity = dot_product / (norm_vector1 * norm_vector2)
+    return similarity
+
+# Load your transaction and invoice data into pandas DataFrames
+transaction_data = pd.read_csv('transaction_data.csv')
+invoice_data = pd.read_csv('invoice_data.csv')
+
+# Select relevant columns for matching
+transaction_columns = ['supplier_name', 'source_amount', 'auth_no']
+invoice_columns = ['ticket_number', 'inv_number', 'auth_no', 'amount', 'company_id']
+
+# Set thresholds for each condition
+thresholds = {
+    'supplier_name': 0.1,
+    'auth_no': 0.1,
+    'source_amount': 0.2,
+}
+
+# Create CountVectorizer for each column separately
+vectorizers = {}
+for column in transaction_columns + invoice_columns:
+    vectorizers[column] = CountVectorizer()
+
+# Fit and transform the transaction and invoice data for each column
+transaction_vectors = {}
+invoice_vectors = {}
+for column in transaction_columns:
+    transaction_vectors[column] = vectorizers[column].fit_transform(transaction_data[column])
+for column in invoice_columns:
+    invoice_vectors[column] = vectorizers[column].transform(invoice_data[column].astype(str))
+
 # Calculate the cosine similarity matrix for each column
 similarity_matrices = {}
 for column in transaction_columns:
-    transaction_values = transaction_data[column].astype(str)
-    invoice_values = invoice_data[column].astype(str)
-    transaction_vectors[column] = vectorizers[column].fit_transform(transaction_values)
-    invoice_vectors[column] = vectorizers[column].transform(invoice_values)
-    similarity_matrices[column] = cosine_similarity(transaction_vectors[column], invoice_vectors[column])
+    transaction_values = transaction_vectors[column].toarray()
+    invoice_values = invoice_vectors[column].toarray()
+    similarity_matrices[column] = np.zeros((transaction_values.shape[0], invoice_values.shape[0]))
+    for i in range(transaction_values.shape[0]):
+        for j in range(invoice_values.shape[0]):
+            similarity_matrices[column][i, j] = cosine_similarity(transaction_values[i], invoice_values[j])
