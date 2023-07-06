@@ -1339,12 +1339,52 @@ print(final_match.head(50))
 
 
 
-similarity_matrices = {}
+# Create CountVectorizer for each column separately
 vectorizers = {}
-for col in transaction_columns:
-    vectorizer = CountVectorizer()
-    transaction_vectors = vectorizer.fit_transform(transaction_data[col].astype(str))
-    invoice_vectors = vectorizer.transform(invoice_data[col].astype(str))
-    similarity_matrix = cosine_similarity(transaction_vectors, invoice_vectors)
-    similarity_matrices[col] = similarity_matrix
-    vectorizers[col] = vectorizer
+for column in transaction_columns + invoice_columns:
+    vectorizers[column] = CountVectorizer()
+
+# Fit and transform the transaction and invoice data for each column
+transaction_vectors = {}
+invoice_vectors = {}
+for column in transaction_columns:
+    transaction_vectors[column] = vectorizers[column].fit_transform(transaction_data[column])
+for column in invoice_columns:
+    invoice_vectors[column] = vectorizers[column].transform(invoice_data[column].astype(str))
+
+# Calculate the cosine similarity matrix for each column
+similarity_matrices = {}
+for column in transaction_columns:
+    similarity_matrices[column] = cosine_similarity(transaction_vectors[column], invoice_vectors[column])
+
+for transaction_idx, transaction_row in transaction_data.iterrows():
+    transaction_id = transaction_row['fin_record_key']
+    transaction_values = transaction_row[transaction_columns]
+    
+    best_match_score = -1
+    best_match_idx = -1
+    
+    for invoice_idx, invoice_row in invoice_data.iterrows():
+        invoice_id = invoice_row['inv_unmatch_inv_id']
+        invoice_values = invoice_row[invoice_columns]
+        
+        similarity_scores = []
+        
+        # Calculate similarity scores for each column
+        for column in transaction_columns:
+            similarity_matrix = similarity_matrices[column]
+            similarity_score = similarity_matrix[transaction_idx, invoice_idx]
+            similarity_scores.append(similarity_score)
+        
+        # Check if all conditions are matched
+        if all(score >= thresholds[column] for score, column in zip(similarity_scores, transaction_columns)):
+            average_score = sum(similarity_scores) / len(similarity_scores)
+            if average_score > best_match_score:
+                best_match_score = average_score
+                best_match_idx = invoice_idx
+    
+    if best_match_idx != -1:
+        invoice_id = invoice_data.loc[best_match_idx, 'inv_unmatch_inv_id']
+        invoice_values = invoice_data.loc[best_match_idx, invoice_columns]
+        matches.append((transaction_id, invoice_id, transaction_values, invoice_values, best_match_score))
+
