@@ -1388,3 +1388,18 @@ for transaction_idx, transaction_row in transaction_data.iterrows():
         invoice_values = invoice_data.loc[best_match_idx, invoice_columns]
         matches.append((transaction_id, invoice_id, transaction_values, invoice_values, best_match_score))
 
+
+
+
+
+
+
+
+# Calculate the cosine similarity matrix for each column
+similarity_matrices = {}
+for column in transaction_columns:
+    transaction_values = transaction_data[column].astype(str)
+    invoice_values = invoice_data[column].astype(str)
+    transaction_vectors[column] = vectorizers[column].fit_transform(transaction_values)
+    invoice_vectors[column] = vectorizers[column].transform(invoice_values)
+    similarity_matrices[column] = cosine_similarity(transaction_vectors[column], invoice_vectors[column])
