@@ -1442,3 +1442,43 @@ for column in transaction_columns:
     for i in range(transaction_values.shape[0]):
         for j in range(invoice_values.shape[0]):
             similarity_matrices[column][i, j] = cosine_similarity(transaction_values[i], invoice_values[j])
+
+
+
+
+import numpy as np
+import pandas as pd
+from sklearn.metrics.pairwise import cosine_similarity
+
+# Example data
+data1 = {
+    'column1': [1, 4, 7],
+    'column2': [2, 5, 8],
+    'column3': [3, 6, 9]
+}
+
+data2 = {
+    'column1': [1, 4, 0],
+    'column2': [0, 5, 8],
+    'column3': [3, 0, 9]
+}
+
+# Convert data to pandas DataFrames
+df1 = pd.DataFrame(data1)
+df2 = pd.DataFrame(data2)
+
+# Function to calculate cosine similarity column-wise using column names
+def cosine_similarity_columnwise(df1, df2):
+    similarity_scores = []
+    columns = df1.columns
+    for column in columns:
+        column1 = df1[column].values.reshape(-1, 1)
+        column2 = df2[column].values.reshape(-1, 1)
+        similarity = cosine_similarity(column1, column2)
+        similarity_scores.append(similarity)
+    similarity_scores = np.concatenate(similarity_scores, axis=1)
+    return similarity_scores
+
+# Calculate cosine similarity column-wise
+similarity_matrix = cosine_similarity_columnwise(df1, df2)
+print(similarity_matrix)
