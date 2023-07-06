@@ -1593,3 +1593,46 @@ invoice_row = invoice_df.iloc[0]
 is_match = calculate_match(transaction_row, invoice_row, thresholds)
 print(is_match)
 
+
+
+
+
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
+
+def calculate_cosine_similarity(table1, table2):
+    # Convert the tables to numpy arrays
+    table1_array = np.array(table1)
+    table2_array = np.array(table2)
+
+    # Calculate cosine similarity column-wise
+    cosine_similarities = cosine_similarity(table1_array.T, table2_array.T)
+
+    # Create a list to store the column-wise similarities
+    similarities = []
+
+    # Iterate over the columns
+    for i in range(cosine_similarities.shape[0]):
+        similarity_values = cosine_similarities[i]
+        similarities.append(similarity_values)
+
+    # Return the column-wise similarities
+    return similarities
+
+
+
+# Example tables
+table1 = [[1, 2, 3],
+          [4, 5, 6],
+          [7, 8, 9]]
+
+table2 = [[2, 3, 4],
+          [5, 6, 7],
+          [8, 9, 10]]
+
+# Calculate cosine similarity
+similarities = calculate_cosine_similarity(table1, table2)
+
+# Print the column-wise similarities
+for i, similarity_values in enumerate(similarities):
+    print(f"Column {i+1} similarity values: {similarity_values}")
