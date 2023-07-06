@@ -1507,6 +1507,7 @@ print(is_match)
 import numpy as np
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import CountVectorizer
 
 # Example data
 transaction_data = {
@@ -1533,27 +1534,26 @@ thresholds = {
 transaction_df = pd.DataFrame(transaction_data)
 invoice_df = pd.DataFrame(invoice_data)
 
-# Function to calculate cosine similarity between two vectors
-def calculate_cosine_similarity(vector1, vector2):
-    vector1 = np.array(vector1).reshape(1, -1)
-    vector2 = np.array(vector2).reshape(1, -1)
-    similarity = cosine_similarity(vector1, vector2)
-    return similarity[0][0]
-
-# Function to convert columns to vectors
-def convert_to_vectors(df):
-    vectors = []
+# Function to convert columns to n-grams
+def convert_to_ngrams(df, n=2):
+    ngram_columns = []
     for column in df:
-        vector = df[column].values
-        vectors.append(vector)
-    return vectors
+        ngram_vectorizer = CountVectorizer(ngram_range=(n, n))
+        ngram_matrix = ngram_vectorizer.fit_transform(df[column])
+        ngram_columns.append(ngram_matrix)
+    return ngram_columns
+
+# Function to calculate cosine similarity between two matrices
+def calculate_cosine_similarity(matrix1, matrix2):
+    similarity = cosine_similarity(matrix1, matrix2)
+    return similarity
 
 # Function to calculate average similarity score
-def calculate_average_similarity_score(transaction_vectors, invoice_vectors):
+def calculate_average_similarity_score(transaction_matrices, invoice_matrices):
     similarity_scores = []
-    for transaction_vector, invoice_vector in zip(transaction_vectors, invoice_vectors):
-        similarity_score = calculate_cosine_similarity(transaction_vector, invoice_vector)
-        similarity_scores.append(similarity_score)
+    for transaction_matrix, invoice_matrix in zip(transaction_matrices, invoice_matrices):
+        similarity_matrix = calculate_cosine_similarity(transaction_matrix, invoice_matrix)
+        similarity_scores.append(np.mean(similarity_matrix))
     average_similarity_score = np.mean(similarity_scores)
     return average_similarity_score
 
@@ -1572,10 +1572,12 @@ def calculate_match(transaction_row, invoice_row, thresholds):
     # Check condition 4: company_id match
     condition_4 = transaction_row['company_id'] == invoice_row['company_id']
     
+    # Convert transaction and invoice data to n-grams
+    transaction_matrices = convert_to_ngrams(transaction_row)
+    invoice_matrices = convert_to_ngrams(invoice_row)
+    
     # Calculate average similarity score
-    transaction_vectors = convert_to_vectors(transaction_row)
-    invoice_vectors = convert_to_vectors(invoice_row)
-    average_similarity_score = calculate_average_similarity_score(transaction_vectors, invoice_vectors)
+    average_similarity_score = calculate_average_similarity_score(transaction_matrices, invoice_matrices)
     
     # Check condition 5: average_similarity_score >= supplier_name_ticket threshold
     condition_5 = average_similarity_score >= thresholds['supplier_name_ticket']
@@ -1590,3 +1592,4 @@ transaction_row = transaction_df.iloc[0]
 invoice_row = invoice_df.iloc[0]
 is_match = calculate_match(transaction_row, invoice_row, thresholds)
 print(is_match)
+
