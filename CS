@@ -1500,3 +1500,20 @@ def calculate_match(transaction_row, invoice_row, thresholds):
 # Calculate match based on given conditions
 is_match = calculate_match(transaction_row, invoice_row, thresholds)
 print(is_match)
+
+
+
+
+# Function to calculate average similarity score
+def calculate_average_similarity_score():
+    # Assuming you have the code to fetch the necessary data for similarity calculation
+    transaction_data = fetch_transaction_data()
+    invoice_data = fetch_invoice_data()
+
+    similarity_scores = []
+    for transaction_vector, invoice_vector in zip(transaction_data, invoice_data):
+        similarity_score = calculate_cosine_similarity(transaction_vector, invoice_vector)
+        similarity_scores.append(similarity_score)
+    
+    average_similarity_score = np.mean(similarity_scores)
+    return average_similarity_score
