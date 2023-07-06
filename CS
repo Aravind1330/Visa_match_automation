@@ -1451,34 +1451,52 @@ import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 
 # Example data
-data1 = {
-    'column1': [1, 4, 7],
-    'column2': [2, 5, 8],
-    'column3': [3, 6, 9]
+transaction_row = {
+    'supplier_name': 'ABC',
+    'auth_no': '123',
+    'source_amount': 100,
+    'company_id': 'XYZ'
 }
 
-data2 = {
-    'column1': [1, 4, 0],
-    'column2': [0, 5, 8],
-    'column3': [3, 0, 9]
+invoice_row = {
+    'ticket_number': '123',
+    'supplier_name': 'ABC',
+    'auth_no': '123',
+    'source_amount': 102,
+    'company_id': 'XYZ'
 }
 
-# Convert data to pandas DataFrames
-df1 = pd.DataFrame(data1)
-df2 = pd.DataFrame(data2)
+thresholds = {
+    'source_amount': 2,
+    'supplier_name_ticket': 0.8
+}
 
-# Function to calculate cosine similarity column-wise using column names
-def cosine_similarity_columnwise(df1, df2):
-    similarity_scores = []
-    columns = df1.columns
-    for column in columns:
-        column1 = df1[column].values.reshape(-1, 1)
-        column2 = df2[column].values.reshape(-1, 1)
-        similarity = cosine_similarity(column1, column2)
-        similarity_scores.append(similarity)
-    similarity_scores = np.concatenate(similarity_scores, axis=1)
-    return similarity_scores
+# Function to calculate match based on given conditions
+def calculate_match(transaction_row, invoice_row, thresholds):
+    # Check condition 1: supplier_name match
+    condition_1 = (transaction_row['supplier_name'] == invoice_row['ticket_number'] or
+                  transaction_row['supplier_name'] == invoice_row['supplier_name'])
+    
+    # Check condition 2: auth_no match
+    condition_2 = transaction_row['auth_no'] == invoice_row['auth_no']
+    
+    # Check condition 3: source_amount difference within threshold
+    condition_3 = abs(transaction_row['source_amount'] - invoice_row['source_amount']) <= thresholds['source_amount']
+    
+    # Check condition 4: company_id match
+    condition_4 = transaction_row['company_id'] == invoice_row['company_id']
+    
+    # Calculate average similarity score (assuming you have the code for this)
+    average_similarity_score = calculate_average_similarity_score()
+    
+    # Check condition 5: average_similarity_score >= supplier_name_ticket threshold
+    condition_5 = average_similarity_score >= thresholds['supplier_name_ticket']
+    
+    # Determine match based on all conditions
+    match = condition_1 and condition_2 and condition_3 and condition_4 and condition_5
+    
+    return match
 
-# Calculate cosine similarity column-wise
-similarity_matrix = cosine_similarity_columnwise(df1, df2)
-print(similarity_matrix)
+# Calculate match based on given conditions
+is_match = calculate_match(transaction_row, invoice_row, thresholds)
+print(is_match)
