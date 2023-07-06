@@ -1621,18 +1621,43 @@ def calculate_cosine_similarity(table1, table2):
 
 
 
-# Example tables
-table1 = [[1, 2, 3],
-          [4, 5, 6],
-          [7, 8, 9]]
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
 
-table2 = [[2, 3, 4],
-          [5, 6, 7],
-          [8, 9, 10]]
+def cosine_similarity_columnwise(table1, table2, thresholds, column_names):
+    matching_rows = []
+    similarity_scores = {}
+    average_similarity_score = 0.0
+    
+    for col1, col2, threshold, column_name in zip(table1.T, table2.T, thresholds, column_names):
+        col1 = col1.reshape(1, -1)
+        col2 = col2.reshape(1, -1)
+        
+        similarity_score = cosine_similarity(col1, col2)[0][0]
+        similarity_scores[column_name] = similarity_score
+        average_similarity_score += similarity_score
+        
+        if similarity_score < threshold:
+            print("Similarity below threshold for column", column_name)
+    
+    average_similarity_score /= len(column_names)
+    
+    return matching_rows, similarity_scores, average_similarity_score
 
-# Calculate cosine similarity
-similarities = calculate_cosine_similarity(table1, table2)
+matching_rows, similarity_scores, average_similarity_score = cosine_similarity_columnwise(table1, table2, thresholds, column_names)
 
-# Print the column-wise similarities
-for i, similarity_values in enumerate(similarities):
-    print(f"Column {i+1} similarity values: {similarity_values}")
+if (transaction_row['supplier_name'] == invoice_row['ticket_number'] or
+    transaction_row['supplier_name'] == invoice_row['supplier_name']) and \
+   transaction_row['transaction_auth_no'] == invoice_row['invoice_auth_no'] and \
+   abs(transaction_row['transaction_source_amount'] - invoice_row['invoice_source_amount']) <= thresholds['source_amount'] and \
+   transaction_row['company_id'] == invoice_row['invoice_company_id'] and \
+   average_similarity_score >= thresholds['supplier_name_ticket']:
+       matching_rows.append((transaction_row, invoice_row))
+       print("Conditions satisfied!")
+
+print("Matching rows:")
+for transaction_row, invoice_row in matching_rows:
+    print("Transaction Row:", transaction_row)
+    print("Invoice Row:", invoice_row)
+    print()  # Blank line for separation
+
