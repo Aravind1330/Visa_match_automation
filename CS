@@ -1621,43 +1621,54 @@ def calculate_cosine_similarity(table1, table2):
 
 
 
-import numpy as np
+import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 
-def cosine_similarity_columnwise(table1, table2, thresholds, column_names):
-    matching_rows = []
-    similarity_scores = {}
-    average_similarity_score = 0.0
-    
-    for col1, col2, threshold, column_name in zip(table1.T, table2.T, thresholds, column_names):
-        col1 = col1.reshape(1, -1)
-        col2 = col2.reshape(1, -1)
-        
-        similarity_score = cosine_similarity(col1, col2)[0][0]
-        similarity_scores[column_name] = similarity_score
-        average_similarity_score += similarity_score
-        
-        if similarity_score < threshold:
-            print("Similarity below threshold for column", column_name)
-    
-    average_similarity_score /= len(column_names)
-    
-    return matching_rows, similarity_scores, average_similarity_score
+# Function to calculate cosine similarity between two columns
+def calculate_cosine_similarity(column1, column2):
+    vec1 = column1.values.reshape(1, -1)
+    vec2 = column2.values.reshape(1, -1)
+    similarity = cosine_similarity(vec1, vec2)[0][0]
+    return similarity
 
-matching_rows, similarity_scores, average_similarity_score = cosine_similarity_columnwise(table1, table2, thresholds, column_names)
+# Function to compare columns of two tables using cosine similarity
+def compare_tables(table1, table2, thresholds):
+    result = pd.DataFrame()
 
-if (transaction_row['supplier_name'] == invoice_row['ticket_number'] or
-    transaction_row['supplier_name'] == invoice_row['supplier_name']) and \
-   transaction_row['transaction_auth_no'] == invoice_row['invoice_auth_no'] and \
-   abs(transaction_row['transaction_source_amount'] - invoice_row['invoice_source_amount']) <= thresholds['source_amount'] and \
-   transaction_row['company_id'] == invoice_row['invoice_company_id'] and \
-   average_similarity_score >= thresholds['supplier_name_ticket']:
-       matching_rows.append((transaction_row, invoice_row))
-       print("Conditions satisfied!")
+    for column1 in table1.columns:
+        if column1 in table2.columns:
+            column2 = table2[column1]
+            similarity_score = calculate_cosine_similarity(table1[column1], column2)
+            result[column1] = similarity_score
 
-print("Matching rows:")
-for transaction_row, invoice_row in matching_rows:
-    print("Transaction Row:", transaction_row)
-    print("Invoice Row:", invoice_row)
-    print()  # Blank line for separation
+            # Check if similarity score meets the threshold for the current column
+            if column1 in thresholds and similarity_score >= thresholds[column1]:
+                result[column1 + '_match'] = True
+            else:
+                result[column1 + '_match'] = False
+
+    return result
+
+# Define the thresholds for each column
+thresholds = {
+    'source_amount': 0.9,
+    'supplier_name_ticket': 0.8
+}
+
+# Assuming you have two tables named 'transaction' and 'invoice'
+transaction = pd.read_csv('transaction.csv')
+invoice = pd.read_csv('invoice.csv')
+
+# Apply the conditions and calculate cosine similarity
+result = compare_tables(transaction, invoice, thresholds)
+
+# Apply additional conditions
+filtered_result = result[(transaction['supplier_name'] == invoice['ticket_number'] or
+                          transaction['supplier_name'] == invoice['supplier_name']) and
+                         transaction['transaction_auth_no'] == invoice['invoice_auth_no'] and
+                         abs(transaction['transaction_source_amount'] - invoice['invoice_source_amount']) <= thresholds['source_amount'] and
+                         transaction['company_id'] == invoice['invoice_company_id'] and
+                         result['supplier_name_ticket_match'] >= thresholds['supplier_name_ticket']]
+
+print(filtered_result)
 
