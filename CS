@@ -1676,28 +1676,14 @@ print(filtered_result)
 
 
 
-for T5 in T5_table:
-    match_found, match_rule = one_to_one_match(T5, IV_table)
-    matching_invoices, bundle_rule = bundle_match(T5, IV_table)
+# Create CountVectorizer to convert text data to vectors
+vectorizer = CountVectorizer()
 
-    if match_found:
-        matching_invoice, rule_index = match_found
-        description = rule_descriptions.get(match_rule)
-        output_row = {column: T5[column] if column in T5 else matching_invoice[column] for column in output_columns}
-        output_row['Match Rule'] = rule_numbers.get(match_rule)
-        output_row['description'] = description
-        output_row['Match Type'] = "one-to-one"
-        output_rows.append(output_row)
-        matched_invoices.append(matching_invoice)
-    elif matching_invoices:
-        for invoice, rule_index in matching_invoices:
-            description = rule_descriptions.get(rule_index)
-            output_row = {column: T5[column] if column in T5 else invoice[column] for column in output_columns}
-            output_row['Match Rule'] = rule_numbers.get(bundle_rule)
-            output_row['description'] = description
-            output_row['Match Type'] = "bundle match"
-            output_rows.append(output_row)
-            matched_invoices.append(invoice)
-    else:
-        unmatched_output_row = {column: T5[column] if column in T5 else None for column in unmatched_output_columns}
-        unmatched_output_rows.append(unmatched_output_row)
+# Fit and transform the transaction columns
+transaction_vectors = vectorizer.fit_transform(transaction_data[transaction_columns].astype(str).values.flatten())
+
+# Transform the invoice columns
+invoice_vectors = vectorizer.transform(invoice_data[invoice_columns].astype(str).values.flatten())
+
+# Calculate the cosine similarity matrix
+similarity_matrix = cosine_similarity(transaction_vectors, invoice_vectors)
