@@ -1951,3 +1951,15 @@ similarity_score = cosine_similarity([string_vectors[0]], [string_vectors[1]])
 
 # Print the similarity score
 print("Similarity score:", similarity_score[0][0])
+
+
+
+
+# Set the threshold
+threshold = 0.5
+
+# Compare similarity score with the threshold
+if similarity_score[0][0] >= threshold:
+    print("Strings are similar.")
+else:
+    print("Strings are not similar.")
