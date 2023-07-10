@@ -1955,11 +1955,45 @@ print("Similarity score:", similarity_score[0][0])
 
 
 
-# Set the threshold
-threshold = 0.5
 
-# Compare similarity score with the threshold
-if similarity_score[0][0] >= threshold:
-    print("Strings are similar.")
-else:
-    print("Strings are not similar.")
+
+
+
+
+
+
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+
+def calculate_similarity(str1, str2, n):
+    # Preprocess the strings by converting them to lowercase and removing non-alphanumeric characters
+    str1 = ''.join(ch.lower() for ch in str1 if ch.isalnum())
+    str2 = ''.join(ch.lower() for ch in str2 if ch.isalnum())
+
+    # Create a TfidfVectorizer object with character n-gram range
+    vectorizer = TfidfVectorizer(analyzer='char', ngram_range=(n, n))
+
+    # Fit and transform the strings
+    tfidf_matrix = vectorizer.fit_transform([str1, str2])
+
+    # Calculate the cosine similarity
+    similarity_matrix = cosine_similarity(tfidf_matrix[0], tfidf_matrix[1])
+
+    # Get the similarity percentage
+    similarity_percentage = similarity_matrix[0][0] * 100
+
+    return similarity_percentage
+
+# Example strings
+str1 = 'ABCD123'
+str2 = '789ABCD1234'
+
+# Set the character n-gram range
+n = 1  # For individual characters
+
+# Calculate the similarity percentage
+similarity_percentage = calculate_similarity(str1, str2, n)
+
+# Print the similarity percentage
+print(f"The similarity between the strings is: {similarity_percentage:.2f}%")
