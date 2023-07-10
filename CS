@@ -1692,3 +1692,24 @@ similarity_matrix = cosine_similarity(transaction_vectors, invoice_vectors)
 
 
 https://usa.visa.com/content/dam/VCOM/regional/na/us/products/documents/vdi-nyc-and-co-case-study.pdf
+
+
+
+
+
+
+# Calculate the cosine similarity matrix for each column individually
+similarity_matrix = {}
+
+# Create CountVectorizer to convert text data to vectors
+vectorizer = CountVectorizer()
+
+for column in transaction_data.columns:
+    # Fit and transform the transaction column
+    transaction_vector = vectorizer.fit_transform(transaction_data[column].astype(str))
+
+    # Transform the invoice column
+    invoice_vector = vectorizer.transform(invoice_data[column].astype(str))
+
+    # Calculate the cosine similarity matrix
+    similarity_matrix[column] = cosine_similarity(transaction_vector, invoice_vector)
