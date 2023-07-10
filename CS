@@ -1931,3 +1931,23 @@ vectors_df = pd.concat([data.select_dtypes(include=['int64', 'float64']), text_v
 
 # Print the vectorized dataset
 print(vectors_df)
+
+
+
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+# Example strings
+string1 = "I love cats"
+string2 = "I adore dogs"
+
+# Convert strings into vectors using TF-IDF
+tfidf_vectorizer = TfidfVectorizer()
+string_vectors = tfidf_vectorizer.fit_transform([string1, string2])
+string_vectors = string_vectors.toarray()
+
+# Compute cosine similarity between the vectors
+similarity_score = cosine_similarity([string_vectors[0]], [string_vectors[1]])
+
+# Print the similarity score
+print("Similarity score:", similarity_score[0][0])
