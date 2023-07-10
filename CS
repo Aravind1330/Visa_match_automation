@@ -1783,3 +1783,36 @@ thresholds = {
 }
 
 find_matching_rows(table1, table2, thresholds)
+
+
+
+def find_matching_rows(table1, table2, thresholds):
+    # Convert columns of both tables to vectors
+    table1_vectors = convert_to_vectors([row['supplier_name'].lower() for row in table1])
+    table2_vectors = convert_to_vectors([row['supplier_name'].lower() for row in table2])
+
+    # Get the number of rows in each table
+    table1_rows = table1_vectors.shape[0]
+    table2_rows = table2_vectors.shape[0]
+
+    # Perform cosine similarity calculations and find matching rows
+    for i in range(table1_rows):
+        for j in range(table2_rows):
+            transaction_row = table1[i]
+            invoice_row = table2[j]
+            transaction_auth_no = transaction_row['auth_no']
+            invoice_auth_no = invoice_row['auth_no']
+            transaction_source_amount = transaction_row['source_amount']
+            invoice_source_amount = invoice_row['source_amount']
+            transaction_company_id = transaction_row['company_id']
+            invoice_company_id = invoice_row['company_id']
+            similarity_score = cosine_similarity(table1_vectors[i], table2_vectors[j])[0][0]
+
+            if (transaction_row['supplier_name'].lower() == invoice_row['ticket_number'].lower() or
+                    transaction_row['supplier_name'].lower() == invoice_row['supplier_name'].lower()) and \
+                    transaction_auth_no == invoice_auth_no and \
+                    abs(transaction_source_amount - invoice_source_amount) <= thresholds['source_amount'] and \
+                    transaction_company_id == invoice_company_id and \
+                    similarity_score >= thresholds['supplier_name_ticket']:
+                print(f"Matching score: {similarity_score}")
+                print(f"Row {i} in Table 1 matches Row {j} in Table 2")
