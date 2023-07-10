@@ -1901,3 +1901,33 @@ output_df.to_csv(config['output_files']['output_file'], index=False)
 # Write the aggregated data to Excel
 with pd.ExcelWriter(config['output_files']['output_file']) as writer:
     output_df.to_excel(writer, sheet_name='Output', index=False)
+
+
+
+
+import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+# Load the dataset
+data = pd.read_csv('your_dataset.csv')
+
+# Convert text columns into vectors using TF-IDF
+text_columns = data.select_dtypes(include=['object']).columns
+
+tfidf_vectorizer = TfidfVectorizer()
+text_vectors = tfidf_vectorizer.fit_transform(data[text_columns].values.astype('U'))
+text_vectors_df = pd.DataFrame(text_vectors.toarray(), columns=tfidf_vectorizer.get_feature_names())
+
+# Convert categorical columns into vectors using TF-IDF
+categorical_columns = data.select_dtypes(include=['category']).columns
+
+for column in categorical_columns:
+    cat_vectors = tfidf_vectorizer.fit_transform(data[column].values.astype('U'))
+    cat_vectors_df = pd.DataFrame(cat_vectors.toarray(), columns=tfidf_vectorizer.get_feature_names())
+    text_vectors_df = pd.concat([text_vectors_df, cat_vectors_df], axis=1)
+
+# Combine the vectors with the original dataset
+vectors_df = pd.concat([data.select_dtypes(include=['int64', 'float64']), text_vectors_df], axis=1)
+
+# Print the vectorized dataset
+print(vectors_df)
