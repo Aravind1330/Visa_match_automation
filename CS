@@ -2035,3 +2035,91 @@ string1 = "3451"
 string2 = "A34515"
 similarity = calculate_similarity_percentage(string1, string2)
 print(f"Similarity percentage: {similarity}%")
+
+
+
+
+
+import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+
+def calculate_similarity(str1, str2, n):
+    # Preprocess the strings by converting them to lowercase and removing non-alphanumeric characters
+    str1 = ''.join(ch.lower() for ch in str1 if ch.isalnum())
+    str2 = ''.join(ch.lower() for ch in str2 if ch.isalnum())
+
+    # Create a TfidfVectorizer object with character n-gram range
+    vectorizer = TfidfVectorizer(analyzer='char', ngram_range=(n, n))
+
+    # Fit and transform the strings
+    tfidf_matrix = vectorizer.fit_transform([str1, str2])
+
+    # Calculate the cosine similarity
+    similarity_matrix = cosine_similarity(tfidf_matrix[0], tfidf_matrix[1])
+
+    # Get the similarity percentage
+    similarity_percentage = similarity_matrix[0][0] * 100
+    return similarity_percentage
+
+
+def process_data(transaction_file, invoice_file):
+    transaction_data = pd.read_excel(transaction_file)
+    invoice_data = pd.read_excel(invoice_file)
+
+    count = 0
+    matches = []
+    matched_invoices = []
+
+    for transaction_idx, transaction_row in transaction_data.iterrows():
+        transaction_id = transaction_row['T5_RECORD_KEY']
+        transaction_supplier_name = transaction_row['T5_ORIG_SUPPLIER_NM']
+        transaction_source_amount = transaction_row['5_SOURCE_AMT']
+        transaction_auth_no = transaction_row['T5_AUTH_NBR']
+        transaction_purchase = transaction_row['PURCH_ID']
+        transaction_acct = transaction_row['ACCOUNT']
+        transaction_company_id = transaction_row['fin_company_id']
+        transaction_D_C = transaction_row['fin_debit_credit_ind']
+        best_match_score = -1
+        best_match_idx = -1
+
+        for invoice_idx, invoice_row in invoice_data.iterrows():
+            invoice_string = invoice_row['invoice_string']
+            invoice_ticket_number = str(invoice_row['TICKET_NUM'])
+            invoice_inv_no = str(invoice_row['INVNUMBER'])
+            invoice_auth_no = invoice_row['inv_authn_num']
+            invoice_amount = invoice_row['MATCH_SOURCE_AMT']
+            invoice_company_id = invoice_row['inv_company_id']
+            invoice_acct = invoice_row['ACCOUNT']
+            invoice_D_C = invoice_row['INVTYPECD']
+
+            supp_similarity_score_tkt = calculate_similarity(transaction_supplier_name, invoice_ticket_number, 3)
+            supp_similarity_score_inv = calculate_similarity(transaction_supplier_name, invoice_inv_no, 3)
+            auth_no_score = calculate_similarity(transaction_auth_no, invoice_auth_no, 3)
+            purd_id_score_tkt = calculate_similarity(transaction_purchase, invoice_ticket_number, 3)
+            purd_id_score_inv = calculate_similarity(transaction_purchase, invoice_inv_no, 3)
+            similarity_score = max(supp_similarity_score_tkt, supp_similarity_score_inv, auth_no_score, purd_id_score_inv)
+
+            condition1 = supp_similarity_score_tkt > -thresholds['supp-similarity_score-_tkt']
+            condition2 = supp_similarity_score_inv > -thresholds['supp-similarity_score-inv']
+
+            if condition1 and condition2:
+                if similarity_score > best_match_score:
+                    best_match_score = similarity_score
+                    best_match_idx = invoice_idx
+
+        if best_match_idx != -1:
+            invoice_id = invoice_data.loc[best_match_idx, 'inv_unmatch_inv_id']
+            transaction_values = transaction_row[transaction_columns]
+            invoice_values = invoice_data.loc[best_match_idx, invoice_columns]
+            matches.append((transaction_id, invoice_id, transaction_values, invoice_values, best_match_score))
+            count += 1
+            print(count)
+            matched_invoices.append(invoice_id)
+
+    return matches, matched_invoices
+
+# Example usage
+transaction_file = 'transaction_data.xlsx'
+invoice_file = 'invoice_data.xlsx'
+matches, matched_invoices = process_data(transaction_file, invoice_file)
