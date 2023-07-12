@@ -2238,7 +2238,36 @@ def process_data(transaction_file, invoice_file):
 
     return matches, matched_invoices
 
-# Example usage
-transaction_file = 'transaction_data.xlsx'
-invoice_file = 'invoice_data.xlsx'
-matches, matched_invoices = process_data(transaction_file, invoice_file)
+
+
+
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.preprocessing import OneHotEncoder
+
+# Sample data
+table1_column = ['apple', 'banana', 'orange', 'apple']
+table2_column = ['orange', 'grape', 'banana', 'apple']
+
+# Preprocess the data
+# In this example, we'll use one-hot encoding to represent the categorical data
+
+# Create an instance of the encoder
+encoder = OneHotEncoder()
+
+# Fit and transform table1_column
+table1_column_encoded = encoder.fit_transform(np.array(table1_column).reshape(-1, 1))
+
+# Fit and transform table2_column
+table2_column_encoded = encoder.fit_transform(np.array(table2_column).reshape(-1, 1))
+
+# Iterate over each row and compute cosine similarity
+for i in range(len(table1_column_encoded.toarray())):
+    for j in range(len(table2_column_encoded.toarray())):
+        similarity_score = cosine_similarity(
+            table1_column_encoded[i], table2_column_encoded[j]
+        )
+        print(
+            f"Cosine similarity between row {i+1} in table 1 and row {j+1} in table 2: {similarity_score[0][0]}"
+        )
+
