@@ -2271,3 +2271,23 @@ for i in range(len(table1_column_encoded.toarray())):
             f"Cosine similarity between row {i+1} in table 1 and row {j+1} in table 2: {similarity_score[0][0]}"
         )
 
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+
+def calculate_similarity(str1, str2):
+    # Preprocess the strings by converting them to lowercase and removing non-alphanumeric characters
+    str1 = ''.join(ch.lower() for ch in str1 if ch.isalnum())
+    str2 = ''.join(ch.lower() for ch in str2 if ch.isalnum())
+    
+    # Create a CountVectorizer object
+    vectorizer = CountVectorizer(analyzer='char')
+    
+    # Fit and transform the strings
+    tf_matrix = vectorizer.fit_transform([str1, str2])
+    
+    # Calculate the cosine similarity
+    similarity_matrix = cosine_similarity(tf_matrix[0], tf_matrix[1])
+    
+    # Get the similarity percentage
+    similarity_percentage = similarity_matrix[0][0] * 100
+    return similarity_percentage
