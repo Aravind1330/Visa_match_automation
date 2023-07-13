@@ -2288,3 +2288,33 @@ def calculate_similarity(str1, str2, n):
     similarity_percentage = similarity_matrix[0][0] * 100
 
     return similarity_percentage
+
+
+
+
+
+
+def calculate_similarity(str1, str2, n):
+    # Preprocess the strings by converting them to lowercase
+    str1 = str1.lower()
+    str2 = str2.lower()
+
+    # Generate character n-grams for each string
+    ngrams_str1 = [str1[i:i+n] for i in range(len(str1)-n+1)]
+    ngrams_str2 = [str2[i:i+n] for i in range(len(str2)-n+1)]
+
+    # Count the occurrences of each n-gram in each string
+    counts_str1 = {gram: ngrams_str1.count(gram) for gram in ngrams_str1}
+    counts_str2 = {gram: ngrams_str2.count(gram) for gram in ngrams_str2}
+
+    # Calculate the dot product of the two count vectors
+    dot_product = sum(counts_str1.get(gram, 0) * counts_str2.get(gram, 0) for gram in set(ngrams_str1 + ngrams_str2))
+
+    # Calculate the Euclidean norm of each count vector
+    norm_str1 = math.sqrt(sum(counts_str1.get(gram, 0) ** 2 for gram in set(ngrams_str1)))
+    norm_str2 = math.sqrt(sum(counts_str2.get(gram, 0) ** 2 for gram in set(ngrams_str2)))
+
+    # Calculate the cosine similarity
+    similarity = dot_product / (norm_str1 * norm_str2) if norm_str1 * norm_str2 != 0 else 0
+
+    return similarity*100
