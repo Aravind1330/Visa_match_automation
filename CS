@@ -2378,3 +2378,48 @@ def calculate_similarity(str1, str2, n):
     similarity = dot_product / (norm_str1 * norm_str2) if norm_str1 * norm_str2 != 0 else 0
 
     return similarity
+
+
+
+
+
+
+
+
+
+
+
+
+def match_bundle(T5, Invoice_table):
+    matching_invoices = []
+    unmatched_invoices = Invoice_table[:]
+    total_invoice_source_amt = 0
+    match_rule = None
+    rule_index = 1
+
+    while rule_index <= len(rules) and unmatched_invoices:
+        invoices_to_remove = []
+        for i in range(len(unmatched_invoices)):
+            invoice = unmatched_invoices[i]
+            if not any(value == '' or pd.isna(value) for value in invoice.values()):
+                if rules[rule_index - 1](T5, Invoice=invoice):
+                    invoice_amt = float(invoice['inv_match_source_amt'])
+                    remaining_amt = float(T5['fin_source_amt']) - total_invoice_source_amt
+                    if invoice_amt <= remaining_amt:
+                        matching_invoices.append((invoice, rule_index))
+                        total_invoice_source_amt += invoice_amt
+                        invoices_to_remove.append(i)
+
+        for index in sorted(invoices_to_remove, reverse=True):
+            unmatched_invoices.pop(index)
+
+        if total_invoice_source_amt == float(T5['fin_source_amt']):
+            match_rule = rule_index
+            break
+
+        rule_index += 1
+
+    if total_invoice_source_amt == float(T5['fin_source_amt']):
+        return matching_invoices, match_rule
+    else:
+        return [], unmatched_invoices
