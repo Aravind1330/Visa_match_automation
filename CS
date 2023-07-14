@@ -2423,3 +2423,7 @@ def match_bundle(T5, Invoice_table):
         return matching_invoices, match_rule
     else:
         return [], unmatched_invoices
+
+
+
+            if not (T5['t5_auth'] == '' or pd.isna(T5['t5_auth'])) and not (invoice['inv_auth'] == '' or pd.isna(invoice['inv_auth'])):
