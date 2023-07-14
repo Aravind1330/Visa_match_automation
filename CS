@@ -2426,4 +2426,40 @@ def match_bundle(T5, Invoice_table):
 
 
 
-            if not (T5['t5_auth'] == '' or pd.isna(T5['t5_auth'])) and not (invoice['inv_auth'] == '' or pd.isna(invoice['inv_auth'])):
+def is_empty_match(T5, Invoice):
+    # Check if both T5 and Invoice values are empty
+    return (T5 == '') and (Invoice == '')
+
+def match_bundle(T5, Invoice_table):
+    matching_invoices = []
+    unmatched_invoices = Invoice_table[:]
+    total_invoice_source_amt = 0
+    match_rule = None
+    rule_index = 1
+
+    while rule_index <= len(rules) and unmatched_invoices:
+        invoices_to_remove = []
+        for i in range(len(unmatched_invoices)):
+            invoice = unmatched_invoices[i]
+            if not is_empty_match(T5['t5_auth'], invoice['inv_auth']):
+                if rules[rule_index - 1](T5, Invoice=invoice):
+                    invoice_amt = float(invoice['inv_match_source_amt'])
+                    remaining_amt = float(T5['fin_source_amt']) - total_invoice_source_amt
+                    if invoice_amt <= remaining_amt:
+                        matching_invoices.append((invoice, rule_index))
+                        total_invoice_source_amt += invoice_amt
+                        invoices_to_remove.append(i)
+
+        for index in sorted(invoices_to_remove, reverse=True):
+            unmatched_invoices.pop(index)
+
+        if total_invoice_source_amt == float(T5['fin_source_amt']):
+            match_rule = rule_index
+            break
+
+        rule_index += 1
+
+    if total_invoice_source_amt == float(T5['fin_source_amt']):
+        return matching_invoices, match_rule
+    else:
+        return [], unmatched_invoices
