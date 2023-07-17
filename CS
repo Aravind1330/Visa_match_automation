@@ -2491,3 +2491,11 @@ grouped_df = grouped_df.rename(columns={rule_column: rule_column})
 
 # Print the resulting DataFrame
 print(grouped_df)
+
+
+
+
+grouped_df['Count'] = df.groupby(acct_column)[rule_column].size().reset_index(drop=True)
+
+# Rename the columns
+grouped_df = grouped_df.rename(columns={rule_column: rule_column, 'Count': 'Count'})
