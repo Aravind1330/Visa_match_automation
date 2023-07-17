@@ -2463,3 +2463,31 @@ def match_bundle(T5, Invoice_table):
         return matching_invoices, match_rule
     else:
         return [], unmatched_invoices
+
+
+
+
+
+
+
+
+
+
+
+import pandas as pd
+
+# Read the dataset from a CSV file
+df = pd.read_csv('your_dataset.csv')  # Replace 'your_dataset.csv' with the actual file path
+
+# Specify the column names
+acct_column = 'AcctNumber'
+rule_column = 'RuleIDs'
+
+# Group the RuleIDs by Account Number
+grouped_df = df.groupby(acct_column)[rule_column].apply(list).reset_index()
+
+# Rename the column
+grouped_df = grouped_df.rename(columns={rule_column: rule_column})
+
+# Print the resulting DataFrame
+print(grouped_df)
