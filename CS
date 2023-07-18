@@ -2499,3 +2499,49 @@ grouped_df['Count'] = df.groupby(acct_column)[rule_column].size().reset_index(dr
 
 # Rename the columns
 grouped_df = grouped_df.rename(columns={rule_column: rule_column, 'Count': 'Count'})
+
+
+
+
+
+
+
+
+
+
+
+
+import pandas as pd
+
+# Read Excel file into pandas DataFrames
+df_rules = pd.read_excel('path/to/excel/file.xlsx', sheet_name='fst_rules_mI')
+df_seq = pd.read_excel('path/to/excel/file.xlsx', sheet_name='fst_rule_sequence')
+
+# Apply transformations
+df_rules['flag'] = 'Y'
+
+df_rule_seq = df_rules.merge(df_seq, left_on='rule_no', right_on='rule_id', how='inner')
+
+def get_category(rule_description):
+    if 'Ticket' in rule_description:
+        return 'Ticket'
+    elif 'Invoice' in rule_description:
+        return 'Invoice'
+    elif 'Auth' in rule_description:
+        return 'Auth'
+    elif 'PNR' in rule_description:
+        return 'PNR'
+    else:
+        return 'Company'
+
+df_rule_seq['category'] = df_rule_seq['rule_description'].apply(get_category)
+
+df_rule_seq_ctg = df_rule_seq[['rule_no', 'rule', 'rule_description', 'company_id', 'transaction_count', 'flag', 'category']]
+
+df_rule_seq_ctg_group = df_rule_seq_ctg.groupby('category').agg({'transaction_count': 'max'}).reset_index()
+
+df_rule_seq_ctg_group['sequence2'] = df_rule_seq_ctg_group['transaction_count'].rank(ascending=False)
+
+df_rule_seq_ctg_group.sort_values('sequence2', ascending=True, inplace=True)
+
+f_final_rule = df_rule_seq_ctg.merge(df_rule_seq_ctg_group[['category', 'sequence2']], on='category', how='inner').sort_values('sequence2')
