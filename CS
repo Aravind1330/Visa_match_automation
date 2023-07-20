@@ -2549,7 +2549,31 @@ f_final_rule = df_rule_seq_ctg.merge(df_rule_seq_ctg_group[['category', 'sequenc
 
 
 
-# Remove rows with zero source amount
-# Remove rows with zero source amount
-# Remove rows with zero source amount
-T5_table = [row for row in T5_table if row['fin_source_amt'] != 0.0]
+
+
+
+
+
+# Aggregated table
+aggregated_df = pd.DataFrame(output_rows, columns=config['output_columns1'])
+aggregated = aggregated_df.groupby(['fin_company_id', 'Match Rule']).size().reset_index(name='TRF')
+
+# Update the aggregated TRF counts in the dictionary
+for i, row in aggregated.iterrows():
+    company_id = row['fin_company_id']
+    match_rule = row['Match Rule']
+    trf_count = row['TRF']
+
+    if company_id in aggregated_dict:
+        aggregated_dict[company_id][match_rule] = trf_count
+    else:
+        aggregated_dict[company_id] = {match_rule: trf_count}
+
+# Convert the updated dictionary back to a DataFrame
+updated_aggregated = pd.DataFrame(aggregated_dict).T.reset_index()
+updated_aggregated.rename(columns={'index': 'fin_company_id'}, inplace=True)
+updated_aggregated = updated_aggregated.fillna(0)
+
+# Save the updated aggregated table to Excel
+with pd.ExcelWriter('updated_aggregated.xlsx') as writer:
+    updated_aggregated.to_excel(writer, sheet_name='Aggregated', index=False)
