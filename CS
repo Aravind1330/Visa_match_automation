@@ -2551,4 +2551,5 @@ f_final_rule = df_rule_seq_ctg.merge(df_rule_seq_ctg_group[['category', 'sequenc
 
 # Remove rows with zero source amount
 # Remove rows with zero source amount
-T5_table = [row for row in T5_table if not (isinstance(row['fin_source_amt'], list) and all(val == 0.0 for val in row['fin_source_amt']))]
+# Remove rows with zero source amount
+T5_table = [row for row in T5_table if row['fin_source_amt'] != 0.0]
