@@ -2554,26 +2554,36 @@ f_final_rule = df_rule_seq_ctg.merge(df_rule_seq_ctg_group[['category', 'sequenc
 
 
 
-# Aggregated table
-aggregated_df = pd.DataFrame(output_rows, columns=config['output_columns1'])
-aggregated = aggregated_df.groupby(['fin_company_id', 'Match Rule']).size().reset_index(name='TRF')
+# Load existing data if the file exists, otherwise create an empty DataFrame
+if os.path.exists('transaction_counts.csv'):
+    transaction_counts_df = pd.read_csv('transaction_counts.csv')
+else:
+    transaction_counts_df = pd.DataFrame(columns=['fin_company_id', 'Match Rule', 'Transaction Count'])
 
-# Update the aggregated TRF counts in the dictionary
+# Calculate the new transaction counts and update the DataFrame
+aggregated = output_df.groupby(['fin_company_id', 'Match Rule']).size().reset_index(name='Transaction Count')
+total = aggregated['Transaction Count'].sum()
+aggregated = aggregated.append(pd.Series(['Total', None, total], index=aggregated.columns), ignore_index=True)
+
+# Update the existing data or add new rows
 for i, row in aggregated.iterrows():
     company_id = row['fin_company_id']
-    match_rule = row['Match Rule']
-    trf_count = row['TRF']
+    rule_number = row['Match Rule']
+    transaction_count = row['Transaction Count']
 
-    if company_id in aggregated_dict:
-        aggregated_dict[company_id][match_rule] = trf_count
+    # Check if the combination of company ID and rule number already exists in the DataFrame
+    existing_row = transaction_counts_df[
+        (transaction_counts_df['fin_company_id'] == company_id) &
+        (transaction_counts_df['Match Rule'] == rule_number)
+    ]
+
+    if not existing_row.empty:
+        # Update the existing row with the new transaction count
+        transaction_counts_df.loc[existing_row.index, 'Transaction Count'] += transaction_count
     else:
-        aggregated_dict[company_id] = {match_rule: trf_count}
+        # Add a new row for the company ID and rule number with the transaction count
+        new_row = pd.DataFrame([[company_id, rule_number, transaction_count]], columns=['fin_company_id', 'Match Rule', 'Transaction Count'])
+        transaction_counts_df = transaction_counts_df.append(new_row, ignore_index=True)
 
-# Convert the updated dictionary back to a DataFrame
-updated_aggregated = pd.DataFrame(aggregated_dict).T.reset_index()
-updated_aggregated.rename(columns={'index': 'fin_company_id'}, inplace=True)
-updated_aggregated = updated_aggregated.fillna(0)
-
-# Save the updated aggregated table to Excel
-with pd.ExcelWriter('updated_aggregated.xlsx') as writer:
-    updated_aggregated.to_excel(writer, sheet_name='Aggregated', index=False)
+# Save the updated data to the file
+transaction_counts_df.to_csv('transaction_counts.csv', index=False)
