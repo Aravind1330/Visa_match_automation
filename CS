@@ -2545,3 +2545,9 @@ df_rule_seq_ctg_group['sequence2'] = df_rule_seq_ctg_group['transaction_count'].
 df_rule_seq_ctg_group.sort_values('sequence2', ascending=True, inplace=True)
 
 f_final_rule = df_rule_seq_ctg.merge(df_rule_seq_ctg_group[['category', 'sequence2']], on='category', how='inner').sort_values('sequence2')
+
+
+
+
+# Remove rows with zero source amount
+T5_table = [row for row in T5_table if not all(val == 0 for val in row['fin_source_amt'])]
