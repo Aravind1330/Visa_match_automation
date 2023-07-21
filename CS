@@ -2587,3 +2587,41 @@ for i, row in aggregated.iterrows():
 
 # Save the updated data to the file
 transaction_counts_df.to_csv('transaction_counts.csv', index=False)
+
+
+
+
+
+
+
+
+
+
+
+
+
+import pandas as pd
+from datetime import datetime, timedelta
+
+# ... (The existing code you provided above)
+
+# Assuming 'posting_date' is the column containing the posting date in 'output_df'
+current_date = datetime.now()
+
+# Create a DataFrame to store rows with posting date within 7 days from the current date
+rows_to_remove = output_df[output_df['posting_date'] >= current_date - timedelta(days=7)]
+
+# Remove the rows from output_df
+output_df = output_df[output_df['posting_date'] < current_date - timedelta(days=7)]
+
+# Write the removed rows to a separate CSV file
+rows_to_remove.to_csv('removed_output_file.csv', index=False)
+
+# Write the modified output data to a CSV file
+output_df.to_csv(config['output_files']['output_file'], index=False)
+
+# Write the aggregated data to Excel (assuming you still want to perform this step)
+with pd.ExcelWriter(config['output_files']['output_file']) as writer:
+    output_df.to_excel(writer, sheet_name='Output', index=False)
+
+# ... (The remaining part of the code you provided above)
