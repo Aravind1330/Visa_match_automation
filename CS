@@ -2613,3 +2613,12 @@ rows_to_remove.to_csv('removed_output_file.csv', index=False)
 
 # Write the modified output data to a CSV file
 output_df.to_csv(config['output_files']['output_file'], index=False)
+
+
+
+
+# Convert 'posting_date' column to datetime format if it is not already
+df['posting_date'] = pd.to_datetime(df['posting_date'], errors='coerce')
+
+# Filter rows with valid 'posting_date' (convert invalid dates to NaT)
+df = df.dropna(subset=['posting_date'])
