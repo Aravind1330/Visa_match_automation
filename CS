@@ -2600,25 +2600,66 @@ transaction_counts_df.to_csv('transaction_counts.csv', index=False)
 
 
 
-current_date = pd.to_datetime(datetime.now().date())  # Get the current date without time
+import pytest
 
-# Filter rows with posting date within 7 days from the current date
-rows_to_remove = output_df[output_df['posting_date'] >= current_date - pd.Timedelta(days=7)]
+# Import the function to be tested (make sure the function is in the same directory or module)
+from your_module import match_bundle
 
-# Remove the rows from output_df
-output_df = output_df[output_df['posting_date'] < current_date - pd.Timedelta(days=7)]
+# Define some sample data for testing
+sample_T5 = {
+    'fin_source_amt': '1000.00',  # Sample 'fin_source_amt' value for T5
+}
 
-# Write the removed rows to a separate CSV file
-rows_to_remove.to_csv('removed_output_file.csv', index=False)
+sample_invoice_table = [
+    {'inv_match_source_amt': '300.00'},  # Sample invoice with 'inv_match_source_amt'
+    {'inv_match_source_amt': '200.00'},  # Sample invoice with 'inv_match_source_amt'
+    {'inv_match_source_amt': '400.00'},  # Sample invoice with 'inv_match_source_amt'
+    {'inv_match_source_amt': '100.00'},  # Sample invoice with 'inv_match_source_amt'
+]
 
-# Write the modified output data to a CSV file
-output_df.to_csv(config['output_files']['output_file'], index=False)
+# Define some sample rules to be used by the function
+# In your actual implementation, make sure to import the rules from your module
+def rule_1(T5, Invoice):
+    return True
 
+def rule_2(T5, Invoice):
+    return True
 
+# Test cases
+def test_match_bundle_with_matching_invoices():
+    # Test the case where there are matching invoices
+    matching_invoices, match_rule = match_bundle(sample_T5, sample_invoice_table)
+    assert matching_invoices != []
+    assert match_rule is not None
+    assert sum(float(invoice['inv_match_source_amt']) for invoice, _ in matching_invoices) == float(sample_T5['fin_source_amt'])
 
+def test_match_bundle_with_unmatched_invoices():
+    # Test the case where there are no matching invoices
+    T5 = {'fin_source_amt': '10000.00'}  # A larger amount to ensure no matching invoices
+    unmatched_invoices = sample_invoice_table[:]  # Make a copy of the sample_invoice_table
+    matching_invoices, match_rule = match_bundle(T5, unmatched_invoices)
+    assert matching_invoices == []
+    assert unmatched_invoices == sample_invoice_table  # The original sample_invoice_table should not be modified
 
-# Convert 'posting_date' column to datetime format if it is not already
-df['posting_date'] = pd.to_datetime(df['posting_date'], errors='coerce')
+def test_match_bundle_with_custom_rules():
+    # Test the case where custom rules are used
+    custom_rules = [rule_1, rule_2]
+    matching_invoices, match_rule = match_bundle(sample_T5, sample_invoice_table, rules=custom_rules)
+    assert matching_invoices != []
+    assert match_rule is not None
+    assert sum(float(invoice['inv_match_source_amt']) for invoice, _ in matching_invoices) == float(sample_T5['fin_source_amt'])
 
-# Filter rows with valid 'posting_date' (convert invalid dates to NaT)
-df = df.dropna(subset=['posting_date'])
+def test_match_bundle_with_empty_invoice_table():
+    # Test the case where the invoice table is empty
+    T5 = {'fin_source_amt': '1000.00'}  # Sample T5 data
+    invoice_table = []  # Empty invoice table
+    matching_invoices, match_rule = match_bundle(T5, invoice_table)
+    assert matching_invoices == []
+    assert match_rule is None
+
+# You can add more test cases to cover other scenarios and edge cases as needed
+
+# Run the tests
+if __name__ == '__main__':
+    pytest.main()
+
