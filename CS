@@ -2689,17 +2689,19 @@ def test_match_bundle_success(sample_invoice_table):
 
 import pytest
 
-def test_match_one_to_one_no_match():
+def test_match_one_to_one_successful_match():
     # Replace the following with actual values for T5 and Invoice_table
-    T5 = {'fin_source_amt': '500', 'fin_debit_credit': 'credit'}
+    T5 = {'fin_source_amt': '1000', 'fin_debit_credit': 'debit'}
     Invoice_table = [
+        {'inv_match_source_amt': '1000', 'fin_debit_credit': 'debit'},
+        {'inv_match_source_amt': '200', 'fin_debit_credit': 'credit'},
         {'inv_match_source_amt': '300', 'fin_debit_credit': 'debit'},
-        {'inv_match_source_amt': '200', 'fin_debit_credit': 'debit'},
     ]
 
     matching_invoices, match_rule = match_one_to_one(T5, Invoice_table)
 
     # Assertions
-    assert len(matching_invoices) == 0
-    assert match_rule is None
-
+    assert len(matching_invoices) == 1
+    assert match_rule is not None
+    assert float(matching_invoices[0][0]['inv_match_source_amt']) == float(T5['fin_source_amt'])
+    assert matching_invoices[0][0]['fin_debit_credit'] == T5['fin_debit_credit']
