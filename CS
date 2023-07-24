@@ -2663,3 +2663,16 @@ def test_match_bundle_with_empty_invoice_table():
 if __name__ == '__main__':
     pytest.main()
 
+
+
+# Define the paths to your Excel datasets
+t5_file_path = 'path/to/t5_dataset.xlsx'
+invoice_file_path = 'path/to/invoice_dataset.xlsx'
+
+# Read data from the Excel datasets into DataFrames
+df_t5 = pd.read_excel(t5_file_path)
+df_invoice = pd.read_excel(invoice_file_path)
+
+# Convert DataFrames to dictionaries (assuming each row represents a record)
+t5_data = df_t5.to_dict(orient='records')
+invoice_data = df_invoice.to_dict(orient='records')
