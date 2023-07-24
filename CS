@@ -2684,3 +2684,17 @@ def test_match_bundle_success(sample_invoice_table):
     assert match_rule is not None
     assert sum(float(invoice['inv_match_source_amt']) for invoice, _ in matching_invoices) == float(T5['fin_source_amt'])
 
+
+
+
+def test_match_bundle_no_match(sample_invoice_table):
+    # Replace the following with actual values for T5 and Invoice_table
+    T5 = {'fin_source_amt': '500'}
+    Invoice_table = sample_invoice_table
+
+    matching_invoices, match_rule = match_bundle(T5, Invoice_table)
+
+    # Assertions
+    assert len(matching_invoices) == 0
+    assert match_rule is None
+
