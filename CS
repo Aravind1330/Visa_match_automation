@@ -2687,30 +2687,26 @@ def test_match_bundle_success(sample_invoice_table):
 
 
 
-import pytest
 
-def test_match_one_to_one_successful_match():
-import pytest
 
-# Assuming you have defined the 'rules' and 'rules_df' as shown in your code
 
-def test_match_one_to_one_matching_source_amt():
-    # Replace the following with actual values for T5 and Invoice_table
-    T5 = {'fin_source_amt': '1000', 'fin_debit_credit': 'debit'}
+def test_valid_match():
+    # Sample data for Invoice table and T5
     Invoice_table = [
-        {'inv_match_source_amt': '1000', 'fin_debit_credit': 'debit'},
-        {'inv_match_source_amt': '200', 'fin_debit_credit': 'credit'},
-        {'inv_match_source_amt': '300', 'fin_debit_credit': 'debit'},
-        {'inv_match_source_amt': '1000', 'fin_debit_credit': 'credit'},
-        {'inv_match_source_amt': '1000', 'fin_debit_credit': 'debit'},
+        {'inv_match_source_amt': 100, 'fin_debit_credit': 'debit'},
+        {'inv_match_source_amt': 200, 'fin_debit_credit': 'credit'},
+        {'inv_match_source_amt': 150, 'fin_debit_credit': 'credit'},
     ]
+    T5 = {'fin_source_amt': 200, 'fin_debit_credit': 'credit'}
 
-    matching_invoices, match_rule = match_one_to_one(T5, Invoice_table)
+    # Sample rules
+    rules = [lambda T5, Invoice: T5['fin_source_amt'] == Invoice['inv_match_source_amt']]
 
-    # Assertions
-    assert len(matching_invoices) == 3
-    assert match_rule is not None
-    for invoice, rule_idx in matching_invoices:
-        assert float(invoice['inv_match_source_amt']) == float(T5['fin_source_amt'])
-        assert invoice['fin_debit_credit'] == T5['fin_debit_credit']
+    # Expected output
+    expected_matching_invoices = [({'inv_match_source_amt': 200, 'fin_debit_credit': 'credit'}, 1)]
+    expected_match_rule = 1
 
+    # Run the function and assert the output
+    matching_invoices, match_rule = match_one_to_one(T5, Invoice_table, rules, {})
+    assert matching_invoices == expected_matching_invoices
+    assert match_rule == expected_match_rule
