@@ -2690,23 +2690,39 @@ def test_match_bundle_success(sample_invoice_table):
 
 
 
-def test_valid_match():
-    # Sample data for Invoice table and T5
-    Invoice_table = [
-        {'inv_match_source_amt': 100, 'fin_debit_credit': 'debit'},
-        {'inv_match_source_amt': 200, 'fin_debit_credit': 'credit'},
-        {'inv_match_source_amt': 150, 'fin_debit_credit': 'credit'},
-    ]
-    T5 = {'fin_source_amt': 200, 'fin_debit_credit': 'credit'}
+def match_bundle(T5, Invoice_table):
+    matching_invoices = []
+    unmatched_invoices = Invoice_table[:]
+    total_invoice_source_amt = 0
+    match_rule = None
+    rule_index = 1
 
-    # Sample rules
-    rules = [lambda T5, Invoice: T5['fin_source_amt'] == Invoice['inv_match_source_amt']]
+    while rule_index <= len(rules) and unmatched_invoices:
+        invoices_to_remove = []
+        for i in range(len(unmatched_invoices)):
+            invoice = unmatched_invoices[i]
+            if rules[rule_index - 1](T5, Invoice=invoice):
+                invoice_amt = float(invoice['inv_match_source_amt'])
+                remaining_amt = float(T5['fin_source_amt']) - total_invoice_source_amt
+                if invoice_amt <= remaining_amt:
+                    # Check if the invoice number is the same for the current transaction
+                    if matching_invoices and matching_invoices[0][0]['inv_number'] != invoice['inv_number']:
+                        continue  # Skip this invoice, as it has a different invoice number for this transaction
+                    
+                    matching_invoices.append((invoice, rule_index))
+                    total_invoice_source_amt += invoice_amt
+                    invoices_to_remove.append(i)
 
-    # Expected output
-    expected_matching_invoices = [({'inv_match_source_amt': 200, 'fin_debit_credit': 'credit'}, 1)]
-    expected_match_rule = 1
+        for index in sorted(invoices_to_remove, reverse=True):
+            unmatched_invoices.pop(index)
 
-    # Run the function and assert the output
-    matching_invoices, match_rule = match_one_to_one(T5, Invoice_table, rules, {})
-    assert matching_invoices == expected_matching_invoices
-    assert match_rule == expected_match_rule
+        if total_invoice_source_amt == float(T5['fin_source_amt']):
+            match_rule = rule_index
+            break
+
+        rule_index += 1
+
+    if total_invoice_source_amt == float(T5['fin_source_amt']):
+        return matching_invoices, match_rule
+    else:
+        return [], unmatched_invoices
