@@ -2726,3 +2726,61 @@ def match_bundle(T5, Invoice_table):
         return matching_invoices, match_rule
     else:
         return [], unmatched_invoices
+
+
+
+
+
+
+
+def is_empty_match(T5, Invoice):
+    # Check if both T5 auth and Invoice auth are empty
+    is_auth_empty = (T5['t5_auth'] == '') and (Invoice['inv_auth'] == '')
+    
+    # Check if both T5 ticket number and Invoice ticket number are empty
+    is_ticket_empty = (T5['ticket_number'] == '') and (Invoice['ticket_number'] == '')
+    
+    # Return True if both auth and ticket number are empty in both T5 and Invoice
+    return is_auth_empty and is_ticket_empty
+
+def match_bundle(T5, Invoice_table):
+    matching_invoices = []
+    unmatched_invoices = Invoice_table[:]
+    total_invoice_source_amt = 0
+    match_rule = None
+    rule_index = 1
+
+    while rule_index <= len(rules) and unmatched_invoices:
+        invoices_to_remove = []
+        for i in range(len(unmatched_invoices)):
+            invoice = unmatched_invoices[i]
+            if not is_empty_match(T5, invoice):
+                if rules[rule_index - 1](T5, Invoice=invoice):
+                    invoice_amt = float(invoice['inv_match_source_amt'])
+                    remaining_amt = float(T5['fin_source_amt']) - total_invoice_source_amt
+                    if invoice_amt <= remaining_amt:
+                        matching_invoices.append((invoice, rule_index))
+                        total_invoice_source_amt += invoice_amt
+                        invoices_to_remove.append(i)
+
+        for index in sorted(invoices_to_remove, reverse=True):
+            unmatched_invoices.pop(index)
+
+        if total_invoice_source_amt == float(T5['fin_source_amt']):
+            match_rule = rule_index
+            break
+
+        rule_index += 1
+
+    if total_invoice_source_amt == float(T5['fin_source_amt']):
+        return matching_invoices, match_rule
+    else:
+        return [], unmatched_invoices
+
+# Rest of the code...
+# Process one-to-one matches
+# Process bundle matches
+# Create a DataFrame from the output rows
+# Write the unmatched transactions to a separate CSV file
+# Write the output data to a CSV file
+# Write the aggregated data to Excel
