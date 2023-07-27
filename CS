@@ -2784,3 +2784,11 @@ def match_bundle(T5, Invoice_table):
 # Write the unmatched transactions to a separate CSV file
 # Write the output data to a CSV file
 # Write the aggregated data to Excel
+
+
+
+
+
+def is_empty_match(T5, Invoice):
+    # Check if both T5 and Invoice ticket number values are empty
+    return (T5['t5_auth'] == '' and T5['tick'] == '') and (Invoice['inv_auth'] == '' and Invoice['ticket'] == '')
