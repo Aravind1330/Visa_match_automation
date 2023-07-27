@@ -2789,6 +2789,17 @@ def match_bundle(T5, Invoice_table):
 
 
 
-def is_empty_match(T5, Invoice):
-    # Check if both T5 and Invoice ticket number values are empty
-    return (T5['t5_auth'] == '' and T5['tick'] == '') and (Invoice['inv_auth'] == '' and Invoice['ticket'] == '')
+rules_df = pd.read_csv('rules.csv')
+rules = []
+rule_descriptions = {}
+rule_numbers = {}
+
+for i, row in rules_df.iterrows():
+    rule_string = row['rule']
+    rule_description = row['description']
+    rule_no = row['Rule No']
+    if rule_string.strip():  # Check if the rule_string is not empty or contains only whitespace
+        rule = eval(f"lambda row, Invoice: ({rule_string})")
+        rules.append(rule)
+        rule_descriptions[i + 1] = rule_description
+        rule_numbers[i + 1] = rule_no
