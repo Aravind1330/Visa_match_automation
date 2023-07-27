@@ -2803,3 +2803,10 @@ for i, row in rules_df.iterrows():
         rules.append(rule)
         rule_descriptions[i + 1] = rule_description
         rule_numbers[i + 1] = rule_no
+
+
+
+
+
+def is_not_empty(value):
+    return value is not None and value != ""
