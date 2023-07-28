@@ -2845,16 +2845,9 @@ def match_one_to_one(T5, Invoice_table, rules):
 
 
 
-def is_empty_match(T5, Invoice):
-    T5['fin_ticket_num'] = T5['fin_ticket_num'].strip()
-    Invoice['inv_ticket_num'] = Invoice['inv_ticket_num'].strip()
-    T5["fin_auth_nbr"] = T5['fin_auth_nbr'].strip()
-    Invoice['inv_authn_num'] = Invoice['inv_authn_num'].strip()
-    
-    if T5['fin_ticket_num'] == '' or Invoice['inv_ticket_num'] == '':
-        return True
-    
-    if T5['fin_auth_nbr'] == '' or Invoice['inv_authn_num'] == '':
-        return True
-    
-    return False
+                # Add your additional logic to check for empty conditions in rule
+                d = re.findall(regex_pattern, rule_descriptions[rule_index])
+                if not pd.isna(row[d[0]]) and not pd.isna(row[d[111]]):
+                    matching_invoices.append((Invoice, rule_index))
+                    match_rule = rule_index
+                    invoices_to_remove.append(Invoice)
