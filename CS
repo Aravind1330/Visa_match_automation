@@ -2851,3 +2851,6 @@ def match_one_to_one(T5, Invoice_table, rules):
                     matching_invoices.append((Invoice, rule_index))
                     match_rule = rule_index
                     invoices_to_remove.append(Invoice)
+
+
+            if not any(pd.isna(val) or val.lower() == 'empty' for val in rule(T5, Invoice=Invoice)):
