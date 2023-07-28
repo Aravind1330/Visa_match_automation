@@ -2808,8 +2808,30 @@ for i, row in rules_df.iterrows():
 
 
 
-    # Check for empty strings and NaN values
-    if T5['fin_ticket_num'] == '' or Invoice['inv_ticket_num'] == '' or \
-       T5['fin_ticket_num'] == 'nan' or Invoice['inv_ticket_num'] == 'nan' or \
-       T5['fin_auth_nbr'] == '' or Invoice['inv_authn_num'] == '' or \
-       T5['fin_auth_nbr'] == 'nan' or Invoice['inv_authn_num'] == 'nan':
+def match_one_to_one(T5, Invoice_table, rules):
+    matching_invoices = []
+    match_rule = None
+    invoices_to_remove = []
+
+    for Invoice in Invoice_table:
+        for rule_index, rule in enumerate(rules, start=1):
+            if not T5 or not Invoice:  # Check if T5 or Invoice is empty
+                continue
+
+            if rule(T5, Invoice=Invoice) and \
+               T5.get('fin_source_amt') and Invoice.get('inv_match_source_amt') and \
+               float(T5['fin_source_amt']) == float(Invoice['inv_match_source_amt']) and \
+               T5.get('fin_debit_credit') and T5['fin_debit_credit'] == Invoice['fin_debit_credit']:
+                matching_invoices.append((Invoice, rule_index))
+                match_rule = rule_index
+                invoices_to_remove.append(Invoice)
+
+                # We can break the inner loop if we only want to match one rule.
+                # If you want to match multiple rules for the same Invoice, remove the break statement.
+
+                break
+
+    if matching_invoices:
+        return matching_invoices, match_rule
+    else:
+        return [], None
