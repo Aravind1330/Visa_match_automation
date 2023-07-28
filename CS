@@ -2808,5 +2808,8 @@ for i, row in rules_df.iterrows():
 
 
 
-def is_not_empty(value):
-    return value is not None and value != ""
+    # Check for empty strings and NaN values
+    if T5['fin_ticket_num'] == '' or Invoice['inv_ticket_num'] == '' or \
+       T5['fin_ticket_num'] == 'nan' or Invoice['inv_ticket_num'] == 'nan' or \
+       T5['fin_auth_nbr'] == '' or Invoice['inv_authn_num'] == '' or \
+       T5['fin_auth_nbr'] == 'nan' or Invoice['inv_authn_num'] == 'nan':
