@@ -2852,12 +2852,10 @@ def is_empty_match(T5, Invoice):
     T5["fin_auth_nbr"] = T5['fin_auth_nbr'].strip()
     Invoice['inv_authn_num'] = Invoice['inv_authn_num'].strip()
     
-    # Check if both 'fin_ticket_num' and 'inv_ticket_num' are empty
-    if not T5['fin_ticket_num'] and not Invoice['inv_ticket_num']:
-        isEmpty = True
+# Check if both 'fin_ticket_num' and 'inv_ticket_num' are empty
+    ticket_num_empty = not T5['fin_ticket_num'] and not Invoice['inv_ticket_num']
     
     # Check if both 'fin_auth_nbr' and 'inv_authn_num' are empty
-    if not T5['fin_auth_nbr'] and not Invoice['inv_authn_num']:
-        isEmpty = True
-        
-    return isEmpty
+    auth_num_empty = not T5['fin_auth_nbr'] and not Invoice['inv_authn_num']
+    
+    return ticket_num_empty and auth_num_empty
