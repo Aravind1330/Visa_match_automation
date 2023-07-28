@@ -2852,10 +2852,15 @@ def is_empty_match(T5, Invoice):
     T5["fin_auth_nbr"] = T5['fin_auth_nbr'].strip()
     Invoice['inv_authn_num'] = Invoice['inv_authn_num'].strip()
     
-# Check if both 'fin_ticket_num' and 'inv_ticket_num' are empty
-    ticket_num_empty = not T5['fin_ticket_num'] and not Invoice['inv_ticket_num']
+    # Regular expression to check if a string has only whitespace characters
+    whitespace_pattern = re.compile(r'^\s*$')
+    
+    # Check if both 'fin_ticket_num' and 'inv_ticket_num' are empty
+    ticket_num_empty = bool(whitespace_pattern.match(T5['fin_ticket_num'])) and \
+                       bool(whitespace_pattern.match(Invoice['inv_ticket_num']))
     
     # Check if both 'fin_auth_nbr' and 'inv_authn_num' are empty
-    auth_num_empty = not T5['fin_auth_nbr'] and not Invoice['inv_authn_num']
+    auth_num_empty = bool(whitespace_pattern.match(T5['fin_auth_nbr'])) and \
+                     bool(whitespace_pattern.match(Invoice['inv_authn_num']))
     
     return ticket_num_empty and auth_num_empty
