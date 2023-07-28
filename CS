@@ -2835,3 +2835,29 @@ def match_one_to_one(T5, Invoice_table, rules):
         return matching_invoices, match_rule
     else:
         return [], None
+
+
+
+
+
+
+
+
+
+
+def is_empty_match(T5, Invoice):
+    isEmpty = False
+    T5['fin_ticket_num'] = T5['fin_ticket_num'].strip()
+    Invoice['inv_ticket_num'] = Invoice['inv_ticket_num'].strip()
+    T5["fin_auth_nbr"] = T5['fin_auth_nbr'].strip()
+    Invoice['inv_authn_num'] = Invoice['inv_authn_num'].strip()
+    
+    # Check if both 'fin_ticket_num' and 'inv_ticket_num' are empty
+    if not T5['fin_ticket_num'] and not Invoice['inv_ticket_num']:
+        isEmpty = True
+    
+    # Check if both 'fin_auth_nbr' and 'inv_authn_num' are empty
+    if not T5['fin_auth_nbr'] and not Invoice['inv_authn_num']:
+        isEmpty = True
+        
+    return isEmpty
