@@ -2931,9 +2931,17 @@ def is_empty_rule(rule_string):
 
 
 
-def is_empty(value):
-    """
-    Function to check if a value is empty. We will consider None, NaN, and an empty string as empty.
-    """
-    return value is None or (isinstance(value, str) and value.strip() == '') or pd.isna(value)
+
+
+
+    if not pd.isna(rule_string):  # Skip empty rule strings
+        rule = eval(f"lambda row, Invoice: ({rule_string})")
+        rules.append(rule)
+        rule_descriptions[i + 1] = rule_description
+        rule_numbers[i + 1] = rule_no
+
+
+    for Invoice in Invoice_table:
+        if pd.isna(T5) or pd.isna(Invoice):  # Skip if T5 or Invoice is empty
+            continue
 
