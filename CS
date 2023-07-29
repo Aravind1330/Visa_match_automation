@@ -2934,14 +2934,11 @@ def is_empty_rule(rule_string):
 
 
 
-    if not pd.isna(rule_string):  # Skip empty rule strings
-        rule = eval(f"lambda row, Invoice: ({rule_string})")
-        rules.append(rule)
-        rule_descriptions[i + 1] = rule_description
-        rule_numbers[i + 1] = rule_no
-
-
     for Invoice in Invoice_table:
-        if pd.isna(T5) or pd.isna(Invoice):  # Skip if T5 or Invoice is empty
-            continue
+        # Check if T5 or Invoice has empty 'fin_ticket_num' or 'fin_auth_nbr'
+        is_T5_auth_empty, is_T5_ticket_empty = isEmptyMatch(T5, Invoice)
+        is_Invoice_auth_empty, is_Invoice_ticket_empty = isEmptyMatch(Invoice, T5)
 
+        if is_T5_auth_empty or is_T5_ticket_empty or is_Invoice_auth_empty or is_Invoice_ticket_empty:
+            # If any of the 'fin_auth_nbr' or 'fin_ticket_num' is empty in either T5 or Invoice, skip the comparison
+            continue
