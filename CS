@@ -2854,3 +2854,35 @@ def match_one_to_one(T5, Invoice_table, rules):
 
 
             if not any(pd.isna(val) or val.lower() == 'empty' for val in rule(T5, Invoice=Invoice)):
+
+
+
+regex_pattern = r'[A-Z]+-\d+'
+
+def match_one_to_one(T5, Invoice_table):
+    matching_invoices = []
+    match_rule = None
+    invoices_to_remove = []
+    
+    for Invoice in Invoice_table:
+        for rule_index, rule in enumerate(rules, start=1):
+            if rule(T5, Invoice=Invoice) and \
+                    float(T5['fin_source_amt']) == float(Invoice['inv_match_source_amt']) and \
+                    T5['fin_debit_credit'] == Invoice['fin_debit_credit']:
+                
+                # Fetch the rule_string from the rules_df DataFrame using the rule_index
+                rule_string = rules_df.loc[rules_df['RuLe No'] == rule_index, 'rule'].values[0]
+                
+                # Use the regex_pattern to find the matching values from the rule_string
+                d = re.findall(regex_pattern, rule_string)
+                if len(d) == 2:  # Assuming you expect two matching values
+                    if not pd.isna(row[d[0]]) and not pd.isna(row[d[1]]):
+                        matching_invoices.append((Invoice, rule_index))
+                        match_rule = rule_index
+                        invoices_to_remove.append(Invoice)
+                        # break  # If you want to break after the first match, uncomment this line
+                
+    if matching_invoices:
+        return matching_invoices, match_rule
+    else:
+        return [], None
