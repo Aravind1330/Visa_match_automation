@@ -2931,14 +2931,9 @@ def is_empty_rule(rule_string):
 
 
 
-    # Define the rule function and check for empty values
-    def rule_function(row, Invoice):
-        for field in row.index:
-            if pd.isnull(row[field]) or row[field] == "":
-                return False
-        return eval(rule_string)
-    
-    rule = rule_function
-    rules.append(rule)
-    rule_descriptions[i + 1] = rule_description
-    rule_numbers[i + 1] = rule_no
+def is_empty(value):
+    """
+    Function to check if a value is empty. We will consider None, NaN, and an empty string as empty.
+    """
+    return value is None or (isinstance(value, str) and value.strip() == '') or pd.isna(value)
+
