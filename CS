@@ -2927,3 +2927,18 @@ def is_empty_rule(rule_string):
         # If both T5 and Invoice have empty fields, skip the matching process for this Invoice
         if empty_fields_in_T5 and empty_fields_in_Invoice:
             continue
+
+
+
+
+    # Define the rule function and check for empty values
+    def rule_function(row, Invoice):
+        for field in row.index:
+            if pd.isnull(row[field]) or row[field] == "":
+                return False
+        return eval(rule_string)
+    
+    rule = rule_function
+    rules.append(rule)
+    rule_descriptions[i + 1] = rule_description
+    rule_numbers[i + 1] = rule_no
