@@ -2920,25 +2920,10 @@ def is_empty_rule(rule_string):
     return not bool(rule_string.strip())
 
 
-def match_one_to_one(T5, Invoice_table):
-    matching_invoices = []
-    match_rule = None
-    invoices_to_remove = []
-
     for Invoice in Invoice_table:
-        for rule_index, rule in enumerate(rules, start=1):
-            if rule is None and is_empty_rule(rule_string):  # Handle empty rule
-                continue
-            
-            if rule and rule(T5, Invoice=Invoice) and \
-                    float(T5['fin_source_amt']) == float(Invoice['inv_match_source_amt']) and \
-                    T5['fin_debit_credit'] == Invoice['fin_debit_credit']:
-                matching_invoices.append((Invoice, rule_index))
-                match_rule = rule_index
-                invoices_to_remove.append(Invoice)
-                # break  # If you want to break after the first match, uncomment this line
-
-    if matching_invoices:
-        return matching_invoices, match_rule
-    else:
-        return [], None
+        empty_fields_in_T5 = [field for field in T5 if pd.isnull(T5[field]) or T5[field] == ""]
+        empty_fields_in_Invoice = [field for field in Invoice if pd.isnull(Invoice[field]) or Invoice[field] == ""]
+        
+        # If both T5 and Invoice have empty fields, skip the matching process for this Invoice
+        if empty_fields_in_T5 and empty_fields_in_Invoice:
+            continue
