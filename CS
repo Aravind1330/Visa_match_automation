@@ -2934,6 +2934,13 @@ def is_empty_rule(rule_string):
 
 
 
+    # Check if T5 has empty 'fin_ticket_num' or 'fin_auth_nbr'
+    is_T5_auth_empty, is_T5_ticket_empty = isEmptyMatch(T5, T5)
+
+    if is_T5_auth_empty or is_T5_ticket_empty:
+        # If 'fin_ticket_num' or 'fin_auth_nbr' is empty in T5, skip the comparison
+        return [], None
+
     for Invoice in Invoice_table:
         # Check if T5 or Invoice has empty 'fin_ticket_num' or 'fin_auth_nbr'
         is_T5_auth_empty, is_T5_ticket_empty = isEmptyMatch(T5, Invoice)
