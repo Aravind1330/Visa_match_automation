@@ -2934,18 +2934,14 @@ def is_empty_rule(rule_string):
 
 
 
-    # Check if T5 has empty 'fin_ticket_num' or 'fin_auth_nbr'
-    is_T5_auth_empty, is_T5_ticket_empty = isEmptyMatch(T5, T5)
+    for rule_index, rule in enumerate(rules, start=1):
+        # Check if T5 has empty auth or ticket number
+        isAuthEmpty, isTicketEmpty = isEmptyMatch(T5, Invoice={})  # Empty Invoice object for checking T5
+        if isAuthEmpty or isTicketEmpty:
+            continue  # Skip this rule and move to the next one
 
-    if is_T5_auth_empty or is_T5_ticket_empty:
-        # If 'fin_ticket_num' or 'fin_auth_nbr' is empty in T5, skip the comparison
-        return [], None
-
-    for Invoice in Invoice_table:
-        # Check if T5 or Invoice has empty 'fin_ticket_num' or 'fin_auth_nbr'
-        is_T5_auth_empty, is_T5_ticket_empty = isEmptyMatch(T5, Invoice)
-        is_Invoice_auth_empty, is_Invoice_ticket_empty = isEmptyMatch(Invoice, T5)
-
-        if is_T5_auth_empty or is_T5_ticket_empty or is_Invoice_auth_empty or is_Invoice_ticket_empty:
-            # If any of the 'fin_auth_nbr' or 'fin_ticket_num' is empty in either T5 or Invoice, skip the comparison
-            continue
+        for Invoice in Invoice_table:
+            # Check if Invoice has empty auth or ticket number
+            isAuthEmpty, isTicketEmpty = isEmptyMatch({}, Invoice=Invoice)  # Empty T5 object for checking Invoice
+            if isAuthEmpty or isTicketEmpty:
+                continue 
