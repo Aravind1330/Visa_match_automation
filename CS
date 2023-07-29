@@ -2886,3 +2886,59 @@ def match_one_to_one(T5, Invoice_table):
         return matching_invoices, match_rule
     else:
         return [], None
+
+
+
+
+
+
+
+
+
+
+
+
+import pandas as pd
+import ast
+
+# Assuming you have already read the rules.csv file into rules_df using pd.read_csv()
+
+rules = []
+rule_descriptions = {}
+rule_numbers = {}
+for i, row in rules_df.iterrows():
+    rule_string = row['rule']
+    rule_description = row['description']
+    rule_no = row['Rule No']
+    rule = ast.literal_eval(f"lambda row, Invoice: ({rule_string})") if rule_string.strip() else None
+    rules.append(rule)
+    rule_descriptions[i + 1] = rule_description
+    rule_numbers[i + 1] = rule_no
+
+
+def is_empty_rule(rule_string):
+    return not bool(rule_string.strip())
+
+
+def match_one_to_one(T5, Invoice_table):
+    matching_invoices = []
+    match_rule = None
+    invoices_to_remove = []
+
+    for Invoice in Invoice_table:
+        for rule_index, rule in enumerate(rules, start=1):
+            if rule is None and is_empty_rule(rule_string):  # Handle empty rule
+                continue
+            
+            if rule and rule(T5, Invoice=Invoice) and \
+                    float(T5['fin_source_amt']) == float(Invoice['inv_match_source_amt']) and \
+                    T5['fin_debit_credit'] == Invoice['fin_debit_credit']:
+                matching_invoices.append((Invoice, rule_index))
+                match_rule = rule_index
+                invoices_to_remove.append(Invoice)
+                # break  # If you want to break after the first match, uncomment this line
+
+    if matching_invoices:
+        return matching_invoices, match_rule
+    else:
+        return [], None
