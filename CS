@@ -3311,3 +3311,48 @@ if __name__ == "__main__":
     T5_table = updated_T5_table
     Invoice_table = updated_invoice_table
 
+
+
+
+
+
+
+def get_matching_invoices(T5, Invoice_table):
+    return match_one_to_one(T5, Invoice_table)
+
+def create_output_row(T5, invoice, match_rule, description):
+    output_row = {
+        column: T5[column] if column in T5 else invoice[column]
+        for column in output_columns
+    }
+    output_row['Match Rule'] = rule_numbers.get(match_rule)
+    output_row['description'] = description
+    output_row['Match Type'] = 'one - to - one'
+    return output_row
+
+def process_one_to_one_match(T5, Invoice_table, matched_invoices_one_to_one, unmatched_fin_record_keys,
+                             output_rows_one_to_one, unmatched_output_rows_one_to_one):
+    matching_invoices, match_rule = get_matching_invoices(T5, Invoice_table)
+    if matching_invoices:
+        for invoice, rule_index in matching_invoices:
+            description = rule_descriptions.get(rule_index)
+            output_row = create_output_row(T5, invoice, match_rule, description)
+            output_rows_one_to_one.append(output_row)
+            append_matched_invoices(matched_invoices_one_to_one, invoice)
+
+        Invoice_table = remove_matched_invoices(Invoice_table, matched_invoices_one_to_one)
+    else:
+        unmatched_output_row = {
+            column: T5[column] if column in T5 else None for column in unmatched_output_columns
+        }
+        unmatched_output_rows_one_to_one.append(unmatched_output_row)
+
+# Main loop for one-to-one matches
+matched_invoices_one_to_one = []
+unmatched_fin_record_keys_one_to_one = set()
+
+for count, T5 in enumerate(T5_table, start=1):
+    print(f"Processed Transactions: {count}")
+    process_one_to_one_match(T5, Invoice_table, matched_invoices_one_to_one, unmatched_fin_record_keys_one_to_one,
+                             output_rows_one_to_one, unmatched_output_rows_one_to_one)
+
