@@ -2976,59 +2976,66 @@ def append_matching_invoices(matching_invoices, rule_index, rule_descriptions):
 
 
 
-def remove_matched_records_by_invoice_id(table, matched_invoice_ids):
-    return [row for row in table if row.get('invoice_id') not in matched_invoice_ids]
-
-def append_matching_invoices(matching_invoices, rule_index, rule_descriptions):
-    for invoice, rule_idx in matching_invoices:
-        if invoice not in matched_invoices:
-            description = rule_descriptions.get(rule_index)
-            output_row = {column: T5[column] if column in T5 else invoice[column] for column in output_columns}
-            output_row['Match Rule'] = rule_index
-            output_row['description'] = description
-            output_row['Match Type'] = 'one-to-one'
-            output_rows_one_to_one.append(output_row)
-            matched_invoices.append(invoice)
-
-def append_unmatched_invoices(unmatched_invoices):
-    for invoice in unmatched_invoices:
-        unmatched_output_row = {column: T5[column] if column in T5 else None for column in unmatched_output_columns}
-        unmatched_output_rows_one_to_one.append(unmatched_output_row)
-        unmatched_fin_record_keys.add(T5[COLUMN_HEADER.INPUT_T5_RECORD_KEY.value])
-
-# Define the matched_invoices, unmatched_output_rows_one_to_one, unmatched_fin_record_keys, and other variables before the loop starts
-matched_invoices = []
-unmatched_output_rows_one_to_one = []
-unmatched_fin_record_keys = set()
-
-for T5 in T5_table:
-    count += 1
-    print(f"Processed Transactions: {count}")
-
+def process_transaction(T5, Invoice_table, matched_invoices, output_rows_one_to_one, unmatched_output_rows_one_to_one, rule_descriptions):
     matching_invoices, match_rule = match_one_to_one(T5, Invoice_table)
+    if matching_invoices:
+        for invoice, rule_index in matching_invoices:
+            if invoice not in matched_invoices:
+                description = rule_descriptions.get(rule_index)
+                output_row = {
+                    column: T5[column] if column in T5 else invoice[column] for column in output_columns
+                }
+                output_row['Match Rule'] = rule_index
+                output_row['description'] = description
+                output_row['Match Type'] = 'one-to-one'
+                output_rows_one_to_one.append(output_row)
+                matched_invoices.append(invoice)
+
+        remove_matched_invoices(Invoice_table, matched_invoices)
+
+    else:
+        add_to_unmatched(T5, unmatched_fin_record_keys, unmatched_output_rows_one_to_one)
+
+
+def remove_matched_invoices(Invoice_table, matched_invoices):
+    Invoice_table = [inv for inv in Invoice_table if inv not in matched_invoices]
+
+
+def remove_matched_transaction(T5_table, matched_fin_record_keys, unmatched_output_df, T5):
+    T5_table = [T5_row for T5_row in T5_table if T5_row[COLUMN_HEADER.INPUT_T5_RECORD_KEY.value] != T5[COLUMN_HEADER.INPUT_T5_RECORD_KEY.value]]
+    matched_fin_record_keys.remove(T5[COLUMN_HEADER.INPUT_T5_RECORD_KEY.value])
+    unmatched_indices = unmatched_output_df[
+        (unmatched_output_df[COLUMN_HEADER.INPUT_T5_RECORD_KEY.value] == T5[COLUMN_HEADER.INPUT_T5_RECORD_KEY.value]) &
+        (unmatched_output_df[COLUMN_HEADER.T5_SOURCE_AMT.value] == T5[COLUMN_HEADER.T5_SOURCE_AMT.value]) &
+        (unmatched_output_df[COLUMN_HEADER.FIN_DEB_CRED_IND.value] == T5[COLUMN_HEADER.FIN_DEB_CRED_IND.value])
+    ].index
+    unmatched_output_df.drop(unmatched_indices, inplace=True)
+
+
+def add_to_unmatched(T5, unmatched_fin_record_keys, unmatched_output_rows_one_to_one):
+    unmatched_output_row = {column: T5[column] if column in T5 else None for column in unmatched_output_columns}
+    unmatched_output_rows_one_to_one.append(unmatched_output_row)
+    unmatched_fin_record_keys.add(T5[COLUMN_HEADER.INPUT_T5_RECORD_KEY.value])
+
+
+# Now you can use the functions in your main code:
+
+# Initialize the lists and sets
+matched_invoices = []
+unmatched_fin_record_keys = set()
+output_rows_one_to_one = []
+unmatched_output_rows_one_to_one = []
+
+# Loop through the T5_table
+for count, T5 in enumerate(T5_table, start=1):
+    print(f"Processed Transactions: {count}")
+    process_transaction(T5, Invoice_table, matched_invoices, output_rows_one_to_one, unmatched_output_rows_one_to_one, rule_descriptions)
 
     try:
-        if matching_invoices:
-            append_matching_invoices(matching_invoices, match_rule, rule_descriptions)
-
-            matched_invoice_ids = [invoice['invoice_id'] for invoice in matching_invoices]
-
-            # Remove matched invoices from Invoice_table and T5_table
-            Invoice_table = remove_matched_records_by_invoice_id(Invoice_table, matched_invoice_ids)
-            T5_table = remove_matched_records_by_invoice_id(T5_table, matched_invoice_ids)
-
-            for T5_row in T5_table:
-                if T5_row[COLUMN_HEADER.INPUT_T5_RECORD_KEY.value] != T5[COLUMN_HEADER.INPUT_T5_RECORD_KEY.value]:
-                    unmatched_fin_record_keys.remove(T5_row[COLUMN_HEADER.INPUT_T5_RECORD_KEY.value])
-                    unmatched_indices = unmatched_output_df[
-                        (unmatched_output_df[COLUMN_HEADER.INPUT_T5_RECORD_KEY.value] == T5_row[COLUMN_HEADER.INPUT_T5_RECORD_KEY.value]) &
-                        (unmatched_output_df[COLUMN_HEADER.T5_SOURCE_AMT.value] == T5_row[COLUMN_HEADER.T5_SOURCE_AMT.value]) &
-                        (unmatched_output_df[COLUMN_HEADER.FIN_DEB_CRED_IND.value] == T5_row[COLUMN_HEADER.FIN_DEB_CRED_IND.value])
-                    ].index
-                    unmatched_output_df.drop(unmatched_indices, inplace=True)
-        else:
-            append_unmatched_invoices(unmatched_invoices)
+        # Perform other operations if needed
+        pass
     except Exception as e:
         error_messages.append(f"Error processing T5: {T5}\n{str(e)}")
-        continue
+
+# Now the matched_invoices, unmatched_fin_record_keys, output_rows_one_to_one, and unmatched_output_rows_one_to_one lists/sets will be updated with the processed data.
 
