@@ -2953,3 +2953,16 @@ A comprehensive overview of Qatar's market dynamics and performance derived from
 
 
  "0" in T5[COLUMN_HEADER.FIN_TICKET_NO.value].split('0'):
+
+
+
+def append_matching_invoices(matching_invoices, rule_index, rule_descriptions):
+    for invoice, rule_idx in matching_invoices:
+        if invoice not in matched_invoices:
+            description = rule_descriptions.get(rule_index)
+            output_row = {column: T5[column] if column in T5 else invoice[column] for column in output_columns}
+            output_row['Match Rule'] = rule_index
+            output_row['description'] = description
+            output_row['Match Type'] = 'one-to-one'
+            output_rows_one_to_one.append(output_row)
+            matched_invoices.append(invoice)
