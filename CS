@@ -3099,3 +3099,60 @@ for count, T5 in enumerate(T5_table, start=1):
     except Exception as e:
         error_messages.append(f"Error processing T5: {T5}\n{str(e)}")
 
+
+
+
+def append_matched_invoices(matched_invoices, invoice, output_row):
+    if invoice not in matched_invoices:
+        matched_invoices.append(invoice)
+        return True
+    return False
+
+def append_unmatched_invoices(unmatched_fin_record_keys, T5, unmatched_output_row):
+    unmatched_fin_record_keys.add(T5[COLUMN_HEADER.INPUT_T5_RECORD_KEY.value])
+    unmatched_output_rows_one_to_one.append(unmatched_output_row)
+
+
+
+def process_t5_record(T5, Invoice_table, matched_invoices, unmatched_fin_record_keys,
+                      output_rows_one_to_one, unmatched_output_rows_one_to_one):
+    matching_invoices, match_rule = match_one_to_one(T5, Invoice_table)
+    try:
+        if matching_invoices:
+            for invoice, rule_index in matching_invoices:
+                description = rule_descriptions.get(rule_index)
+                output_row = {
+                    column: T5[column] if column in T5 else invoice[column]
+                    for column in output_columns
+                }
+                output_row['Match Rule'] = rule_index
+                output_row['description'] = description
+                output_row['Match Type'] = 'one - to - one'
+
+                if append_matched_invoices(matched_invoices, invoice, output_row):
+                    output_rows_one_to_one.append(output_row)
+
+                Invoice_table = [inv for inv in Invoice_table if inv not in matched_invoices]
+        else:
+            unmatched_output_row = {
+                column: T5[column] if column in T5 else None for column in unmatched_output_columns
+            }
+            if append_unmatched_invoices(unmatched_fin_record_keys, T5, unmatched_output_row):
+                unmatched_indices = unmatched_output_df[
+                    (unmatched_output_df[COLUMN_HEADER.INPUT_T5_RECORD_KEY.value] == T5[COLUMN_HEADER.INPUT_T5_RECORD_KEY.value]) &
+                    (unmatched_output_df[COLUMN_HEADER.T5_SOURCE_AMT.value] == T5[COLUMN_HEADER.T5_SOURCE_AMT.value]) &
+                    (unmatched_output_df[COLUMN_HEADER.FIN_DEB_CRED_IND.value] == T5[COLUMN_HEADER.FIN_DEB_CRED_IND.value])
+                ].index
+                unmatched_output_df.drop(unmatched_indices, inplace=True)
+    except Exception as e:
+        error_messages.append(f"Error processing T5: {T5}\n{str(e)}")
+
+
+
+matched_invoices = []
+unmatched_fin_record_keys = set()
+
+for count, T5 in enumerate(T5_table, start=1):
+    print(f"Processed Transactions: {count}")
+    process_t5_record(T5, Invoice_table, matched_invoices, unmatched_fin_record_keys,
+                      output_rows_one_to_one, unmatched_output_rows_one_to_one)
