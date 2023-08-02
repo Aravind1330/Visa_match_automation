@@ -3039,3 +3039,31 @@ for count, T5 in enumerate(T5_table, start=1):
 
 # Now the matched_invoices, unmatched_fin_record_keys, output_rows_one_to_one, and unmatched_output_rows_one_to_one lists/sets will be updated with the processed data.
 
+
+
+
+def process_transaction(T5, Invoice_table, matched_invoices, output_rows_one_to_one, unmatched_output_rows_one_to_one, rule_descriptions, processed_transactions):
+    t5_record_key = T5[COLUMN_HEADER.INPUT_T5_RECORD_KEY.value]
+    if t5_record_key in processed_transactions:
+        return  # Skip processing if the transaction has already been processed
+
+    processed_transactions.add(t5_record_key)
+
+    matching_invoices, match_rule = match_one_to_one(T5, Invoice_table)
+    if matching_invoices:
+        for invoice, rule_index in matching_invoices:
+            if invoice not in matched_invoices:
+                description = rule_descriptions.get(rule_index)
+                output_row = {
+                    column: T5[column] if column in T5 else invoice[column] for column in output_columns
+                }
+                output_row['Match Rule'] = rule_index
+                output_row['description'] = description
+                output_row['Match Type'] = 'one-to-one'
+                output_rows_one_to_one.append(output_row)
+                matched_invoices.append(invoice)
+
+        remove_matched_invoices(Invoice_table, matched_invoices)
+
+    else:
+        add_to_unmatched(T5, unmatched_fin_record_keys, unmatched_output_rows_one_to_one)
