@@ -3223,3 +3223,91 @@ output_rows_one_to_one, unmatched_output_rows_one_to_one, Invoice_table, unmatch
 
 # Remove unmatched indices
 remove_unmatched_indices(unmatched_output_df, T5)
+
+
+
+
+
+def match_one_to_one(T5, Invoice_table):
+    # Your implementation of the match_one_to_one function goes here
+    # This function should return matching_invoices and match_rule
+    pass
+
+
+def remove_matched_invoices(Invoice_table, matched_invoices):
+    updated_invoice_table = [inv for inv in Invoice_table if inv not in matched_invoices]
+    return updated_invoice_table
+
+
+def remove_matched_transactions(T5_table, matched_invoices):
+    updated_T5_table = [T5_row for T5_row in T5_table if T5_row[COLUMN_HEADER.INPUT_T5_RECORD_KEY.value] not in matched_invoices]
+    return updated_T5_table
+
+
+def process_data(T5_table, Invoice_table):
+    matched_invoices = []
+    output_rows_one_to_one = []
+    unmatched_output_rows_one_to_one = []
+    rule_descriptions = {0: "Rule description 0", 1: "Rule description 1", 2: "Rule description 2"}
+    rule_numbers = {0: "Rule 0", 1: "Rule 1", 2: "Rule 2"}
+
+    # Set to store unmatched fin_record_keys
+    unmatched_fin_record_keys = set(T5[COLUMN_HEADER.INPUT_T5_RECORD_KEY.value] for T5 in T5_table)
+
+    count = 0
+    for T5 in T5_table:
+        count += 1
+        print(f"Processed Transactions: {count}")
+
+        matching_invoices, match_rule = match_one_to_one(T5, Invoice_table)
+
+        try:
+            if matching_invoices:
+                for invoice, rule_index in matching_invoices:
+                    if invoice not in matched_invoices:
+                        description = rule_descriptions.get(rule_index)
+                        output_row = {column: T5[column] if column in T5 else invoice[column] for column in output_columns}
+                        output_row['Match Rule'] = rule_numbers.get(match_rule)
+                        output_row['description'] = description
+                        output_row['Match Type'] = 'one-to-one'
+                        output_rows_one_to_one.append(output_row)
+                        matched_invoices.append(invoice)
+
+                # Remove the matched invoices from Invoice_table
+                Invoice_table = remove_matched_invoices(Invoice_table, matched_invoices)
+
+            else:
+                unmatched_output_row = {column: T5[column] if column in T5 else None for column in unmatched_output_columns}
+                unmatched_output_rows_one_to_one.append(unmatched_output_row)
+                unmatched_fin_record_keys.add(T5[COLUMN_HEADER.INPUT_T5_RECORD_KEY.value])
+
+        except Exception as e:
+            error_messages.append(f"Error processing T5: {T5}\n{str(e)}")
+
+        # Remove the matched transactions from T5_table
+        T5_table = remove_matched_transactions(T5_table, matched_invoices)
+
+    return output_rows_one_to_one, unmatched_output_rows_one_to_one, unmatched_fin_record_keys, Invoice_table, T5_table
+
+
+# Now you can call the `process_data` function with your T5_table and Invoice_table data
+# and it will process the data using the same logic you provided.
+
+# Example usage:
+if __name__ == "__main__":
+    T5_table = [...]
+    Invoice_table = [...]
+    output_columns = [...]
+    unmatched_output_columns = [...]
+    error_messages = []
+    COLUMN_HEADER = {  # Define your column headers here }
+    
+    output_rows_one_to_one, unmatched_output_rows_one_to_one, unmatched_fin_record_keys, updated_invoice_table, updated_T5_table = process_data(T5_table, Invoice_table)
+    
+    # Now you can work with the processed data in the variables above.
+    # For example, you can save them to a file or use them for further processing.
+    
+    # Update the T5_table and Invoice_table with the updated versions
+    T5_table = updated_T5_table
+    Invoice_table = updated_invoice_table
+
