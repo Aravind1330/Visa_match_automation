@@ -3356,3 +3356,39 @@ for count, T5 in enumerate(T5_table, start=1):
     process_one_to_one_match(T5, Invoice_table, matched_invoices_one_to_one, unmatched_fin_record_keys_one_to_one,
                              output_rows_one_to_one, unmatched_output_rows_one_to_one)
 
+
+
+
+
+
+
+# ... (Previous code for one-to-one and bundle matching)
+
+def sort_data_by_account_number(data_table, account_number_column):
+    sorted_data = sorted(data_table, key=lambda x: x[account_number_column])
+    return sorted_data
+
+# Assuming the 'acct_number' column is used for sorting in both datasets
+sorted_T5_table = sort_data_by_account_number(T5_table, 'acct_number')
+sorted_Invoice_table = sort_data_by_account_number(Invoice_table, 'acct_number')
+
+# Main loop for one-to-one matches
+matched_invoices_one_to_one = []
+unmatched_fin_record_keys_one_to_one = set()
+
+for count, T5 in enumerate(sorted_T5_table, start=1):
+    print(f"Processed Transactions: {count}")
+    sorted_Invoice_table, sorted_T5_table = process_one_to_one_match(T5, sorted_Invoice_table, matched_invoices_one_to_one, unmatched_fin_record_keys_one_to_one,
+                                                                     output_rows_one_to_one, unmatched_output_rows_one_to_one)
+
+# Main loop for bundle matches with the remaining T5 records and invoices
+matched_invoices_bundle = []
+unmatched_fin_record_keys_bundle = set()
+matched_count = 0
+
+for T5 in sorted_T5_table:
+    sorted_T5_table, sorted_Invoice_table = process_bundle_match(T5, sorted_Invoice_table, matched_invoices_bundle, sorted_T5_table, unmatched_fin_record_keys_bundle,
+                                                                 output_rows_bundle, unmatched_output_rows_bundle, matched_count)
+
+# The updated sorted_T5_table and sorted_Invoice_table are available after the loops for further processing or updates.
+# Use sorted_T5_table and sorted_Invoice_table here for any further processing or updates.
