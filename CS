@@ -3392,3 +3392,14 @@ for T5 in sorted_T5_table:
 
 # The updated sorted_T5_table and sorted_Invoice_table are available after the loops for further processing or updates.
 # Use sorted_T5_table and sorted_Invoice_table here for any further processing or updates.
+
+
+
+
+def sort_data_by_account_number(data_table, account_number_column):
+    sorted_data = sorted(data_table, key=lambda x: x[account_number_column])
+    return sorted_data
+
+# Assuming the 'acct_number' column is used for sorting in both datasets
+sorted_T5_table = sort_data_by_account_number(T5_table, 'acct_number')
+sorted_Invoice_table = sort_data_by_account_number(Invoice_table, 'acct_number')
