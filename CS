@@ -3547,3 +3547,65 @@ matched_pairs = pairs[matched_indices]
 
 for idx in matched_indices:
     print(f"Matched: Supplier '{unique_supplier_names[pairs[idx, 0]]}' with Invoice Number '{pairs[idx, 1]}'")
+
+
+
+
+
+
+
+
+
+
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.layers import Input, Embedding, LSTM, Dense, Lambda
+from tensorflow.keras.models import Model
+from tensorflow.keras.optimizers import Adam
+
+# Generate a mock dataset
+def generate_mock_data(num_samples, max_sequence_length, vocabulary_size):
+    data_a = np.random.randint(0, vocabulary_size, size=(num_samples, max_sequence_length))
+    data_b = np.random.randint(0, vocabulary_size, size=(num_samples, max_sequence_length))
+    labels = np.random.randint(0, 2, size=num_samples)
+    return data_a, data_b, labels
+
+# Siamese network architecture
+def siamese_model(input_shape, vocabulary_size, embedding_dim):
+    input_a = Input(shape=input_shape)
+    input_b = Input(shape=input_shape)
+    
+    embedding_layer = Embedding(vocabulary_size, embedding_dim)
+    
+    encoded_a = embedding_layer(input_a)
+    encoded_a = LSTM(128)(encoded_a)
+    
+    encoded_b = embedding_layer(input_b)
+    encoded_b = LSTM(128)(encoded_b)
+    
+    distance = Lambda(lambda x: tf.abs(x[0] - x[1]))([encoded_a, encoded_b])
+    output = Dense(1, activation='sigmoid')(distance)
+    
+    model = Model(inputs=[input_a, input_b], outputs=output)
+    return model
+
+# Generate mock dataset
+num_samples = 1000
+max_sequence_length = 20
+vocabulary_size = 10000
+embedding_dim = 100
+
+data_a, data_b, labels = generate_mock_data(num_samples, max_sequence_length, vocabulary_size)
+
+# Create and compile the Siamese model
+input_shape = (max_sequence_length,)
+model = siamese_model(input_shape, vocabulary_size, embedding_dim)
+model.compile(optimizer=Adam(learning_rate=0.001), loss='binary_crossentropy', metrics=['accuracy'])
+
+# Train the model
+history = model.fit([data_a, data_b], labels, batch_size=64, epochs=10, validation_split=0.2)
+
+# Print predictions
+predictions = model.predict([data_a, data_b])
+for i in range(10):  # Print predictions for the first 10 samples
+    print(f"Pair {i+1}: Actual Label = {labels[i]}, Predicted Label = {predictions[i][0]:.4f}")
