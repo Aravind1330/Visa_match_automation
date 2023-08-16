@@ -3458,3 +3458,92 @@ siamese_model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['ac
 
 similarity_percentage = calculate_similarity_percentage("hello world", "world hello", siamese_model, tokenizer, max_sequence_length)
 print(f"Similarity Percentage: {similarity_percentage:.2f}%")
+
+
+
+
+
+
+
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+from tensorflow.keras.layers import Input, Dense, Embedding, Flatten, Concatenate
+from tensorflow.keras.models import Model
+from tensorflow.keras.optimizers import Adam
+
+# Sample data for demonstration purposes
+data_t5 = {
+    'AuthNo': [123, 124, 125, 126],
+    'SupplierName': ['Supplier A', 'Supplier B', 'Supplier C', 'Supplier D'],
+    'SourceAmt': [100, 200, 150, 300]
+}
+
+data_invoice = {
+    'InvNumber': ['INV001', 'INV002', 'INV003', 'INV004'],
+    'AuthNo': [123, 124, 127, 126],
+    'SourceAmt': [100, 180, 140, 300]
+}
+
+# Create dataframes
+df_t5 = pd.DataFrame(data_t5)
+df_invoice = pd.DataFrame(data_invoice)
+
+# Create a dictionary to map unique supplier names to indices
+unique_supplier_names = np.unique(df_t5['SupplierName'].values)
+supplier_name_to_index = {name: idx for idx, name in enumerate(unique_supplier_names)}
+
+# Prepare training data
+pairs = []
+labels = []
+
+for idx, row in df_t5.iterrows():
+    supplier_name = row['SupplierName']
+    inv_number = df_invoice[df_invoice['AuthNo'] == row['AuthNo']]['InvNumber'].values[0]
+    
+    pairs.append([supplier_name_to_index[supplier_name], inv_number])
+    labels.append(1)  # Positive pair
+    
+    # Creating negative pairs by shuffling supplier names and inv numbers
+    shuffled_supplier = np.random.choice(unique_supplier_names)
+    shuffled_inv_number = np.random.choice(df_invoice['InvNumber'].values)
+    pairs.append([supplier_name_to_index[shuffled_supplier], shuffled_inv_number])
+    labels.append(0)  # Negative pair
+
+pairs = np.array(pairs)
+labels = np.array(labels)
+
+# Neural Network model
+num_unique_supplier_names = len(unique_supplier_names)
+embedding_dim = 50
+
+supplier_name_input = Input(shape=(1,))
+supplier_name_embedding = Embedding(input_dim=num_unique_supplier_names, output_dim=embedding_dim)(supplier_name_input)
+supplier_name_flatten = Flatten()(supplier_name_embedding)
+
+inv_number_input = Input(shape=(1,))
+inv_number_embedding = Embedding(input_dim=len(df_invoice['InvNumber'].unique()), output_dim=embedding_dim)(inv_number_input)
+inv_number_flatten = Flatten()(inv_number_embedding)
+
+merged_output = Concatenate()([supplier_name_flatten, inv_number_flatten])
+dense_1 = Dense(128, activation='relu')(merged_output)
+output_layer = Dense(1, activation='sigmoid')(dense_1)
+
+siamese_model = Model(inputs=[supplier_name_input, inv_number_input], outputs=output_layer)
+siamese_model.compile(loss='binary_crossentropy', optimizer=Adam(learning_rate=0.001), metrics=['accuracy'])
+
+# Training the model
+siamese_model.fit([pairs[:, 0], pairs[:, 1]], labels, epochs=10, batch_size=16)
+
+# Use the trained model for predictions
+predictions = siamese_model.predict([pairs[:, 0], pairs[:, 1]])
+
+# You can use predictions to identify matched pairs based on a threshold
+
+# For example:
+threshold = 0.5
+matched_indices = np.where(predictions > threshold)[0]
+matched_pairs = pairs[matched_indices]
+
+for idx in matched_indices:
+    print(f"Matched: Supplier '{unique_supplier_names[pairs[idx, 0]]}' with Invoice Number '{pairs[idx, 1]}'")
