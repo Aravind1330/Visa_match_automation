@@ -3403,3 +3403,58 @@ def sort_data_by_account_number(data_table, account_number_column):
 # Assuming the 'acct_number' column is used for sorting in both datasets
 sorted_T5_table = sort_data_by_account_number(T5_table, 'acct_number')
 sorted_Invoice_table = sort_data_by_account_number(Invoice_table, 'acct_number')
+
+
+
+
+
+
+import tensorflow as tf
+from tensorflow.keras.layers import Input, Embedding, Dense, Flatten, Lambda
+from tensorflow.keras.models import Model
+import math
+
+# Preprocessing
+def preprocess_string(s):
+    return s.lower()
+
+# Siamese Neural Network Architecture
+def build_siamese_model(embedding_dim, vocab_size, max_sequence_length):
+    input_layer = Input(shape=(max_sequence_length,))
+    embedding_layer = Embedding(vocab_size, embedding_dim)(input_layer)
+    flatten_layer = Flatten()(embedding_layer)
+    dense_layer = Dense(128, activation='relu')(flatten_layer)
+    similarity_output = Dense(1, activation='sigmoid')(dense_layer)  # Output similarity score
+    
+    return Model(inputs=input_layer, outputs=similarity_output)
+
+# Calculate Similarity Percentage
+def calculate_similarity_percentage(str1, str2, model, tokenizer, max_sequence_length):
+    str1 = preprocess_string(str1)
+    str2 = preprocess_string(str2)
+    
+    # Tokenize strings and convert to sequences
+    seq1 = tokenizer.texts_to_sequences([str1])
+    seq2 = tokenizer.texts_to_sequences([str2])
+    
+    # Pad sequences to a fixed length
+    seq1_padded = tf.keras.preprocessing.sequence.pad_sequences(seq1, maxlen=max_sequence_length)
+    seq2_padded = tf.keras.preprocessing.sequence.pad_sequences(seq2, maxlen=max_sequence_length)
+    
+    # Calculate similarity score using the Siamese model
+    similarity_score = model.predict([seq1_padded, seq2_padded])
+    similarity_percentage = similarity_score[0][0] * 100
+    
+    return similarity_percentage
+
+# Example usage
+embedding_dim = 50  # Choose an appropriate embedding dimension
+vocab_size = 10000  # Choose an appropriate vocabulary size
+max_sequence_length = 20  # Choose a maximum sequence length
+tokenizer = tf.keras.preprocessing.text.Tokenizer(num_words=vocab_size)
+
+siamese_model = build_siamese_model(embedding_dim, vocab_size, max_sequence_length)
+siamese_model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+similarity_percentage = calculate_similarity_percentage("hello world", "world hello", siamese_model, tokenizer, max_sequence_length)
+print(f"Similarity Percentage: {similarity_percentage:.2f}%")
