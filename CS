@@ -3638,7 +3638,9 @@ def vids_preprocessing(input_file, output_file):
     blank_invoice_rows = vids[vids['Invoice Number'].isnull()]
 
     # Write the filtered DataFrame to a new sheet in the output Excel file
-    with pd.ExcelWriter(output_file, engine='xlsxwriter') as writer:
+    # Create a Pandas ExcelWriter object
+    with pd.ExcelWriter(output_file) as writer:
+        # Write the filtered DataFrame to a new sheet in the output Excel file
         vids.to_excel(writer, sheet_name='Original Data', index=False)
         blank_invoice_rows.to_excel(writer, sheet_name='Blank Invoice Rows', index=False)
 
