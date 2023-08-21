@@ -3609,3 +3609,42 @@ history = model.fit([data_a, data_b], labels, batch_size=64, epochs=10, validati
 predictions = model.predict([data_a, data_b])
 for i in range(10):  # Print predictions for the first 10 samples
     print(f"Pair {i+1}: Actual Label = {labels[i]}, Predicted Label = {predictions[i][0]:.4f}")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import pandas as pd
+
+def vids_preprocessing(input_file, output_file):
+    # Read data from the input sheet into a DataFrame
+    vids = pd.read_excel(input_file)
+
+    # Filter rows with specific conditions (Transaction Type Code and Merchant Category Code)
+    vids = vids[vids['Transaction Type Code'].isin([10, 111])]
+    vids = vids[vids['Merchant Category Code'] != 0]
+
+    # Create a new DataFrame containing rows with blank invoice numbers
+    blank_invoice_rows = vids[vids['Invoice Number'].isnull()]
+
+    # Write the filtered DataFrame to a new sheet in the output Excel file
+    with pd.ExcelWriter(output_file, engine='xlsxwriter') as writer:
+        vids.to_excel(writer, sheet_name='Original Data', index=False)
+        blank_invoice_rows.to_excel(writer, sheet_name='Blank Invoice Rows', index=False)
+
+    print("Blank invoice rows have been copied to a new sheet in the output file.")
+
+# Example usage:
+input_file = 'Z:/Desktop/Recon_automation/FORD 3143.xlsx'  # Replace with your input file path
+output_file = 'output.xlsx'  # Replace with your desired output file name
+vids_preprocessing(input_file, output_file)
