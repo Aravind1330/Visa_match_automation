@@ -3638,13 +3638,19 @@ def vids_preprocessing(input_file, output_file):
     blank_invoice_rows = vids[vids['Invoice Number'].isnull()]
 
     # Write the filtered DataFrame to a new sheet in the output Excel file
+    # Delete rows with blank invoice numbers from the main sheet
+    vids = vids.dropna(subset=['Invoice Number'])
+
     # Create a Pandas ExcelWriter object
     with pd.ExcelWriter(output_file) as writer:
-        # Write the filtered DataFrame to a new sheet in the output Excel file
-        vids.to_excel(writer, sheet_name='Original Data', index=False)
+        # Write the filtered DataFrame (main sheet) to a new sheet in the output Excel file
+        vids.to_excel(writer, sheet_name='Main Sheet', index=False)
+
+        # Write the DataFrame containing blank invoice rows to another sheet
         blank_invoice_rows.to_excel(writer, sheet_name='Blank Invoice Rows', index=False)
 
-    print("Blank invoice rows have been copied to a new sheet in the output file.")
+    print("Blank invoice rows have been copied to a new sheet, and blank rows have been deleted from the main sheet.")
+
 
 # Example usage:
 input_file = 'Z:/Desktop/Recon_automation/FORD 3143.xlsx'  # Replace with your input file path
