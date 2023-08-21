@@ -3683,3 +3683,9 @@ def modify_main_sheet(input_file, output_file):
             sheet_df.to_excel(writer, sheet_name=sheet_name, index=False)
 
     print("Modified the 'Main Sheet' by concatenating '-' for rows where Transaction Code is 11 and saved to the output file.")
+
+
+
+
+    # Modify the "Main Sheet" by concatenating "-" for rows where Transaction Code is 11
+    vids.loc[vids['Transaction Code'] == 11, 'Source Amount'] = '-' + vids.loc[vids['Transaction Code'] == 11, 'Source Amount']
