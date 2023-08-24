@@ -3695,12 +3695,83 @@ def modify_main_sheet(input_file, output_file):
 
 
 
-        # Calculate the start row for the "Blank Invoice Rows" insertion
-        start_row = vids.shape[0] + 10  # Start 10 rows below the end of "Main Sheet"
+class InvoiceMatcher:
+    def __init__(self, t5_table, invoice_table):
+        self.t5_table = t5_table
+        self.invoice_table = invoice_table
+        self.matched_invoices = []
+        self.error_messages = []
+        self.unmatched_output_rows_one_to_one = []
+        self.unmatched_fin_record_keys = set()
 
-        # Write the "Blank Invoice Rows" DataFrame to the same sheet with column names
-        blank_invoice_rows.to_excel(writer, sheet_name='Main Sheet', index=False, startrow=start_row, header=False)
+    def process_t5_table(self):
+        for t5 in self.t5_table:
+            try:
+                self.process_transaction(t5)
+            except Exception as e:
+                self.error_messages.append(f"Error processing T5: {t5} \n{str(e)}")
 
-        # Write the column names for "Blank Invoice Rows" below the gap
-        for col_num, value in enumerate(blank_invoice_rows.columns.values):
-            writer.sheets['Main Sheet'].write(start_row, col_num, value)
+    def process_transaction(self, t5):
+        matching_invoices, match_rule = self.match_one_to_one(t5)
+
+        if matching_invoices:
+            for invoice, rule_index in matching_invoices:
+                if invoice not in self.matched_invoices:
+                    description = self.rule_descriptions.get(rule_index)
+                    output_row = self.create_output_row(t5, invoice, rule_index, description)
+                    self.unmatched_output_rows_one_to_one.append(output_row)
+                    self.matched_invoices.append(invoice)
+                    self.remove_matched_invoice(invoice)
+            self.remove_matched_transaction(t5)
+
+    def match_one_to_one(self, t5):
+        # Placeholder for matching logic - Replace with actual matching logic
+        matching_invoices = []
+        match_rule = "SampleRule"
+        return matching_invoices, match_rule
+
+    def create_output_row(self, t5, invoice, rule_index, description):
+        # Define your output_columns
+        output_columns = ['column1', 'column2', 'column3']
+        output_row = {column: t5[column] if column in t5 else invoice[column] for column in output_columns}
+        output_row['Match Rule'] = rule_index
+        output_row['description'] = description
+        output_row['Match Type'] = 'one-to-one'
+        return output_row
+
+    def remove_matched_invoice(self, invoice):
+        self.invoice_table = [inv for inv in self.invoice_table if inv != invoice]
+
+    def remove_matched_transaction(self, t5):
+        t5_record_key = t5['INPUT_T5_RECORD_KEY']
+        self.t5_table = [t5_row for t5_row in self.t5_table if t5_row['INPUT_T5_RECORD_KEY'] != t5_record_key]
+        self.unmatched_fin_record_keys.remove(t5_record_key)
+
+    def process_unmatched_output(self):
+        # Placeholder for processing unmatched output - Replace with actual logic
+        pass
+
+    def run(self):
+        self.process_t5_table()
+        self.process_unmatched_output()
+
+
+# Example Data
+sample_t5_table = [
+    {'INPUT_T5_RECORD_KEY': 'T5_1', 'column1': 'value1', 'column2': 'value2'},
+    {'INPUT_T5_RECORD_KEY': 'T5_2', 'column1': 'value3', 'column2': 'value4'},
+]
+
+sample_invoice_table = [
+    {'invoice_id': 'INV_1', 'column1': 'value5', 'column2': 'value6'},
+    {'invoice_id': 'INV_2', 'column1': 'value7', 'column2': 'value8'},
+]
+
+# Instantiate and run the InvoiceMatcher
+matcher = InvoiceMatcher(sample_t5_table, sample_invoice_table)
+matcher.run()
+
+# Access the results
+print("Matched Invoices:", matcher.matched_invoices)
+print("Error Messages:", matcher.error_messages)
+print("Unmatched Output Rows (One-to-One):", matcher.unmatched_output_rows_one_to_one)
