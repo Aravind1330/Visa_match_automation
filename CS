@@ -3775,3 +3775,96 @@ matcher.run()
 print("Matched Invoices:", matcher.matched_invoices)
 print("Error Messages:", matcher.error_messages)
 print("Unmatched Output Rows (One-to-One):", matcher.unmatched_output_rows_one_to_one)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def process_matching_invoices(T5, Invoice_table, matched_invoices, output_rows_one_to_one, rule_descriptions, rule_numbers):
+    matching_invoices, match_rule = match_one_to_one(T5, Invoice_table)  # You should pass T5 and Invoice_table here
+    if matching_invoices:
+        for invoice, rule_index in matching_invoices:
+            if invoice not in matched_invoices:
+                description = rule_descriptions.get(rule_index)
+                output_row = {column: T5[column] if column in T5 else invoice[column] for column in output_columns}
+                output_row['Match Rule'] = rule_index
+                output_row['description'] = description
+                output_row['Match Type'] = 'one-to-one'
+                output_rows_one_to_one.append(output_row)
+                matched_invoices.append(invoice)
+    
+    return matched_invoices
+
+def remove_matched_invoices_from_tables(matched_invoices, Invoice_table):
+    Invoice_table = [inv for inv in Invoice_table if inv not in matched_invoices]
+    return Invoice_table
+
+def remove_matched_transactions_from_T5(T5_table, matched_fin_record_keys):
+    T5_table = [T5_row for T5_row in T5_table if T5_row[COLUMN_HEADER.INPUT_T5_RECORD_KEY.value] not in matched_fin_record_keys]
+    return T5_table
+
+def process_unmatched_output(T5, unmatched_output_df, unmatched_output_rows_one_to_one):
+    unmatched_indices = unmatched_output_df[
+        (unmatched_output_df[COLUMN_HEADER.INPUT_T5_RECORD_KEY.value] == T5[COLUMN_HEADER.INPUT_T5_RECORD_KEY.value]) &
+        (unmatched_output_df[COLUMN_HEADER.T5_SOURCE_AMT.value] == T5[COLUMN_HEADER.T5_SOURCE_AMT.value]) &
+        (unmatched_output_df[COLUMN_HEADER.FIN_DEB_CRED_IND.value] == T5[COLUMN_HEADER.FIN_DEB_CRED_IND.value])
+    ].index
+
+    unmatched_output_df.drop(unmatched_indices, inplace=True)
+    unmatched_output_row = {column: T5[column] if column in T5 else None for column in unmatched_output_columns}
+    unmatched_output_rows_one_to_one.append(unmatched_output_row)
+
+def process_T5_records(T5_table, unmatched_fin_record_keys, unmatched_output_df, unmatched_output_rows_one_to_one, matched_invoices, output_rows_one_to_one, rule_descriptions, rule_numbers, output_columns, unmatched_output_columns):
+    error_messages = []
+    
+    for T5 in T5_table:
+        try:
+            matched_invoices = process_matching_invoices(T5, Invoice_table, matched_invoices, output_rows_one_to_one, rule_descriptions, rule_numbers)
+            Invoice_table = remove_matched_invoices_from_tables(matched_invoices, Invoice_table)
+            T5_table = remove_matched_transactions_from_T5(T5_table, matched_fin_record_keys)
+            unmatched_fin_record_keys.remove(T5[COLUMN_HEADER.INPUT_T5_RECORD_KEY.value])
+            process_unmatched_output(T5, unmatched_output_df, unmatched_output_rows_one_to_one)
+        
+        except Exception as e:
+            error_messages.append(f"Error processing T5: {T5} \n{str(e)}")
+            continue
+
+    return matched_invoices, Invoice_table, T5_table, error_messages
+
+
+
+# Define your data and variables
+T5_table = [...]  # Your T5 table data
+Invoice_table = [...]  # Your Invoice table data
+# Define other variables such as output_columns, unmatched_output_columns, rule_descriptions, rule_numbers, etc.
+
+# Initialize variables
+matched_invoices = []
+unmatched_fin_record_keys = set(T5[COLUMN_HEADER.INPUT_T5_RECORD_KEY.value] for T5 in T5_table)
+unmatched_output_df = ...  # Initialize your unmatched output DataFrame
+unmatched_output_rows_one_to_one = []
+error_messages = []
+
+# Call the processing function
+matched_invoices, Invoice_table, T5_table, error_messages = process_T5_records(
+    T5_table, unmatched_fin_record_keys, unmatched_output_df, unmatched_output_rows_one_to_one,
+    matched_invoices, output_rows_one_to_one, rule_descriptions, rule_numbers,
+    output_columns, unmatched_output_columns
+)
+
+# Now, you can handle the results, such as printing error messages or working with the updated data structures.
+for message in error_messages:
+    print(message)
+
+# You can also use the updated Invoice_table, T5_table, and other data structures as needed.
