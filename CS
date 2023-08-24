@@ -3887,3 +3887,15 @@ for message in error_messages:
 
     # Remove duplicates from the "blank_invoice_rows" DataFrame based on 'trn', 'amount', and 'auth' columns
     blank_invoice_rows.drop_duplicates(subset=['trn', 'amount', 'auth'], keep='first', inplace=True)
+
+
+
+
+        # Check if there are empty invoice rows before adding column names
+        if not blank_invoice_rows.empty:
+            # Write the "Blank Invoice Rows" DataFrame to the same sheet with column names
+            blank_invoice_rows.to_excel(writer, sheet_name='Main Sheet', index=False, startrow=start_row, header=False)
+
+            # Write the column names for "Blank Invoice Rows" below the gap
+            for col_num, value in enumerate(blank_invoice_rows.columns.values):
+                writer.sheets['Main Sheet'].write(start_row, col_num, value)
