@@ -3868,3 +3868,10 @@ for message in error_messages:
     print(message)
 
 # You can also use the updated Invoice_table, T5_table, and other data structures as needed.
+
+
+
+
+
+   # Copy the "Amount" column values to the respective "Source Amount" column rows
+    vids['Source Amount'] = vids.apply(lambda row: row['Amount'] if pd.notnull(row['Amount']) else row['Source Amount'], axis=1)
