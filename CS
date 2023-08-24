@@ -3875,3 +3875,8 @@ for message in error_messages:
 
    # Copy the "Amount" column values to the respective "Source Amount" column rows
     vids['Source Amount'] = vids.apply(lambda row: row['Amount'] if pd.notnull(row['Amount']) else row['Source Amount'], axis=1)
+
+
+
+ # If Transaction Type Code is 11, make the Amount column value negative
+    vids.loc[vids['Transaction Code'] == 11, 'Amount'] = -vids.loc[vids['Transaction Code'] == 11, 'Amount']
