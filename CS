@@ -3880,3 +3880,10 @@ for message in error_messages:
 
  # If Transaction Type Code is 11, make the Amount column value negative
     vids.loc[vids['Transaction Code'] == 11, 'Amount'] = -vids.loc[vids['Transaction Code'] == 11, 'Amount']
+
+
+    # Remove duplicates from the "vids" DataFrame based on 'trn', 'amount', and 'auth' columns
+    vids.drop_duplicates(subset=['trn', 'amount', 'auth'], keep='first', inplace=True)
+
+    # Remove duplicates from the "blank_invoice_rows" DataFrame based on 'trn', 'amount', and 'auth' columns
+    blank_invoice_rows.drop_duplicates(subset=['trn', 'amount', 'auth'], keep='first', inplace=True)
