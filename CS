@@ -4042,12 +4042,14 @@ vids_preprocessing_and_modify(input_file, output_file)
 
 
 
-            # Calculate the sum of "Source Amount" for both DataFrames
-            vids_sum = vids['Source Amount'].sum()
-            blank_invoice_sum = blank_invoice_rows['Source Amount'].sum()
+        # Calculate the sum of the "Source Amount" column
+        source_amt_sum = vids['Source Amount'].sum()
 
-            # Write the sums to the output file with a 2-line gap
-            writer.sheets['Main Sheet'].write(start_row + blank_invoice_rows.shape[0] + 2, 0, "Total Source Amount")
-            writer.sheets['Main Sheet'].write(start_row + blank_invoice_rows.shape[0] + 2, 1, vids_sum + blank_invoice_sum)
-            # Add autofilter to the sheet to make sure the sums are visible
-            writer.sheets['Main Sheet'].autofilter(0, 0, start_row + blank_invoice_rows.shape[0] + 3, 2)
+        # Add the sum to the sheet
+        worksheet = writer.sheets['Main Sheet']
+        worksheet.write_blank(len(vids) + 1, 0, None, writer.book.add_format({'bold': True}))
+        worksheet.write_string(len(vids) + 1, 1, 'Total Source Amount:', writer.book.add_format({'bold': True}))
+        worksheet.write_number(len(vids) + 1, 2, source_amt_sum, writer.book.add_format({'bold': True}))
+
+        # Calculate the start row for the "Blank Invoice Rows" insertion
+        start_row = len(vids) + 12
