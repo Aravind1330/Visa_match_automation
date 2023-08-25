@@ -4022,11 +4022,12 @@ def vids_preprocessing_and_modify(input_file, output_file):
             start_row += 2
 
         # Write the sum of "Source Amount" for both DataFrames with SUM formula
+        # Write the sum of "Source Amount" for both DataFrames with SUM formula
         worksheet = writer.sheets['Main Sheet']
         worksheet.cell(row=start_row, column=1, value='Total Source Amount (vids):')
-        worksheet.cell(row=start_row, column=2, value=f'=SUM(B1:B{start_row - 1})')
+        worksheet.cell(row=start_row, column=2, value=f'=SUM(Source Amount)')
         worksheet.cell(row=start_row + 1, column=1, value='Total Source Amount (blank_invoice_rows):')
-        worksheet.cell(row=start_row + 1, column=2, value=f'=SUM(B{start_row + 3}:B{start_row + 3 + blank_invoice_rows.shape[0] - 1})')
+        worksheet.cell(row=start_row + 1, column=2, value=f'=SUM(Source Amount)')
 
     writer.save()
     print("Duplicate rows have been removed from both the 'vids' and 'blank_invoice_rows' DataFrames. Blank invoice rows have been copied to the 'Main Sheet' with a gap of 10 lines (if they exist), and the 'Main Sheet' has been modified. The sum of 'Source Amount' for both DataFrames has been added to the output file.")
