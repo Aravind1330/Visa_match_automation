@@ -4036,3 +4036,16 @@ def vids_preprocessing_and_modify(input_file, output_file):
 input_file = 'Z:/Desktop/Recon_automation/FORD 3143.xlsx'  # Replace with your input file path
 output_file = 'output.xlsx'  # Replace with your desired output file name
 vids_preprocessing_and_modify(input_file, output_file)
+
+
+
+
+
+
+            # Calculate the sum of "Source Amount" for both DataFrames
+            vids_sum = vids['Source Amount'].sum()
+            blank_invoice_sum = blank_invoice_rows['Source Amount'].sum()
+
+            # Write the sums to the output file with a 2-line gap
+            writer.sheets['Main Sheet'].write(start_row + blank_invoice_rows.shape[0] + 2, 0, "Total Source Amount")
+            writer.sheets['Main Sheet'].write(start_row + blank_invoice_rows.shape[0] + 2, 1, vids_sum + blank_invoice_sum)
