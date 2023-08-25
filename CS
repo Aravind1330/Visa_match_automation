@@ -4042,14 +4042,27 @@ vids_preprocessing_and_modify(input_file, output_file)
 
 
 
-        # Calculate the sum of the "Source Amount" column
-        source_amt_sum = vids['Source Amount'].sum()
+ # Calculate the sum of the "Source Amount" column for both DataFrames
+    combined_source_amt_sum = vids['Source Amount'].sum() + blank_invoice_rows['Source Amount'].sum()
 
-        # Add the sum to the sheet
-        worksheet = writer.sheets['Main Sheet']
-        worksheet.write_blank(len(vids) + 1, 0, None, writer.book.add_format({'bold': True}))
-        worksheet.write_string(len(vids) + 1, 1, 'Total Source Amount:', writer.book.add_format({'bold': True}))
-        worksheet.write_number(len(vids) + 1, 2, source_amt_sum, writer.book.add_format({'bold': True}))
+    # Create a Pandas ExcelWriter object
+    with pd.ExcelWriter(output_file, engine='xlsxwriter') as writer:
+        # Write the filtered DataFrame (main sheet) to a new sheet in the output Excel file
+        vids.to_excel(writer, sheet_name='Main Sheet', index=False)
 
         # Calculate the start row for the "Blank Invoice Rows" insertion
-        start_row = len(vids) + 12
+        start_row = len(vids) + 12  # Start 12 rows below the end of "Main Sheet"
+
+        # Check if there are empty invoice rows before adding column names
+        if not blank_invoice_rows.empty:
+            # Write the "Blank Invoice Rows" DataFrame to the same sheet with column names
+            blank_invoice_rows.to_excel(writer, sheet_name='Main Sheet', index=False, startrow=start_row, header=False)
+
+            # Write the column names for "Blank Invoice Rows" below the gap
+            for col_num, value in enumerate(blank_invoice_rows.columns.values):
+                writer.sheets['Main Sheet'].write(start_row, col_num, value)
+
+        # Add the combined sum of "Source Amount" to the sheet
+        worksheet = writer.sheets['Main Sheet']
+        worksheet.write(len(vids) + 2, 1, 'Combined Total Source Amount:')
+        worksheet.write_number(len(vids) + 2, 2, combined_source_amt_sum)
