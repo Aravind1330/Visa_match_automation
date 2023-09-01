@@ -4145,3 +4145,50 @@ def main(input_file, output_file):
 input_file = 'example_data.xlsx'  # Replace with your input file path
 output_file = 'output.xlsx'  # Replace with your desired output file name
 main(input_file, output_file)
+
+
+
+
+
+
+
+
+
+def get_blank_invoice_rows(df):
+    return df[df['Invoice Number'].isnull()]
+
+def combine_and_sum(source_df, blank_invoice_df):
+    combined_df = pd.concat([source_df, blank_invoice_df])
+    combined_source_amt_sum = combined_df['Source Amount'].sum()
+    return combined_df, combined_source_amt_sum
+
+def write_to_excel(df, output_file, combined_source_amt_sum):
+    with pd.ExcelWriter(output_file, engine='xlsxwriter') as writer:
+        df.to_excel(writer, sheet_name='Main Sheet', index=False)
+        worksheet = writer.sheets['Main Sheet']
+        worksheet.write(len(df) + 12, 1, 'Combined Total Source Amount:')
+        worksheet.write_number(len(df) + 12, 2, combined_source_amt_sum)
+
+def main(input_file, output_file):
+    # Read data from the input sheet into a DataFrame
+    vids = pd.read_excel(input_file)
+
+    # Remove duplicate rows from the DataFrame
+    vids = remove_duplicate_rows(vids)
+
+    # Get rows with blank invoice numbers
+    blank_invoice_rows = get_blank_invoice_rows(vids)
+
+    # Filter rows based on specific conditions
+    source_df = filter_rows(vids)
+
+    # Modify rows based on Transaction Code
+    source_df = modify_rows(source_df)
+
+    # Combine DataFrames and calculate the sum of Source Amount
+    combined_df, combined_source_amt_sum = combine_and_sum(source_df, blank_invoice_rows)
+
+    # Write the result to the output Excel file
+    write_to_excel(combined_df, output_file, combined_source_amt_sum)
+
+    print("Duplicate rows have been removed from both the 'vids' and 'blank_invoice_rows' DataFrames. Blank invoice rows have been copied to the 'Main Sheet' 10 lines below the end (if they exist), and the 'Main Sheet' has been modified with a combined sum for 'Source Amount'. The result is saved to the output file.")
