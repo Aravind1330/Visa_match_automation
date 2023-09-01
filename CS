@@ -4075,3 +4075,73 @@ vids_preprocessing_and_modify(input_file, output_file)
 
 2.Bundle matching is a procedure that pairs a transaction with multiple invoices, where the total source amount of these invoices equals the source amount of 
 the transaction, all in accordance with established rules.
+
+
+
+
+
+
+
+
+
+
+
+import pandas as pd
+
+def remove_duplicate_rows(df):
+    return df.drop_duplicates()
+
+def filter_rows(df):
+    return df[
+        (df['Transaction Type Code'].isin([10, 111])) &
+        (df['Merchant Category Code'] != 0) &
+        (~df['Invoice Number'].isnull())
+    ]
+
+def modify_rows(df):
+    df.loc[df['Transaction Code'] == 11, 'Source Amount'] = -df.loc[df['Transaction Code'] == 11, 'Source Amount']
+    df.loc[df['Transaction Code'] == 11, 'Amount'] = -df.loc[df['Transaction Code'] == 11, 'Amount']
+    df['Source Amount'].fillna(df['Amount'], inplace=True)
+    return df
+
+def combine_and_sum(source_df, blank_invoice_df):
+    combined_df = pd.concat([source_df, blank_invoice_df])
+    combined_source_amt_sum = combined_df['Source Amount'].sum()
+    return combined_df, combined_source_amt_sum
+
+def write_to_excel(df, output_file):
+    with pd.ExcelWriter(output_file, engine='xlsxwriter') as writer:
+        df.to_excel(writer, sheet_name='Main Sheet', index=False)
+        worksheet = writer.sheets['Main Sheet']
+        worksheet.write(len(df) + 2, 1, 'Combined Total Source Amount:')
+        worksheet.write_number(len(df) + 2, 2, combined_source_amt_sum)
+
+def main(input_file, output_file):
+    # Read data from the input sheet into a DataFrame
+    vids = pd.read_excel(input_file)
+
+    # Remove duplicate rows from the DataFrame
+    vids = remove_duplicate_rows(vids)
+
+    # Separate rows with blank invoice numbers
+    blank_invoice_rows = vids[vids['Invoice Number'].isnull()]
+    blank_invoice_rows = remove_duplicate_rows(blank_invoice_rows)
+
+    # Filter rows based on specific conditions
+    source_df = filter_rows(vids)
+
+    # Modify rows based on Transaction Code
+    source_df = modify_rows(source_df)
+
+    # Combine DataFrames and calculate the sum of Source Amount
+    combined_df, combined_source_amt_sum = combine_and_sum(source_df, blank_invoice_rows)
+
+    # Write the result to the output Excel file
+    write_to_excel(combined_df, output_file)
+
+    print("Duplicate rows have been removed from both the 'vids' and 'blank_invoice_rows' DataFrames. Blank invoice rows have been copied to the 'Main Sheet' (if they exist), and the 'Main Sheet' has been modified with a combined sum for 'Source Amount'. The result is saved to the output file.")
+
+# Example usage:
+input_file = 'example_data.xlsx'  # Replace with your input file path
+output_file = 'output.xlsx'  # Replace with your desired output file name
+main(input_file, output_file)
