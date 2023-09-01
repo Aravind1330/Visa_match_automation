@@ -4066,3 +4066,12 @@ vids_preprocessing_and_modify(input_file, output_file)
         worksheet = writer.sheets['Main Sheet']
         worksheet.write(len(vids) + 2, 1, 'Combined Total Source Amount:')
         worksheet.write_number(len(vids) + 2, 2, combined_source_amt_sum)
+
+
+
+
+1. One-to-One matching is a process that associates a transaction with one specific invoice, based on a predefined set of rules.
+
+
+2.Bundle matching is a procedure that pairs a transaction with multiple invoices, where the total source amount of these invoices equals the source amount of 
+the transaction, all in accordance with established rules.
