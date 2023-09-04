@@ -4190,3 +4190,49 @@ def main(input_file, output_file):
 
     # Write the result to the output Excel file
     write_to_excel(combined_df, output_file, combined_source_amt_sum)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Explanation:
+
+1. The function calculate_similarity_percentage takes three parameters:
+
+str1: The first input string for which similarity needs to be calculated.
+str2: The second input string for which similarity needs to be calculated.
+n: The size of character n-grams to be used in the similarity calculation.
+
+2. Both input strings str1 and str2 are converted to lowercase using the lower() method to ensure case-insensitive comparison.
+
+3. Character n-grams are generated for both strings. An n-gram is a contiguous sequence of 'n' characters. 
+These n-grams are created by iterating through the strings and extracting substrings of length 'n'. These substrings are stored in the lists ngrams_str1 and ngrams_str2.
+
+4. The dot product between the n-gram vectors is calculated. The dot product is a measure of how many n-grams are common to both strings. 
+This is done by iterating through ngrams_str1 and counting how many n-grams are present in ngrams_str2.
+
+5. The Euclidean norms for both n-gram vectors are calculated. The Euclidean norm of a vector is the square root of the sum of the squares of its elements. 
+In this context, it's used to normalize the vectors.
+
+6. The cosine similarity between the two n-gram vectors is calculated using the dot product and normalized vectors. Cosine similarity is a measure 
+of how similar two vectors are in a multi-dimensional space.
+
+7. The result is returned as a percentage by multiplying the cosine similarity by 100.
+
+8. If the denominator (norm_str1 * norm_str2) is zero (indicating one of the strings has no n-grams), the function returns 0 to avoid division by zero.
