@@ -4271,3 +4271,61 @@ for account_number in common_account_numbers:
     # Save each batch as a separate CSV file in the "batch1" folder
     batch1.to_csv(f'batch1/batch_{account_number}.csv', index=False)
     batch2.to_csv(f'batch1/batch_{account_number}_dataset2.csv', index=False)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import numpy as np
+import pandas as pd
+import os
+
+# Load dataset 1
+dataset1 = pd.read_csv('dataset1.csv')
+
+# Load dataset 2
+dataset2 = pd.read_csv('dataset2.csv')
+
+# Get unique account numbers from both datasets
+unique_account_numbers1 = dataset1['Account Number'].unique()
+unique_account_numbers2 = dataset2['Account Number'].unique()
+
+# Combine the unique account numbers into one set
+all_account_numbers = set(unique_account_numbers1) | set(unique_account_numbers2)
+
+# Calculate the number of account numbers per batch
+num_account_numbers_per_batch = len(all_account_numbers) // 5
+
+# Create a folder for batches
+if not os.path.exists('batches'):
+    os.makedirs('batches')
+
+# Split account numbers into 5 batches
+batches = np.array_split(list(all_account_numbers), 5)
+
+# Process and save batches for dataset 1
+for i, batch_account_numbers in enumerate(batches):
+    # Select rows from dataset 1 with account numbers in the current batch
+    batch1 = dataset1[dataset1['Account Number'].isin(batch_account_numbers)]
+    
+    # Save the batch from dataset 1 as a separate CSV file
+    batch1.to_csv(f'batches/batch_{i + 1}_dataset1.csv', index=False)
+
+# Process and save batches for dataset 2
+for i, batch_account_numbers in enumerate(batches):
+    # Select rows from dataset 2 with account numbers in the current batch
+    batch2 = dataset2[dataset2['Account Number'].isin(batch_account_numbers)]
+    
+    # Save the batch from dataset 2 as a separate CSV file
+    batch2.to_csv(f'batches/batch_{i + 1}_dataset2.csv', index=False)
