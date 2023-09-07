@@ -4236,3 +4236,38 @@ of how similar two vectors are in a multi-dimensional space.
 7. The result is returned as a percentage by multiplying the cosine similarity by 100.
 
 8. If the denominator (norm_str1 * norm_str2) is zero (indicating one of the strings has no n-grams), the function returns 0 to avoid division by zero.
+
+
+
+
+
+
+
+import os
+import pandas as pd
+
+# Load dataset 1
+dataset1 = pd.read_csv('dataset1.csv')
+
+# Load dataset 2
+dataset2 = pd.read_csv('dataset2.csv')
+
+# Create a folder for batches
+if not os.path.exists('batch1'):
+    os.makedirs('batch1')
+
+# Identify unique account numbers in both datasets
+unique_account_numbers1 = dataset1['Account Number'].unique()
+unique_account_numbers2 = dataset2['Account Number'].unique()
+
+# Find common account numbers
+common_account_numbers = set(unique_account_numbers1) & set(unique_account_numbers2)
+
+# Split into batches and save in "batch1" folder
+for account_number in common_account_numbers:
+    batch1 = dataset1[dataset1['Account Number'] == account_number]
+    batch2 = dataset2[dataset2['Account Number'] == account_number]
+    
+    # Save each batch as a separate CSV file in the "batch1" folder
+    batch1.to_csv(f'batch1/batch_{account_number}.csv', index=False)
+    batch2.to_csv(f'batch1/batch_{account_number}_dataset2.csv', index=False)
