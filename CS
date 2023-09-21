@@ -4329,3 +4329,98 @@ for i, batch_account_numbers in enumerate(batches):
     
     # Save the batch from dataset 2 as a separate CSV file
     batch2.to_csv(f'batches/batch_{i + 1}_dataset2.csv', index=False)
+
+
+
+
+
+
+
+
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras.layers import Input, Embedding, Flatten, Dense, Lambda
+from tensorflow.keras.models import Model
+from tensorflow.keras.optimizers import Adam
+from sklearn.model_selection import train_test_split
+
+# Example data
+data1 = {
+    "ID": [1, 2, 3, 4, 5],
+    "Name": ["John", "Alice", "Bob", "Charlie", "David"],
+    "Age": [25, 30, 22, 35, 28],
+}
+
+data2 = {
+    "ID": [6, 7, 8, 9, 10],
+    "Name": ["John", "Alice", "Eve", "David", "Frank"],
+    "Age": [25, 30, 23, 28, 32],
+}
+
+dataset1 = pd.DataFrame(data1)
+dataset2 = pd.DataFrame(data2)
+
+# Create a labeled dataset for training (1 for matching, 0 for non-matching)
+positive_pairs = []
+negative_pairs = []
+
+# Assuming "Name" is the column you want to match
+for i, row1 in dataset1.iterrows():
+    for j, row2 in dataset2.iterrows():
+        similarity_score = int(row1["Name"] == row2["Name"])
+        pair = (row1, row2, similarity_score)
+        if similarity_score == 1:
+            positive_pairs.append(pair)
+        else:
+            negative_pairs.append(pair)
+
+# Combine positive and negative pairs
+pairs = positive_pairs + negative_pairs
+np.random.shuffle(pairs)
+pairs = np.array(pairs)
+
+# Split the dataset into training and validation
+X = pairs[:, [0, 1]]
+y = pairs[:, 2].astype(int)
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Define the Siamese network architecture
+def create_siamese_network(input_shape):
+    input_layer = Input(shape=input_shape)
+    embedding_layer = Embedding(input_dim=10000, output_dim=128)(input_layer)
+    flatten_layer = Flatten()(embedding_layer)
+    dense_layer = Dense(128, activation='relu')(flatten_layer)
+    return Model(inputs=input_layer, outputs=dense_layer)
+
+# Create the Siamese network
+input_shape = (2,)  # Each input is a pair of records
+siamese_network = create_siamese_network(input_shape)
+
+# Define the final model that computes similarity
+input_a = Input(shape=input_shape)
+input_b = Input(shape=input_shape)
+output_a = siamese_network(input_a)
+output_b = siamese_network(input_b)
+
+distance = Lambda(lambda x: tf.norm(x[0] - x[1], axis=1), output_shape=(1,))([output_a, output_b])
+
+model = Model(inputs=[input_a, input_b], outputs=distance)
+
+# Compile the model
+model.compile(optimizer=Adam(learning_rate=0.001), loss='binary_crossentropy', metrics=['accuracy'])
+
+# Train the model
+model.fit([X_train[:, 0], X_train[:, 1]], y_train, validation_data=([X_val[:, 0], X_val[:, 1]], y_val), epochs=10, batch_size=32)
+
+# Use the trained model for matching
+similarity_scores = model.predict([X_val[:, 0], X_val[:, 1]])
+
+# Threshold the similarity scores to determine matches
+threshold = 0.5  # You can adjust this threshold
+predictions = (similarity_scores < threshold).astype(int)
+
+# Print the predicted matches
+for i in range(len(X_val)):
+    print(f"Record 1: {X_val[i, 0]} | Record 2: {X_val[i, 1]} | Predicted Match: {predictions[i]}")
