@@ -4424,3 +4424,62 @@ predictions = (similarity_scores < threshold).astype(int)
 # Print the predicted matches
 for i in range(len(X_val)):
     print(f"Record 1: {X_val[i, 0]} | Record 2: {X_val[i, 1]} | Predicted Match: {predictions[i]}")
+
+
+
+
+
+
+
+
+
+
+
+import pandas as pd
+import ibm_db  # You may need to use a different DB2 driver if you prefer.
+
+def push_dataframe_to_db2(dataframe, table_name):
+    # Replace these with your DB2 credentials
+    database = "your_database_name"
+    hostname = "your_host_name"
+    port = "your_port_number"
+    username = "your_username"
+    password = "your_password"
+
+    dsn = (
+        f"DATABASE={database};"
+        f"HOSTNAME={hostname};"
+        f"PORT={port};"
+        f"PROTOCOL=TCPIP;"
+        f"UID={username};"
+        f"PWD={password};"
+    )
+
+    try:
+        conn = ibm_db.connect(dsn, "", "")
+        if conn:
+            # Create a DataFrame connection
+            conn_df = ibm_db_dbi.Connection(conn)
+
+            # Push the DataFrame to the DB2 table
+            dataframe.to_sql(table_name, conn_df, if_exists='replace', index=False)
+            print(f"Data pushed to table '{table_name}' successfully.")
+        else:
+            print("DB2 connection not established.")
+    except Exception as e:
+        print(f"Error: {e}")
+    finally:
+        if conn:
+            ibm_db.close(conn)
+
+if __name__ == "__main__":
+    # Import your dataframes from main.py
+    from main import dataframe1, dataframe2
+
+    # Specify the table names in your DB2 database
+    table_name1 = "existing_table_name1"
+    table_name2 = "existing_table_name2"
+
+    # Push dataframes to DB2 tables
+    push_dataframe_to_db2(dataframe1, table_name1)
+    push_dataframe_to_db2(dataframe2, table_name2)
