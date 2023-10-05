@@ -4540,22 +4540,36 @@ def match_bundle(T5, Invoice_table, rules):
 
 
 def match_bundle(T5, Invoice_table, rules):
-    unmatched_invoices = Invoice_table[:]
-    total_invoice_source_amt = float(T5['fin_source_amt'])
     matching_invoices = []
-    matched_rule_index = None
-
-    for rule_index, rule in enumerate(rules):
-        invoices_to_remove = {
-            i for i, Invoice in enumerate(unmatched_invoices)
-            if rule(T5, Invoice) and float(Invoice['inv_match_source_amt']) <= total_invoice_source_amt
-        }
-
-        if invoices_to_remove:
-            matching_invoices.extend((unmatched_invoices.pop(i), rule_index) for i in sorted(invoices_to_remove, reverse=True))
-            matched_rule_index = rule_index
-
-        if total_invoice_source_amt == 0:
+    unmatched_invoices = Invoice_table[:]
+    total_invoice_source_amt = 0
+    match_rule = None
+    rule_index = 0
+    
+    while rule_index < len(rules) and unmatched_invoices:
+        invoices_to_remove = []
+        
+        for i in range(len(unmatched_invoices)):
+            Invoice = unmatched_invoices[i]
+            if rules[rule_index](T5, Invoice):  # Call the appropriate rule function
+                invoice_amt = float(Invoice['inv_match_source_amt'])
+                remaining_amt = float(T5['fin_source_amt']) - total_invoice_source_amt
+                
+                if invoice_amt <= remaining_amt:
+                    matching_invoices.append((Invoice, rule_index))
+                    total_invoice_source_amt += invoice_amt
+                    invoices_to_remove.append(i)
+        
+        for index in sorted(invoices_to_remove, reverse=True):
+            unmatched_invoices.pop(index)
+        
+        if total_invoice_source_amt == float(T5['fin_source_amt']):
+            match_rule = rule_index
             break
-
-    return matching_invoices, matched_rule_index if total_invoice_source_amt == 0 else unmatched_invoices
+        
+        rule_index += 1
+    
+    if total_invoice_source_amt == float(T5['fin_source_amt']):
+        return matching_invoices, match_rule
+    else:
+        return [], unmatched_invoices
