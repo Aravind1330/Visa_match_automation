@@ -4573,3 +4573,28 @@ def match_bundle(T5, Invoice_table, rules):
         return matching_invoices, match_rule
     else:
         return [], unmatched_invoices
+
+
+
+def match_bundle(T5, Invoice_table, rules):
+    matching_invoices = []
+    unmatched_invoices = Invoice_table[:]
+    total_invoice_source_amt = 0
+    match_rule = None  # Initialize match_rule outside the loop
+
+    for rule_index, rule in enumerate(rules):
+        for i, Invoice in enumerate(unmatched_invoices):
+            if rule(T5, Invoice):
+                invoice_amt = float(Invoice['inv_match_source_amt'])
+                remaining_amt = float(T5['fin_source_amt']) - total_invoice_source_amt
+                if invoice_amt <= remaining_amt:
+                    matching_invoices.append((Invoice, rule_index))
+                    total_invoice_source_amt += invoice_amt
+                    unmatched_invoices.pop(i)
+                    match_rule = rule_index  # Update match_rule when a match is found
+                    break  # Exit inner loop after finding a match
+
+        if total_invoice_source_amt == float(T5['fin_source_amt']):
+            break  # Exit outer loop when the target amount is reached
+
+    return matching_invoices, match_rule, unmatched_invoices
