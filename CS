@@ -4667,3 +4667,30 @@ def match_bundle(T5, Invoice_table, rules, company_comm_mapping):
         return matching_invoices, match_rule
     else:
         return matching_invoices, None, unmatched_invoices
+
+
+
+
+import pandas as pd
+
+# Load the Excel file into a DataFrame
+company_comm_mapping = pd.read_excel('company_comm_mapping.xlsx')  # Replace 'company_comm_mapping.xlsx' with your actual file name
+
+
+def match_bundle(T5, Invoice_table, rules, company_comm_mapping):
+    # ... (existing code)
+
+    while rule_index <= len(rules) and unmatched_invoices:
+        invoices_to_remove = []
+        for i in range(len(unmatched_invoices)):
+            Invoice = unmatched_invoices[i]
+            company_id = Invoice['company_id']  # Assuming the column name for company ID in Invoice_table is 'company_id'
+            comm_file_id = company_comm_mapping.loc[company_comm_mapping['company_id'] == company_id, 'comm_file_id'].values[0]
+
+            if rules[rule_index - 1](T5, Invoice) and comm_file_id == Invoice['comm_file_id']:
+                # ... (existing code)
+
+# Assuming you have T5, Invoice_table, and rules defined somewhere before this point
+result, match_rule, unmatched_invoices = match_bundle(T5, Invoice_table, rules, company_comm_mapping)
+
+# Process the result, match_rule, and unmatched_invoices as needed
