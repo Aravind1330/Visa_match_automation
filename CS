@@ -4598,3 +4598,72 @@ def match_bundle(T5, Invoice_table, rules):
             break  # Exit outer loop when the target amount is reached
 
     return matching_invoices, match_rule, unmatched_invoices
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import csv
+
+# Assuming your file is named 'company_comm_mapping.csv'
+def read_company_comm_mapping(filename):
+    company_comm_mapping = {}
+    with open(filename, 'r') as csvfile:
+        reader = csv.reader(csvfile)
+        for row in reader:
+            company_id, comm_file_id = row
+            company_comm_mapping[company_id] = comm_file_id
+    return company_comm_mapping
+
+# Read the company and comm file id mappings
+company_comm_mapping = read_company_comm_mapping('company_comm_mapping.csv')
+
+
+
+def match_bundle(T5, Invoice_table, rules, company_comm_mapping):
+    matching_invoices = []
+    unmatched_invoices = Invoice_table[:]
+    total_invoice_source_amt = 0
+    rule_index = 1
+
+    while rule_index <= len(rules) and unmatched_invoices:
+        invoices_to_remove = []
+        for i in range(len(unmatched_invoices)):
+            Invoice = unmatched_invoices[i]
+            company_id = Invoice['company_id']
+            comm_file_id = Invoice['comm_file_id']
+
+            # Check if the company id and comm file id match the mapping
+            if company_id in company_comm_mapping and comm_file_id == company_comm_mapping[company_id]:
+                if rules[rule_index - 1](T5, Invoice):
+                    invoice_amt = float(Invoice['inv_match_source_amt'])
+                    remaining_amt = float(T5['fin_source_amt']) - total_invoice_source_amt
+                    if invoice_amt <= remaining_amt:
+                        matching_invoices.append((Invoice, rule_index))
+                        total_invoice_source_amt += invoice_amt
+                        invoices_to_remove.append(i)
+
+        for index in sorted(invoices_to_remove, reverse=True):
+            unmatched_invoices.pop(index)
+
+        if total_invoice_source_amt == float(T5['fin_source_amt']):
+            match_rule = rule_index
+            break
+
+        rule_index += 1
+
+    if total_invoice_source_amt == float(T5['fin_source_amt']):
+        return matching_invoices, match_rule
+    else:
+        return matching_invoices, None, unmatched_invoices
