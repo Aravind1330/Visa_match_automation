@@ -4850,3 +4850,97 @@ predictions = siamese_lstm_model.predict([new_sequences_a, new_sequences_b])
 for i in range(len(new_texts_a)):
     similarity_score = predictions[i][0]
     print(f"Similarity between '{new_texts_a[i]}' and '{new_texts_b[i]}': {similarity_score:.2f}")
+
+
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Input, Embedding, Flatten, Dense, Dropout, Lambda, Concatenate
+from tensorflow.keras.optimizers import Adam
+from sklearn.metrics import accuracy_score
+from sklearn.model_selection import train_test_split
+from tensorflow.keras.preprocessing.text import Tokenizer
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+
+# Read unmatched transaction data
+unmatched_transactions = pd.read_csv("unmatched_transactions.csv")
+
+# Read unmatched invoice data
+unmatched_invoices = pd.read_csv("unmatched_invoices.csv")
+
+# Extract relevant columns
+transaction_descriptions = unmatched_transactions['transaction_description'].astype(str).values
+invoice_descriptions = unmatched_invoices['invoice_description'].astype(str).values
+
+# Assuming all pairs are dissimilar, assign labels as 0
+labels = np.zeros(len(transaction_descriptions))
+
+# Tokenize and pad the text data
+tokenizer = Tokenizer()
+tokenizer.fit_on_texts(np.concatenate((transaction_descriptions, invoice_descriptions), axis=0))
+vocab_size = len(tokenizer.word_index) + 1
+max_sequence_length = max(max(map(len, transaction_descriptions)), max(map(len, invoice_descriptions)))
+
+transaction_descriptions = tokenizer.texts_to_sequences(transaction_descriptions)
+invoice_descriptions = tokenizer.texts_to_sequences(invoice_descriptions)
+
+transaction_descriptions = pad_sequences(transaction_descriptions, maxlen=max_sequence_length)
+invoice_descriptions = pad_sequences(invoice_descriptions, maxlen=max_sequence_length)
+
+# Function to create Siamese pairs
+def create_pairs(transaction_data, invoice_data, labels):
+    pairs, labels = [], []
+    for i in range(len(transaction_data)):
+        pairs.append([transaction_data[i], invoice_data[i]])
+        labels.append(labels[i])
+        # Negative pair (choose a different random text)
+        j = np.random.randint(0, len(transaction_data))
+        while labels[j] == labels[i]:
+            j = np.random.randint(0, len(transaction_data))
+        pairs.append([transaction_data[i], invoice_data[j]])
+        labels.append(0)
+    return np.array(pairs), np.array(labels)
+
+# Create Siamese pairs from both transaction and invoice data
+train_pairs, train_labels = create_pairs(transaction_descriptions, invoice_descriptions, labels)
+
+# Define the Siamese network architecture for text data
+def create_siamese_network(vocab_size, max_sequence_length):
+    input_layer = Input(shape=(max_sequence_length,))
+    embedding_layer = Embedding(input_dim=vocab_size, output_dim=128)(input_layer)
+    flatten_layer = Flatten()(embedding_layer)
+    dense_layer_1 = Dense(128, activation='relu')(flatten_layer)
+    dropout_layer_1 = Dropout(0.5)(dense_layer_1)
+    dense_layer_2 = Dense(128, activation='relu')(dropout_layer_1)
+    dropout_layer_2 = Dropout(0.5)(dense_layer_2)
+    output_layer = Dense(128)(dropout_layer_2)
+    return Model(input_layer, output_layer)
+
+# Siamese network definition
+base_network = create_siamese_network(vocab_size, max_sequence_length)
+
+input_a = Input(shape=(max_sequence_length,))
+input_b = Input(shape=(max_sequence_length,))
+
+# Get the feature vectors from the base network
+output_a = base_network(input_a)
+output_b = base_network(input_b)
+
+# Calculate the Euclidean distance between the feature vectors
+distance = Lambda(lambda x: tf.norm(x[0] - x[1], axis=-1), output_shape=(1,))([output_a, output_b])
+
+# Create the Siamese model
+siamese_model = Model(inputs=[input_a, input_b], outputs=distance)
+
+# Loss function for Siamese network
+def contrastive_loss(y_true, y_pred, margin=1.0):
+    squared_pred = tf.square(y_pred)
+    margin_square = tf.square(tf.maximum(margin - y_pred, 0))
+    return tf.reduce_mean(y_true * squared_pred + (1 - y_true) * margin_square)
+
+# Compile the Siamese model with the contrastive loss
+siamese_model.compile(loss=contrastive_loss, optimizer=Adam(0.0001))
+
+# Train the Siamese network
+siamese_model.fit([train_pairs[:, 0], train_pairs[:, 1]], train_labels, epochs=10, batch_size=32)
