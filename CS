@@ -4985,3 +4985,17 @@ siamese_model.fit([train_pairs[:, 0], train_pairs[:, 1]], train_labels, epochs=1
 # Evaluate the Siamese network on the test set
 loss = siamese_model.evaluate([test_pairs[:, 0], test_pairs[:, 1]], test_labels)
 print(f"Test Loss: {loss}")
+
+
+def create_pairs(transaction_data, invoice_data, labels):
+    pairs, labels_list = [], []
+    for i in range(len(transaction_data)):
+        pairs.append([transaction_data[i], invoice_data[i]])
+        labels_list.append(labels[i])
+        # Negative pair (choose a different random text)
+        j = np.random.randint(0, len(transaction_data))
+        while j == i:  # Ensure a different index is chosen
+            j = np.random.randint(0, len(transaction_data))
+        pairs.append([transaction_data[i], invoice_data[j]])
+        labels_list.append(0)
+    return np.array(pairs), np.array(labels_list)
