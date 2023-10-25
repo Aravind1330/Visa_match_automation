@@ -4694,3 +4694,159 @@ def match_bundle(T5, Invoice_table, rules, company_comm_mapping):
 result, match_rule, unmatched_invoices = match_bundle(T5, Invoice_table, rules, company_comm_mapping)
 
 # Process the result, match_rule, and unmatched_invoices as needed
+
+
+
+
+
+
+
+
+
+
+
+# !pip install --upgrade protobuf==3.20.1
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.layers import Input, Embedding, GRU, Dense, Lambda,Bidirectional,LSTM
+from tensorflow.keras.models import Model
+from tensorflow.keras.optimizers import Adam
+#from tensorflow.keras.losses import contrastive_loss
+from tensorflow.keras.preprocessing.text import Tokenizer
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+
+def generate_random_string(length):
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
+
+# Generate a larger dataset
+num_samples = 10000  # Number of samples in the dataset
+
+# Function to create middle match pairs
+def generate_middle_match_pairs(num_samples):
+    texts_a = [generate_random_string(random.randint(5, 12)) for _ in range(num_samples)]
+    texts_b = [generate_random_string(random.randint(5, 12)) for _ in range(num_samples)]
+    middle_index = random.randint(2, 8)
+    texts_b = [text_b[:middle_index] + text_a[middle_index:] for text_a, text_b in zip(texts_a, texts_b)]
+    return list(zip(texts_a, texts_b))
+
+# Function to create right match pairs
+def generate_right_match_pairs(num_samples):
+    texts_a = [generate_random_string(random.randint(5, 12)) for _ in range(num_samples)]
+    texts_b = [generate_random_string(random.randint(5, 12)) for _ in range(num_samples)]
+    right_index = random.randint(2, 8)
+    texts_b = [text_b[:-right_index] + text_a[-right_index:] for text_a, text_b in zip(texts_a, texts_b)]
+    return list(zip(texts_a, texts_b))
+
+# Function to create left match pairs
+def generate_left_match_pairs(num_samples):
+    texts_a = [generate_random_string(random.randint(5, 12)) for _ in range(num_samples)]
+    texts_b = [generate_random_string(random.randint(5, 12)) for _ in range(num_samples)]
+    left_index = random.randint(2, 8)
+    texts_b = [text_a[:left_index] + text_b[left_index:] for text_a, text_b in zip(texts_a, texts_b)]
+    return list(zip(texts_a, texts_b))
+
+# Function to create exact match pairs
+def generate_exact_match_pairs(num_samples):
+    texts = [generate_random_string(random.randint(5, 12)) for _ in range(num_samples)]
+    return list(zip(texts, texts))
+
+# Function to create no match pairs
+def generate_no_match_pairs(num_samples):
+    texts_a = [generate_random_string(random.randint(5, 12)) for _ in range(num_samples)]
+    texts_b = [generate_random_string(random.randint(5, 12)) for _ in range(num_samples)]
+    return list(zip(texts_a, texts_b))
+
+# Function to create 60% match pairs
+def generate_60_percent_match_pairs(num_samples):
+    texts_a = [generate_random_string(random.randint(5, 12)) for _ in range(num_samples)]
+    texts_b = [text_a[:int(0.6*len(text_a))] + generate_random_string(int(0.4*len(text_a))) for text_a in texts_a]
+    return list(zip(texts_a, texts_b))
+
+# Generate samples for each category
+middle_match_pairs = generate_middle_match_pairs(num_samples)
+right_match_pairs = generate_right_match_pairs(num_samples)
+left_match_pairs = generate_left_match_pairs(num_samples)
+exact_match_pairs = generate_exact_match_pairs(num_samples)
+no_match_pairs = generate_no_match_pairs(num_samples)
+sixty_percent_match_pairs = generate_60_percent_match_pairs(num_samples)
+
+# Combine the samples and labels
+pairs = middle_match_pairs + right_match_pairs + left_match_pairs + exact_match_pairs + no_match_pairs + sixty_percent_match_pairs
+labels = [1] * num_samples + [1] * num_samples + [1] * num_samples + [1] * num_samples + [0] * num_samples + [1] * num_samples
+
+# Shuffle the pairs and corresponding labels
+combined_data = list(zip(pairs, labels))
+random.shuffle(combined_data)
+pairs, labels = zip(*combined_data)
+
+# Extract texts_a and texts_b from pairs
+texts_a, texts_b = zip(*pairs)
+
+# Convert characters to integers
+char_set = set(''.join(texts_a + texts_b))
+char_to_idx = {char: idx + 1 for idx, char in enumerate(char_set)}  # Add 1 to leave 0 for padding
+max_sequence_length = max(max(len(text) for text in texts_a), max(len(text) for text in texts_b))
+
+sequences_a = [[char_to_idx[char] for char in text] for text in texts_a]
+sequences_b = [[char_to_idx[char] for char in text] for text in texts_b]
+
+# Pad sequences
+sequences_a = pad_sequences(sequences_a, maxlen=max_sequence_length, padding='post')
+sequences_b = pad_sequences(sequences_b, maxlen=max_sequence_length, padding='post')
+
+
+# This code defines a Siamese network for processing text data. It starts with an input layer, applies an embedding layer to 
+# convert words into dense vectors, processes the embedded data with a GRU layer, and then uses a dense layer for further processing.
+
+def build_siamese_network(input_shape, embedding_dim):
+    input_text = Input(shape=input_shape)
+    embedding = Embedding(input_dim=len(char_set) + 1, output_dim=embedding_dim)(input_text)
+    lstm = Bidirectional(LSTM(units=64))(embedding)  # Bidirectional LSTM for capturing context from both directions
+    output = Dense(64, activation='relu')(lstm)
+    model = Model(inputs=input_text, outputs=output)
+    return model
+
+
+# Sets the embedding dimension to 128, determining the size of dense vectors representing words or tokens.
+# Creates two Siamese neural networks, siamese_net_a and siamese_net_b, both with embedding dimension 128.
+# These networks will process input sequences of maximum length max_sequence_length and map them to fixed-dimensional representations.
+
+embedding_dim = 128  # You can adjust the dimensionality of the character embeddings
+siamese_net_a = build_siamese_network((max_sequence_length,), embedding_dim)
+siamese_net_b = build_siamese_network((max_sequence_length,), embedding_dim)
+
+
+# Merge the outputs of the two Siamese networks
+merged_output = Lambda(lambda x: tf.abs(x[0] - x[1]))([siamese_net_a.output, siamese_net_b.output])
+
+# Add a dense layer for similarity prediction (0 for dissimilar, 1 for similar)
+prediction = Dense(1, activation='sigmoid')(merged_output)
+
+# Create the Siamese-LSTM model
+siamese_lstm_model = Model(inputs=[siamese_net_a.input, siamese_net_b.input], outputs=prediction)
+
+# Compile the model with binary cross-entropy loss
+siamese_lstm_model.compile(loss='binary_crossentropy', optimizer=Adam(learning_rate=0.001), metrics=['accuracy'])
+
+# Ensure that the labels are numpy arrays
+labels = np.array(labels)
+
+# Train the Siamese-LSTM model
+siamese_lstm_model.fit([sequences_a, sequences_b], labels, epochs=10, batch_size=1)  # Adjust batch_size as needed
+
+
+# Evaluate the model on new text pairs
+new_texts_a = ["A123478", "HG97489","Aravind", "546789","AB12367ch", "ARAVINDSAIF","ABG87Bkjh","12345678"]
+new_texts_b = ["A123478", "GF13329","Aravind", "010101","jAB12367ch9", "ARAVINDSAIF","ytre87Bkjh","abchedkj"]
+
+new_sequences_a = [[char_to_idx.get(char, 0) for char in text] for text in new_texts_a]
+new_sequences_b = [[char_to_idx.get(char, 0) for char in text] for text in new_texts_b]
+
+new_sequences_a = pad_sequences(new_sequences_a, maxlen=max_sequence_length, padding='post')
+new_sequences_b = pad_sequences(new_sequences_b, maxlen=max_sequence_length, padding='post')
+
+predictions = siamese_lstm_model.predict([new_sequences_a, new_sequences_b])
+
+for i in range(len(new_texts_a)):
+    similarity_score = predictions[i][0]
+    print(f"Similarity between '{new_texts_a[i]}' and '{new_texts_b[i]}': {similarity_score:.2f}")
