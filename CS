@@ -4944,3 +4944,44 @@ siamese_model.compile(loss=contrastive_loss, optimizer=Adam(0.0001))
 
 # Train the Siamese network
 siamese_model.fit([train_pairs[:, 0], train_pairs[:, 1]], train_labels, epochs=10, batch_size=32)
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Create Siamese pairs from both transaction and invoice data
+train_pairs, train_labels = create_pairs(transaction_descriptions, invoice_descriptions, labels)
+
+# Split the data into train and test sets
+train_pairs, test_pairs, train_labels, test_labels = train_test_split(
+    train_pairs, train_labels, test_size=0.2, random_state=42)
+
+# Define the Siamese network architecture for text data
+def create_siamese_network(vocab_size, max_sequence_length):
+    # ... (same as before)
+
+# Siamese network definition
+base_network = create_siamese_network(vocab_size, max_sequence_length)
+
+input_a = Input(shape=(max_sequence_length,))
+input_b = Input(shape=(max_sequence_length,))
+
+# ... (same as before)
+
+# Compile the Siamese model with the contrastive loss
+siamese_model.compile(loss=contrastive_loss, optimizer=Adam(0.0001))
+
+# Train the Siamese network
+siamese_model.fit([train_pairs[:, 0], train_pairs[:, 1]], train_labels, epochs=10, batch_size=32)
+
+# Evaluate the Siamese network on the test set
+loss = siamese_model.evaluate([test_pairs[:, 0], test_pairs[:, 1]], test_labels)
+print(f"Test Loss: {loss}")
