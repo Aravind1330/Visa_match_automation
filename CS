@@ -4999,3 +4999,8 @@ def create_pairs(transaction_data, invoice_data, labels):
         pairs.append([transaction_data[i], invoice_data[j]])
         labels_list.append(0)
     return np.array(pairs), np.array(labels_list)
+
+
+# Print the generated Siamese pairs and labels
+for i in range(len(sample_pairs)):
+    print(f"Pair {i+1}: {sample_pairs[i]}, Label: {sample_labels[i]}")
