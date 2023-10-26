@@ -5116,3 +5116,9 @@ predictions = model.predict(X_test)
 # Calculate accuracy
 accuracy = accuracy_score(y_test, predictions)
 print("Accuracy: {:.2f}%".format(accuracy * 100))
+
+
+
+# Combine all vectors into a single feature matrix
+X = pd.concat(all_vectors, axis=1, ignore_index=True)  # Use ignore_index=True to reindex columns
+y = data['label']
