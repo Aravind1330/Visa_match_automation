@@ -5034,3 +5034,41 @@ predictions = model.predict(X_test)
 # Calculate accuracy
 accuracy = accuracy_score(y_test, predictions)
 print("Accuracy: {:.2f}%".format(accuracy * 100))
+
+
+
+
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+import lightgbm as lgb
+from sklearn.metrics import accuracy_score
+
+# Load your data from a CSV file
+data = pd.read_csv('your_data.csv')
+
+# Text Vectorization
+tfidf_vectorizer = TfidfVectorizer(max_features=1000)  # Limit the number of features for efficiency
+invoice_vectors = tfidf_vectorizer.fit_transform(data['invoice'])
+transaction_vectors = tfidf_vectorizer.transform(data['transaction'])
+
+# Combine text vectors with other features if available
+X = pd.concat([pd.DataFrame(invoice_vectors.toarray()), pd.DataFrame(transaction_vectors.toarray())], axis=1)
+y = data['label']
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Initialize LightGBM model
+model = lgb.LGBMClassifier()
+
+# Train the model
+model.fit(X_train, y_train)
+
+# Make predictions on the test set
+predictions = model.predict(X_test)
+
+# Calculate accuracy
+accuracy = accuracy_score(y_test, predictions)
+print("Accuracy: {:.2f}%".format(accuracy * 100))
