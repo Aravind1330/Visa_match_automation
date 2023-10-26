@@ -5072,3 +5072,47 @@ predictions = model.predict(X_test)
 # Calculate accuracy
 accuracy = accuracy_score(y_test, predictions)
 print("Accuracy: {:.2f}%".format(accuracy * 100))
+
+
+
+
+
+
+
+
+
+
+
+
+# List of columns to vectorize
+columns_to_vectorize = ['invoice_col1', 'invoice_col2', 'invoice_col3']  # Add your column names here
+
+# Vectorize each specified column and concatenate the vectors
+vectorizer = TfidfVectorizer(max_features=1000)  # Limit the number of features for efficiency
+all_vectors = []
+
+for column in columns_to_vectorize:
+    # Convert column to string and handle potential NaN values
+    column_data = data[column].astype(str).fillna('NaN')
+    column_vectors = vectorizer.fit_transform(column_data)
+    all_vectors.append(pd.DataFrame(column_vectors.toarray()))
+
+# Combine all vectors into a single feature matrix
+X = pd.concat(all_vectors, axis=1)
+y = data['label']
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Initialize LightGBM model
+model = lgb.LGBMClassifier()
+
+# Train the model
+model.fit(X_train, y_train)
+
+# Make predictions on the test set
+predictions = model.predict(X_test)
+
+# Calculate accuracy
+accuracy = accuracy_score(y_test, predictions)
+print("Accuracy: {:.2f}%".format(accuracy * 100))
