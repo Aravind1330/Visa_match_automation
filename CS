@@ -5004,3 +5004,33 @@ def create_pairs(transaction_data, invoice_data, labels):
 # Print the generated Siamese pairs and labels
 for i in range(len(sample_pairs)):
     print(f"Pair {i+1}: {sample_pairs[i]}, Label: {sample_labels[i]}")
+
+
+
+import pandas as pd
+import xgboost as xgb
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+
+# Load your data from a CSV file
+data = pd.read_csv('your_data.csv')
+
+# Assuming 'invoice' and 'transaction' are columns containing the invoice and transaction data
+X = data[['invoice', 'transaction']]
+y = data['label']  # 'label' column should contain 1 for match and 0 for not match
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Initialize XGBoost model
+model = xgb.XGBClassifier()
+
+# Train the model
+model.fit(X_train, y_train)
+
+# Make predictions on the test set
+predictions = model.predict(X_test)
+
+# Calculate accuracy
+accuracy = accuracy_score(y_test, predictions)
+print("Accuracy: {:.2f}%".format(accuracy * 100))
