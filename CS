@@ -5122,3 +5122,8 @@ print("Accuracy: {:.2f}%".format(accuracy * 100))
 # Combine all vectors into a single feature matrix
 X = pd.concat(all_vectors, axis=1, ignore_index=True)  # Use ignore_index=True to reindex columns
 y = data['label']
+
+
+
+
+df[columns_to_fill] = df[columns_to_fill].fillna('Aravind')
