@@ -5127,3 +5127,54 @@ y = data['label']
 
 
 df[columns_to_fill] = df[columns_to_fill].fillna('Aravind')
+
+
+
+
+
+
+
+
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.metrics import accuracy_score
+from xgboost import XGBClassifier
+
+# Load your data from a CSV file
+data = pd.read_csv('your_data.csv')
+
+# Define the features and target variable
+features = data[['column1', 'column2', 'column3']]
+target = data['label']  # 'label' column should contain 1 for match and 0 for not match
+
+# Define which columns to one-hot encode
+columns_to_encode = ['column2', 'column3']
+
+# Create a column transformer with one-hot encoding for specified columns
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('onehot', OneHotEncoder(), columns_to_encode)
+    ],
+    remainder='passthrough'  # Pass through the other columns without any changes
+)
+
+# Apply preprocessing and split the data into training and testing sets
+X_preprocessed = preprocessor.fit_transform(features)
+X_train, X_test, y_train, y_test = train_test_split(X_preprocessed, target, test_size=0.2, random_state=42)
+
+# Initialize XGBoost model
+model = XGBClassifier()
+
+# Train the model
+model.fit(X_train, y_train)
+
+# Make predictions on the test set
+predictions = model.predict(X_test)
+
+# Calculate accuracy
+accuracy = accuracy_score(y_test, predictions)
+print("Accuracy: {:.2f}%".format(accuracy * 100))
+
