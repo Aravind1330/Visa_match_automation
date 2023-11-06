@@ -5178,3 +5178,14 @@ predictions = model.predict(X_test)
 accuracy = accuracy_score(y_test, predictions)
 print("Accuracy: {:.2f}%".format(accuracy * 100))
 
+
+
+
+# Specify categorical columns for one-hot encoding
+categorical_columns = ['fin_ticket_num', 'inv_ticket_num']
+
+# Apply one-hot encoding to the specified columns
+data_encoded = pd.get_dummies(data, columns=categorical_columns)
+
+# Define features (excluding target and original categorical columns)
+features = data_encoded.drop(['label'] + categorical_columns, axis=1)
