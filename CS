@@ -5421,3 +5421,44 @@ print("Accuracy: {:.2f}%".format(accuracy * 100))
 feature_columns = data.columns.difference(['label'])  # Exclude the label column
 X = data[feature_columns]
 y = data['label']
+
+
+
+
+import pandas as pd
+import xgboost as xgb
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+
+# Load your data from a CSV file
+data = pd.read_csv('your_data.csv')
+
+# Assuming 'matching_percentage' is the column containing matching percentages
+threshold = 70  # Set the threshold for good matches
+
+# Specify the alphanumeric columns to be one-hot encoded
+alphanumeric_columns = ['alphanumeric_column1', 'alphanumeric_column2']
+
+# Convert specified alphanumeric columns to one-hot encoded vectors
+data_encoded = pd.get_dummies(data, columns=alphanumeric_columns)
+
+# Features (X) and labels (y)
+selected_features = ['column1', 'column2', 'column3'] + list(data_encoded.columns.difference(['label']))
+X = data_encoded[selected_features]
+y = (data_encoded['matching_percentage'] >= threshold).astype(int)
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Initialize XGBoost model
+model = xgb.XGBClassifier()
+
+# Train the model
+model.fit(X_train, y_train)
+
+# Make predictions on the test set
+predictions = model.predict(X_test)
+
+# Calculate accuracy
+accuracy = accuracy_score(y_test, predictions)
+print("Accuracy: {:.2f}%".format(accuracy * 100))
