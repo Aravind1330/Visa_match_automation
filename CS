@@ -5414,3 +5414,10 @@ predictions = model.predict(X_test)
 # Calculate accuracy
 accuracy = accuracy_score(y_test, predictions)
 print("Accuracy: {:.2f}%".format(accuracy * 100))
+
+
+
+# Features (X) and labels (y)
+feature_columns = data.columns.difference(['label'])  # Exclude the label column
+X = data[feature_columns]
+y = data['label']
