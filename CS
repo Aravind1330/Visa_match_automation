@@ -5538,3 +5538,10 @@ data_encoded = pd.get_dummies(selected_data, columns=alphanumeric_columns)
 # Features (X) and labels (y)
 X = data_encoded
 y = (data['matching_percentage'] >= threshold).astype(int)
+
+
+
+
+# Fill missing values in specific columns with 'TTT'
+columns_to_fill = ['numeric_column1', 'numeric_column2', 'numeric_column3']
+data[columns_to_fill] = data[columns_to_fill].fillna('TTT')
