@@ -5523,3 +5523,18 @@ print("Accuracy: {:.2f}%".format(accuracy * 100))
 
 # Combine numeric and encoded alphanumeric columns as features
 selected_features = numeric_columns + list(data_encoded.columns.intersection(alphanumeric_columns))
+
+
+
+
+
+
+# Create a new DataFrame with only the specified columns
+selected_data = data[numeric_columns + alphanumeric_columns]
+
+# One-hot encode alphanumeric columns
+data_encoded = pd.get_dummies(selected_data, columns=alphanumeric_columns)
+
+# Features (X) and labels (y)
+X = data_encoded
+y = (data['matching_percentage'] >= threshold).astype(int)
