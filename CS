@@ -5587,3 +5587,69 @@ distances, indices = nn_model.kneighbors(X)
 for i in range(len(df)):
     for j in indices[i][1:]:
         print(f'Transaction {i+1} and Invoice {j+1} are potential matches.')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.neighbors import NearestNeighbors
+
+# Create example transaction data
+transaction_data = {
+    'transaction_id': [1, 2, 3],
+    'transaction_description': ['Purchase of apples', 'Payment for services', 'Buy office supplies']
+}
+transaction_df = pd.DataFrame(transaction_data)
+
+# Create example invoice data
+invoice_data = {
+    'invoice_id': [101, 102, 103],
+    'invoice_description': ['Invoice for apples', 'Invoice for services', 'Office supplies invoice']
+}
+invoice_df = pd.DataFrame(invoice_data)
+
+# Assuming both datasets have a 'text' column representing the relevant text features
+transaction_df['text'] = transaction_df['transaction_description']
+invoice_df['text'] = invoice_df['invoice_description']
+
+# Combine text features for vectorization
+transaction_df['combined_text'] = transaction_df['text']
+invoice_df['combined_text'] = invoice_df['text']
+
+# Concatenate the two datasets
+df = pd.concat([transaction_df, invoice_df], ignore_index=True)
+
+# Vectorize the combined text using TF-IDF
+vectorizer = TfidfVectorizer()
+X = vectorizer.fit_transform(df['combined_text'])
+
+# Separate the transactions and invoices
+num_transactions = len(transaction_df)
+X_transaction = X[:num_transactions]
+X_invoice = X[num_transactions:]
+
+# Use Nearest Neighbors algorithm
+n_neighbors = 1  # Adjust the number of neighbors based on your data
+nn_model = NearestNeighbors(n_neighbors=n_neighbors, metric='cosine')
+nn_model.fit(X_invoice)
+
+# Find the nearest neighbors for each transaction
+distances, indices = nn_model.kneighbors(X_transaction)
+
+# Print the results
+for i in range(num_transactions):
+    match_index = indices[i][0] + num_transactions  # Adjust for the index in the concatenated dataframe
+    print(f'Transaction {transaction_df["transaction_id"][i]} and Invoice {invoice_df["invoice_id"][match_index - num_transactions]} are potential matches.')
