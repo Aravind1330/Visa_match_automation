@@ -5663,17 +5663,35 @@ for i in range(num_transactions):
 
 
 
+# Separate the transactions and invoices
+num_transactions = len(transaction_df)
+X_transaction = X[:num_transactions]
+X_invoice = X[num_transactions:]
 
-# Set a threshold to filter out high similarity matches
-threshold = 0.5  # Adjust the threshold based on your data
+# Use Locality-Sensitive Hashing (LSH) for approximate nearest neighbor search
+n_neighbors = 1  # Adjust the number of neighbors based on your data
+forest = MinHashLSHForest(num_perm=128)
+minhash_list = []
+
+for i in range(num_transactions):
+    minhash = MinHash(num_perm=128)
+    for j in range(X_transaction[i].shape[1]):
+        minhash.update(str(X_transaction[i, j]))
+    minhash_list.append(minhash)
+    forest.add(i, minhash)
+
+forest.index()
+
 matches = []
 for i in range(num_transactions):
-    match_index = indices[i][0] + num_transactions
-    similarity_score = 1 - distances[i][0]  # Convert cosine distance to similarity
-    if similarity_score < threshold:
+    minhash_query = minhash_list[i]
+    idx_array = np.array(forest.query(minhash_query, num_neighbors=n_neighbors))
+    for idx in idx_array:
+        match_index = idx + num_transactions
+        similarity_score = 1 - distances[i][0]  # Convert cosine distance to similarity
         matches.append((transaction_df['transaction_id'][i], invoice_df['invoice_id'][match_index - num_transactions]))
 
-# Print the filtered matches
-print("Filtered Matches:")
+# Print the matches
+print("Matches:")
 for match in matches:
     print(f'Transaction {match[0]} and Invoice {match[1]} are potential matches with similarity score {similarity_score:.4f}.')
