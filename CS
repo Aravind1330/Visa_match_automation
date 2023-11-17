@@ -5545,3 +5545,45 @@ y = (data['matching_percentage'] >= threshold).astype(int)
 # Fill missing values in specific columns with 'TTT'
 columns_to_fill = ['numeric_column1', 'numeric_column2', 'numeric_column3']
 data[columns_to_fill] = data[columns_to_fill].fillna('TTT')
+
+
+
+
+
+
+
+import numpy as np
+import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.neighbors import NearestNeighbors
+
+# Generate some example data
+# Replace this with your actual dataset
+data = {
+    'transaction_id': [1, 2, 3, 4, 5],
+    'transaction_text': ['apple banana', 'orange apple', 'banana kiwi', 'grapefruit pear', 'kiwi orange'],
+    'invoice_id': [101, 102, 103, 104, 105],
+    'invoice_text': ['banana kiwi', 'kiwi orange', 'apple banana', 'pear grapefruit', 'orange apple']
+}
+
+df = pd.DataFrame(data)
+
+# Combine text features for vectorization
+df['combined_text'] = df['transaction_text'] + ' ' + df['invoice_text']
+
+# Vectorize the combined text using TF-IDF
+vectorizer = TfidfVectorizer()
+X = vectorizer.fit_transform(df['combined_text'])
+
+# Use Nearest Neighbors algorithm
+n_neighbors = 2  # Adjust the number of neighbors based on your data
+nn_model = NearestNeighbors(n_neighbors=n_neighbors, metric='cosine')
+nn_model.fit(X)
+
+# Find the nearest neighbors for each sample
+distances, indices = nn_model.kneighbors(X)
+
+# Print the results
+for i in range(len(df)):
+    for j in indices[i][1:]:
+        print(f'Transaction {i+1} and Invoice {j+1} are potential matches.')
