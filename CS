@@ -5653,3 +5653,27 @@ distances, indices = nn_model.kneighbors(X_transaction)
 for i in range(num_transactions):
     match_index = indices[i][0] + num_transactions  # Adjust for the index in the concatenated dataframe
     print(f'Transaction {transaction_df["transaction_id"][i]} and Invoice {invoice_df["invoice_id"][match_index - num_transactions]} are potential matches.')
+
+
+
+
+
+
+
+
+
+
+
+# Set a threshold to filter out high similarity matches
+threshold = 0.5  # Adjust the threshold based on your data
+matches = []
+for i in range(num_transactions):
+    match_index = indices[i][0] + num_transactions
+    similarity_score = 1 - distances[i][0]  # Convert cosine distance to similarity
+    if similarity_score < threshold:
+        matches.append((transaction_df['transaction_id'][i], invoice_df['invoice_id'][match_index - num_transactions]))
+
+# Print the filtered matches
+print("Filtered Matches:")
+for match in matches:
+    print(f'Transaction {match[0]} and Invoice {match[1]} are potential matches with similarity score {similarity_score:.4f}.')
