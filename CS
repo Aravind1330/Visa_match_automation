@@ -1,67 +1,19 @@
-card_icon = {
-    'color': 'white',
-    "textAlign": "center",
-    "fontSize": 40,
-    "margin": "auto"
-}
-# role card
-role = dbc.CardGroup(
+# Layout with dbc.Container and dbc.Row
+app.layout = dbc.Container(
     [
-        dbc.Card(
-            dbc.CardBody(
-                [
-                    html.H6('JOB ID-Role', className='card-title text-center', style={'fontSize': 20}),
-                    html.H5(className='display-6 text-center', style={'fontSize': '1.5rem', 'fontWeight': 600},
-                            id='role-card')
-                ]
-            )
+        dbc.Row(
+            [
+                dbc.Col(role, width=4, style={'padding-right': '6px', 'padding-left': '6px'}),
+                dbc.Col(req, width=4, style={'padding-right': '6px', 'padding-left': '6px'}),
+                dbc.Col(applications, width=4, style={'padding-right': '6px', 'padding-left': '6px'}),
+            ], style={
+                'margin-left': -12,
+                'margin-right': -12,
+                'margin-top': '10px',
+                'padding-bottom': '0px',
+                'margin-left': -12,
+                'margin-right': -12,
+            }
         ),
-        dbc.Card(
-            html.Div(className='fas fa-id-card', style=card_icon),
-            # className='bg-primary',
-            style={'maxWidth': '30%', 'backgroundColor': '#767B88'}
-        )
-    ], style={'outline-width': '1px', 'outline-color': '#5A5A5A',#'outline-style': 'ridge',
-              }
-)
-
-# Requirements card
-req = dbc.CardGroup(
-    [
-        dbc.Card(
-            dbc.CardBody(
-                [
-                    html.H6('Openings', className='card-title text-center', style={'fontSize': 20}),
-                    html.H3('5', className='display-6 text-center', style={'fontSize': 25})
-                ]
-            ),
-        ),
-        dbc.Card(
-            html.Div(className='fas fa-hashtag', style=card_icon),
-            # className='bg-primary',
-            style={'maxWidth': '30%', 'backgroundColor': '#767B88'}
-        )
-    ], style={'outline-width': '1px', 'outline-color': '#5A5A5A',#'outline-style': 'ridge',
-              }
-)
-
-# number of applications
-applications = dbc.CardGroup(
-    [
-        dbc.Card(
-
-            dbc.CardBody(
-                [
-                    html.H6('Candidates Applied', className='card-title text-center', style={'fontSize': 20}),
-                    html.H3(children='', className='display-6 text-center', style={'fontSize': 25}, id='cand-applied')
-                ]
-            )
-        ),
-        dbc.Card(
-            html.Div(className='fas fa-archive', style=card_icon),
-            # className='bg-primary',
-            style={'maxWidth': '30%', 'backgroundColor': '#767B88'}
-        )
-    ], style={'outline-width': '1px', 'outline-color': '#5A5A5A',#'outline-style': 'ridge',
-              }
+    ]
 )
