@@ -5,7 +5,6 @@ import dash
 from dash import dcc, html
 from dash import dash_table
 import dash_bootstrap_components as dbc
-import plotly.express as px
 import pandas as pd
 import base64
 
@@ -56,91 +55,75 @@ card_icon = {
 }
 
 # Role card
-role = dbc.CardGroup(
-    [
-        dbc.Card(
-            dbc.CardBody(
-                [
-                    html.H6('JOB ID-Role', className='card-title text-center', style={'fontSize': 20}),
-                    html.H5(className='display-6 text-center', style={'fontSize': '1.5rem', 'fontWeight': 600},
-                            id='role-card')
-                ]
+role = dbc.Card(
+    dbc.CardGroup(
+        [
+            dbc.Card(
+                dbc.CardBody(
+                    [
+                        html.H6('JOB ID-Role', className='card-title text-center', style={'fontSize': 20}),
+                        html.H5(className='display-6 text-center', style={'fontSize': '1.5rem', 'fontWeight': 600},
+                                id='role-card')
+                    ]
+                )
+            ),
+            dbc.Card(
+                html.Div(className='fas fa-id-card', style=card_icon),
+                style={'maxWidth': '30%', 'backgroundColor': '#767B88'}
             )
-        ),
-        dbc.Card(
-            html.Div(className='fas fa-id-card', style=card_icon),
-            style={'maxWidth': '30%', 'backgroundColor': '#767B88'}
-        )
-    ], style={'outline-width': '1px', 'outline-color': '#5A5A5A'}
+        ], style={'outline-width': '1px', 'outline-color': '#5A5A5A'}
+    )
 )
 
 # Requirements card
-req = dbc.CardGroup(
-    [
-        dbc.Card(
-            dbc.CardBody(
-                [
-                    html.H6('Openings', className='card-title text-center', style={'fontSize': 20}),
-                    html.H3('5', className='display-6 text-center', style={'fontSize': 25})
-                ]
+req = dbc.Card(
+    dbc.CardGroup(
+        [
+            dbc.Card(
+                dbc.CardBody(
+                    [
+                        html.H6('Openings', className='card-title text-center', style={'fontSize': 20}),
+                        html.H3('5', className='display-6 text-center', style={'fontSize': 25})
+                    ]
+                ),
             ),
-        ),
-        dbc.Card(
-            html.Div(className='fas fa-hashtag', style=card_icon),
-            style={'maxWidth': '30%', 'backgroundColor': '#767B88'}
-        )
-    ], style={'outline-width': '1px', 'outline-color': '#5A5A5A'}
+            dbc.Card(
+                html.Div(className='fas fa-hashtag', style=card_icon),
+                style={'maxWidth': '30%', 'backgroundColor': '#767B88'}
+            )
+        ], style={'outline-width': '1px', 'outline-color': '#5A5A5A'}
+    )
 )
 
 # Number of applications card
-applications = dbc.CardGroup(
-    [
-        dbc.Card(
-            dbc.CardBody(
-                [
-                    html.H6('Candidates Applied', className='card-title text-center', style={'fontSize': 20}),
-                    html.H3(children='', className='display-6 text-center', style={'fontSize': 25}, id='cand-applied')
-                ]
+applications = dbc.Card(
+    dbc.CardGroup(
+        [
+            dbc.Card(
+                dbc.CardBody(
+                    [
+                        html.H6('Candidates Applied', className='card-title text-center', style={'fontSize': 20}),
+                        html.H3(children='', className='display-6 text-center', style={'fontSize': 25}, id='cand-applied')
+                    ]
+                )
+            ),
+            dbc.Card(
+                html.Div(className='fas fa-archive', style=card_icon),
+                style={'maxWidth': '30%', 'backgroundColor': '#767B88'}
             )
-        ),
-        dbc.Card(
-            html.Div(className='fas fa-archive', style=card_icon),
-            style={'maxWidth': '30%', 'backgroundColor': '#767B88'}
-        )
-    ], style={'outline-width': '1px', 'outline-color': '#5A5A5A'}
-)
-
-# Plotly graph card
-plot_card = dbc.CardGroup(
-    [
-        dbc.Card(
-            dcc.Graph(
-                id='scatter-plot',
-                figure=px.scatter(df, x='X', y='Y', title='Scatter Plot')
-            )
-        ),
-        dbc.Card(
-            html.Div(className='fas fa-chart-scatter', style=card_icon),
-            style={'maxWidth': '30%', 'backgroundColor': '#767B88'}
-        )
-    ], style={'outline-width': '1px', 'outline-color': '#5A5A5A'}
+        ], style={'outline-width': '1px', 'outline-color': '#5A5A5A'}
+    )
 )
 
 # Layout
 app.layout = html.Div([
     navbar,
-    role,
-    req,
-    applications,
-    plot_card
+    dbc.Row([role, req, applications], style={'margin': '20px'}),
 ])
 
 # Run the app
 if __name__ == '__main__':
     app.run_server(debug=True)
-
-
-
 
 
            
