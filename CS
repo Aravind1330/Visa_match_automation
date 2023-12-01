@@ -21,4 +21,62 @@ app.layout = dbc.Container(
         navbar,
 
         # Three info Cards
+
+
+
+
+
+
+
+
+# Layout with dbc.Container and dbc.Row
+app.layout = dbc.Container(
+    [
+        dbc.Row(
+            [
+                dbc.Col(role, width=4, style={'padding-right': '6px', 'padding-left': '6px'}),
+                dbc.Col(req, width=4, style={'padding-right': '6px', 'padding-left': '6px'}),
+                dbc.Col(applications, width=4, style={'padding-right': '6px', 'padding-left': '6px'}),
+            ], style={
+                'margin-left': -12,
+                'margin-right': -12,
+                'margin-top': '10px',
+                'padding-bottom': '0px',
+                'margin-left': -12,
+                'margin-right': -12,
+            }
+        ),
+
+        # New Row for Table and Download Button
+        dbc.Row(
+            [
+                dbc.Col(
+                    html.Div(
+                        [
+                            html.H6('Data Entry Table', className='card-title text-center', style={'fontSize': 20}),
+                            dash_table.DataTable(
+                                id='data-entry-table',
+                                columns=[
+                                    {'name': 'Rule', 'id': 'Rule'},
+                                    {'name': 'Pattern', 'id': 'Pattern'},
+                                    {'name': 'Description', 'id': 'Description'},
+                                ],
+                                editable=True,
+                                style_table={'overflowX': 'auto'},
+                                style_cell={'textAlign': 'left'},
+                            ),
+                            html.Button('Download Table', id='download-table-button', n_clicks=0, style={'marginTop': '10px'}),
+                        ],
+                        style={'margin': '20px'}
+                    ),
+                    width=12
+                ),
+            ]
+        ),
+    ]
+)
+
+# Run the app
+if __name__ == '__main__':
+    app.run_server(debug=True)
         html.Br(),
