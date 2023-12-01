@@ -1,56 +1,147 @@
 Developed a Spark engine to automate the manual matching process for Bundle and single matches. This system efficiently processes various issuers on a daily basis, categorized by region. The primary goal is to minimize manual effort, enhance operational efficiency, and facilitate multiple audits to ensure the robustness of the automated processes.
 
 
-
 import dash
-from dash import html
+from dash import dcc, html
+from dash import dash_table
+import dash_bootstrap_components as dbc
+import plotly.express as px
+import pandas as pd
+import base64
 
-# Assuming you have five dataframes df1, df2, df3, df4, df5
-# You mentioned the row counts for each DataFrame
-
-# Dummy row counts for demonstration
-df1_count = 1000
-df2_count = 200
-df3_count = 789
-df4_count = 763
-df5_count = 87
+# Dummy DataFrames for demonstration
+# Replace this with your actual data
+df = pd.DataFrame({'X': [1, 2, 3, 4, 5], 'Y': [10, 11, 12, 13, 14]})
 
 # Create Dash app
-app = dash.Dash(__name__)
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
-# Define the layout of the app
+# Role dropdown
+roleSelect = dcc.Dropdown(
+    options=[{'label': 'Test Role', 'value': 'Test Role'}],
+    value='Test Role',
+    id='role-dropdown',
+    placeholder='Select the role',
+    style=dict(width=400)
+)
+
+# Navbar
+icon_path = 'assets/logo.png'
+altimetrik_logo = base64.b64encode(open(icon_path, 'rb').read())
+
+navbar = dbc.Navbar(
+    dbc.Container(
+        [
+            dbc.Row(
+                [
+                    dbc.Col(html.Img(src='data:image/png;base64, {}'.format(altimetrik_logo.decode()), height='30px',
+                                     className="")),
+                    dbc.Col(dbc.NavbarBrand("ALTIMETRIK'S PCRE",
+                                            style={'fontSize': 26, 'fontFamliy': 'Proxima Nova', 'marginLeft': '15px',
+                                                   'color': 'black', 'fontWeight': 400}))
+                ],
+                align='center', className='g-0'
+            ),
+            roleSelect,
+        ], fluid=True
+    ), className='bg-white', style={'height': '48px', "borderBottom": "0.3px black ridge"}
+)
+
+######################### cards #####################################
+card_icon = {
+    'color': 'white',
+    "textAlign": "center",
+    "fontSize": 40,
+    "margin": "auto"
+}
+
+# Role card
+role = dbc.CardGroup(
+    [
+        dbc.Card(
+            dbc.CardBody(
+                [
+                    html.H6('JOB ID-Role', className='card-title text-center', style={'fontSize': 20}),
+                    html.H5(className='display-6 text-center', style={'fontSize': '1.5rem', 'fontWeight': 600},
+                            id='role-card')
+                ]
+            )
+        ),
+        dbc.Card(
+            html.Div(className='fas fa-id-card', style=card_icon),
+            style={'maxWidth': '30%', 'backgroundColor': '#767B88'}
+        )
+    ], style={'outline-width': '1px', 'outline-color': '#5A5A5A'}
+)
+
+# Requirements card
+req = dbc.CardGroup(
+    [
+        dbc.Card(
+            dbc.CardBody(
+                [
+                    html.H6('Openings', className='card-title text-center', style={'fontSize': 20}),
+                    html.H3('5', className='display-6 text-center', style={'fontSize': 25})
+                ]
+            ),
+        ),
+        dbc.Card(
+            html.Div(className='fas fa-hashtag', style=card_icon),
+            style={'maxWidth': '30%', 'backgroundColor': '#767B88'}
+        )
+    ], style={'outline-width': '1px', 'outline-color': '#5A5A5A'}
+)
+
+# Number of applications card
+applications = dbc.CardGroup(
+    [
+        dbc.Card(
+            dbc.CardBody(
+                [
+                    html.H6('Candidates Applied', className='card-title text-center', style={'fontSize': 20}),
+                    html.H3(children='', className='display-6 text-center', style={'fontSize': 25}, id='cand-applied')
+                ]
+            )
+        ),
+        dbc.Card(
+            html.Div(className='fas fa-archive', style=card_icon),
+            style={'maxWidth': '30%', 'backgroundColor': '#767B88'}
+        )
+    ], style={'outline-width': '1px', 'outline-color': '#5A5A5A'}
+)
+
+# Plotly graph card
+plot_card = dbc.CardGroup(
+    [
+        dbc.Card(
+            dcc.Graph(
+                id='scatter-plot',
+                figure=px.scatter(df, x='X', y='Y', title='Scatter Plot')
+            )
+        ),
+        dbc.Card(
+            html.Div(className='fas fa-chart-scatter', style=card_icon),
+            style={'maxWidth': '30%', 'backgroundColor': '#767B88'}
+        )
+    ], style={'outline-width': '1px', 'outline-color': '#5A5A5A'}
+)
+
+# Layout
 app.layout = html.Div([
-    html.H1("Stats UI using Dash"),
-    
-    # Display the row counts for each DataFrame in separate boxes
-    html.Div([
-        html.Div([
-            html.H3(f"DataFrame 1"),
-            html.P(f"Row Count: {df1_count}")
-        ], style={'border': '1px solid black', 'padding': '10px', 'margin': '10px'}),
-        
-        html.Div([
-            html.H3(f"DataFrame 2"),
-            html.P(f"Row Count: {df2_count}")
-        ], style={'border': '1px solid black', 'padding': '10px', 'margin': '10px'}),
-        
-        html.Div([
-            html.H3(f"DataFrame 3"),
-            html.P(f"Row Count: {df3_count}")
-        ], style={'border': '1px solid black', 'padding': '10px', 'margin': '10px'}),
-        
-        html.Div([
-            html.H3(f"DataFrame 4"),
-            html.P(f"Row Count: {df4_count}")
-        ], style={'border': '1px solid black', 'padding': '10px', 'margin': '10px'}),
-        
-        html.Div([
-            html.H3(f"DataFrame 5"),
-            html.P(f"Row Count: {df5_count}")
-        ], style={'border': '1px solid black', 'padding': '10px', 'margin': '10px'}),
-    ]),
+    navbar,
+    role,
+    req,
+    applications,
+    plot_card
 ])
 
 # Run the app
 if __name__ == '__main__':
     app.run_server(debug=True)
+
+
+
+
+
+           
+           
