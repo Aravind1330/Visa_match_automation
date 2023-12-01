@@ -17,3 +17,8 @@ app.layout = dbc.Container(
         ),
     ]
 )
+        # Navbar
+        navbar,
+
+        # Three info Cards
+        html.Br(),
