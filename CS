@@ -83,3 +83,4 @@ if __name__ == '__main__':
 
            
            
+        ], style={'outline-width': '1px', 'outline-color': '#5A5A5A', 'maxWidth': '300px'}  # Adjust the maximum width here
