@@ -1,33 +1,100 @@
-# Layout with dbc.Container and dbc.Row
-app.layout = dbc.Container(
-    [
-        dbc.Row(
-            [
-                dbc.Col(role, width=4, style={'padding-right': '6px', 'padding-left': '6px'}),
-                dbc.Col(req, width=4, style={'padding-right': '6px', 'padding-left': '6px'}),
-                dbc.Col(applications, width=4, style={'padding-right': '6px', 'padding-left': '6px'}),
-            ], style={
-                'margin-left': -12,
-                'margin-right': -12,
-                'margin-top': '10px',
-                'padding-bottom': '0px',
-                'margin-left': -12,
-                'margin-right': -12,
-            }
-        ),
-    ]
+import dash
+from dash import dcc, html
+import dash_bootstrap_components as dbc
+import dash_table
+from dash.dependencies import Input, Output
+import pandas as pd
+import base64
+
+# Load your actual Excel sheet here
+# Replace 'your_excel_file.xlsx' with your file path
+excel_path = 'your_excel_file.xlsx'
+df = pd.read_excel(excel_path)
+
+# Create Dash app
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+
+# Role dropdown with additional values
+roleSelect = dcc.Dropdown(
+    options=[
+        {'label': 'Test Role', 'value': 'Test Role'},
+        {'label': 'Role A', 'value': 'Role A'},
+        {'label': 'Role B', 'value': 'Role B'},
+    ],
+    value='Test Role',
+    id='role-dropdown',
+    placeholder='Select the role',
+    style=dict(width=400)
 )
-        # Navbar
-        navbar,
 
-        # Three info Cards
+######################### cards #####################################
+card_icon = {
+    'color': 'white',
+    "textAlign": "center",
+    "fontSize": 40,
+    "margin": "auto"
+}
 
+# Role card
+role = dbc.Card(
+    dbc.CardGroup(
+        [
+            dbc.Card(
+                dbc.CardBody(
+                    [
+                        html.H6('JOB ID-Role', className='card-title text-center', style={'fontSize': 20}),
+                        html.H5(className='display-6 text-center', style={'fontSize': '1.5rem', 'fontWeight': 600},
+                                id='role-card')
+                    ]
+                )
+            ),
+            dbc.Card(
+                html.Div(className='fas fa-id-card', style=card_icon),
+                style={'maxWidth': '30%', 'backgroundColor': '#767B88'}
+            )
+        ], style={'outline-width': '1px', 'outline-color': '#5A5A5A'}
+    )
+)
 
+# Requirements card
+req = dbc.Card(
+    dbc.CardGroup(
+        [
+            dbc.Card(
+                dbc.CardBody(
+                    [
+                        html.H6('Openings', className='card-title text-center', style={'fontSize': 20}),
+                        html.H3('5', className='display-6 text-center', style={'fontSize': 25})
+                    ]
+                ),
+            ),
+            dbc.Card(
+                html.Div(className='fas fa-hashtag', style=card_icon),
+                style={'maxWidth': '30%', 'backgroundColor': '#767B88'}
+            )
+        ], style={'outline-width': '1px', 'outline-color': '#5A5A5A'}
+    )
+)
 
-
-
-
-
+# Number of applications card
+applications = dbc.Card(
+    dbc.CardGroup(
+        [
+            dbc.Card(
+                dbc.CardBody(
+                    [
+                        html.H6('Candidates Applied', className='card-title text-center', style={'fontSize': 20}),
+                        html.H3(children='', className='display-6 text-center', style={'fontSize': 25}, id='cand-applied')
+                    ]
+                )
+            ),
+            dbc.Card(
+                html.Div(className='fas fa-archive', style=card_icon),
+                style={'maxWidth': '30%', 'backgroundColor': '#767B88'}
+            )
+        ], style={'outline-width': '1px', 'outline-color': '#5A5A5A'}
+    )
+)
 
 # Layout with dbc.Container and dbc.Row
 app.layout = dbc.Container(
@@ -47,25 +114,22 @@ app.layout = dbc.Container(
             }
         ),
 
-        # New Row for Table and Download Button
+        # New Row for Excel Sheet
         dbc.Row(
             [
                 dbc.Col(
                     html.Div(
                         [
-                            html.H6('Data Entry Table', className='card-title text-center', style={'fontSize': 20}),
+                            html.H6('Excel Sheet Editing', className='card-title text-center', style={'fontSize': 20}),
                             dash_table.DataTable(
-                                id='data-entry-table',
-                                columns=[
-                                    {'name': 'Rule', 'id': 'Rule'},
-                                    {'name': 'Pattern', 'id': 'Pattern'},
-                                    {'name': 'Description', 'id': 'Description'},
-                                ],
+                                id='excel-sheet',
+                                columns=[{'name': col, 'id': col} for col in df.columns],
+                                data=df.to_dict('records'),
                                 editable=True,
+                                row_deletable=True,  # Enable row deletion
                                 style_table={'overflowX': 'auto'},
                                 style_cell={'textAlign': 'left'},
                             ),
-                            html.Button('Download Table', id='download-table-button', n_clicks=0, style={'marginTop': '10px'}),
                         ],
                         style={'margin': '20px'}
                     ),
@@ -79,4 +143,3 @@ app.layout = dbc.Container(
 # Run the app
 if __name__ == '__main__':
     app.run_server(debug=True)
-        html.Br(),
