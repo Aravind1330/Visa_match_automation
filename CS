@@ -1,92 +1,67 @@
-Developed a Spark engine to automate the manual matching process for Bundle and single matches. This system efficiently processes various issuers on a daily basis, categorized by region. The primary goal is to minimize manual effort, enhance operational efficiency, and facilitate multiple audits to ensure the robustness of the automated processes.
-
-
 card_icon = {
     'color': 'white',
     "textAlign": "center",
     "fontSize": 40,
     "margin": "auto"
 }
-
-# Role card
-role = dbc.Card(
-    dbc.CardGroup(
-        [
-            dbc.Card(
-                dbc.CardBody(
-                    [
-                        html.H6('JOB ID-Role', className='card-title text-center', style={'fontSize': 20}),
-                        html.H5(className='display-6 text-center', style={'fontSize': '1.5rem', 'fontWeight': 600},
-                                id='role-card')
-                    ]
-                )
-            ),
-            dbc.Card(
-                html.Div(className='fas fa-id-card', style=card_icon),
-                style={'maxWidth': '30%', 'backgroundColor': '#767B88'}
+# role card
+role = dbc.CardGroup(
+    [
+        dbc.Card(
+            dbc.CardBody(
+                [
+                    html.H6('JOB ID-Role', className='card-title text-center', style={'fontSize': 20}),
+                    html.H5(className='display-6 text-center', style={'fontSize': '1.5rem', 'fontWeight': 600},
+                            id='role-card')
+                ]
             )
-        ], style={'outline-width': '1px', 'outline-color': '#5A5A5A'}
-    )
+        ),
+        dbc.Card(
+            html.Div(className='fas fa-id-card', style=card_icon),
+            # className='bg-primary',
+            style={'maxWidth': '30%', 'backgroundColor': '#767B88'}
+        )
+    ], style={'outline-width': '1px', 'outline-color': '#5A5A5A',#'outline-style': 'ridge',
+              }
 )
 
 # Requirements card
-req = dbc.Card(
-    dbc.CardGroup(
-        [
-            dbc.Card(
-                dbc.CardBody(
-                    [
-                        html.H6('Openings', className='card-title text-center', style={'fontSize': 20}),
-                        html.H3('5', className='display-6 text-center', style={'fontSize': 25})
-                    ]
-                ),
+req = dbc.CardGroup(
+    [
+        dbc.Card(
+            dbc.CardBody(
+                [
+                    html.H6('Openings', className='card-title text-center', style={'fontSize': 20}),
+                    html.H3('5', className='display-6 text-center', style={'fontSize': 25})
+                ]
             ),
-            dbc.Card(
-                html.Div(className='fas fa-hashtag', style=card_icon),
-                style={'maxWidth': '30%', 'backgroundColor': '#767B88'}
-            )
-        ], style={'outline-width': '1px', 'outline-color': '#5A5A5A'}
-    )
+        ),
+        dbc.Card(
+            html.Div(className='fas fa-hashtag', style=card_icon),
+            # className='bg-primary',
+            style={'maxWidth': '30%', 'backgroundColor': '#767B88'}
+        )
+    ], style={'outline-width': '1px', 'outline-color': '#5A5A5A',#'outline-style': 'ridge',
+              }
 )
 
-# Number of applications card
-applications = dbc.Card(
-    dbc.CardGroup(
-        [
-            dbc.Card(
-                dbc.CardBody(
-                    [
-                        html.H6('Candidates Applied', className='card-title text-center', style={'fontSize': 20}),
-                        html.H3(children='', className='display-6 text-center', style={'fontSize': 25}, id='cand-applied')
-                    ]
-                )
-            ),
-            dbc.Card(
-                html.Div(className='fas fa-archive', style=card_icon),
-                style={'maxWidth': '30%', 'backgroundColor': '#767B88'}
+# number of applications
+applications = dbc.CardGroup(
+    [
+        dbc.Card(
+
+            dbc.CardBody(
+                [
+                    html.H6('Candidates Applied', className='card-title text-center', style={'fontSize': 20}),
+                    html.H3(children='', className='display-6 text-center', style={'fontSize': 25}, id='cand-applied')
+                ]
             )
-        ], style={'outline-width': '1px', 'outline-color': '#5A5A5A'}
-    )
+        ),
+        dbc.Card(
+            html.Div(className='fas fa-archive', style=card_icon),
+            # className='bg-primary',
+            style={'maxWidth': '30%', 'backgroundColor': '#767B88'}
+        )
+    ], style={'outline-width': '1px', 'outline-color': '#5A5A5A',#'outline-style': 'ridge',
+              }
 )
-
-# Layout with dbc.Row
-app.layout = dbc.Row([
-    navbar,
-    role,
-    req,
-    applications
-], style={'margin': '20px'})
-
-# Run the app
-if __name__ == '__main__':
-    app.run_server(debug=True)
-
-           
-           
-        ], style={'outline-width': '1px', 'outline-color': '#5A5A5A', 'maxWidth': '300px'}  # Adjust the maximum width here
-
-
-
-app = dash.Dash(__name__, external_scripts=[],
-                external_stylesheets=[dbc.themes.BOOTSTRAP, "https://use.fontawesome.com/releases/v5.15.4/css/all.css",
-                                      "https://dash-bootstrap-components.opensource.faculty.ai/docs/components/button/"],suppress_callback_exceptions=True)
