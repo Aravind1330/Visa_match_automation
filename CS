@@ -143,3 +143,97 @@ app.layout = dbc.Container(
 # Run the app
 if __name__ == '__main__':
     app.run_server(debug=True)
+
+
+
+
+
+
+
+
+
+# Layout with dbc.Container and dbc.Row
+app.layout = dbc.Container(
+    [
+        dbc.Row(
+            [
+                dbc.Col(role, width=4, style={'padding-right': '6px', 'padding-left': '6px'}),
+                dbc.Col(req, width=4, style={'padding-right': '6px', 'padding-left': '6px'}),
+                dbc.Col(applications, width=4, style={'padding-right': '6px', 'padding-left': '6px'}),
+            ], style={
+                'margin-left': -12,
+                'margin-right': -12,
+                'margin-top': '10px',
+                'padding-bottom': '0px',
+                'margin-left': -12,
+                'margin-right': -12,
+            }
+        ),
+
+        # New Row for Excel Sheet
+        dbc.Row(
+            [
+                dbc.Col(
+                    html.Div(
+                        [
+                            html.H6('Excel Sheet Editing', className='card-title text-center', style={'fontSize': 15}),
+                            dbc.Card(
+                                dbc.CardBody(
+                                    [
+                                        dash_table.DataTable(
+                                            id='excel-sheet',
+                                            columns=[{'name': col, 'id': col} for col in df.columns],
+                                            data=df.to_dict('records'),
+                                            editable=True,
+                                            row_deletable=True,  # Enable row deletion
+                                            style_table={'overflowX': 'auto'},
+                                            style_cell={'textAlign': 'left'},
+                                        ),
+                                    ],
+                                ),
+                                style={'height': '300px', 'overflowY': 'auto', 'border': '1px solid #ddd', 'padding': '10px'}
+                            ),
+                            html.Button('Edit', id='edit-button', n_clicks=0, style={'margin': '10px'}),
+                            html.Button('Save', id='save-button', n_clicks=0, style={'margin': '10px'}),
+                            dcc.Download(id='download-csv'),
+                        ],
+                        style={'margin': '20px'}
+                    ),
+                    width=12
+                ),
+            ]
+        ),
+    ]
+)
+
+# Callback to handle editing, saving, and downloading CSV
+@app.callback(
+    Output('excel-sheet', 'editable'),
+    Output('download-csv', 'data'),
+    Input('edit-button', 'n_clicks'),
+    Input('save-button', 'n_clicks'),
+    State('excel-sheet', 'editable'),
+    prevent_initial_call=True
+)
+def handle_edit_save_download(edit_clicks, save_clicks, is_editable):
+    ctx = dash.callback_context
+    button_id = ctx.triggered_id
+
+    if button_id == 'edit-button':
+        # Toggle editable property on Edit button click
+        return not is_editable, dash.no_update
+    elif button_id == 'save-button':
+        # Save the changes to CSV on Save button click
+        if is_editable:
+            # Get the edited data from the table
+            edited_df = pd.DataFrame(ctx.states['excel-sheet.data'])
+            
+            # Save the edited data to a CSV file
+            edited_df.to_csv('edited_data.csv', index=False, encoding='utf-8-sig')
+            return dash.no_update, dict(content=base64.b64encode(edited_df.to_csv(index=False).encode()), filename='edited_data.csv')
+    
+    return dash.no_update, dash.no_update
+
+# Run the app
+if __name__ == '__main__':
+    app.run_server(debug=True)
