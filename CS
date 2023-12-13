@@ -285,3 +285,29 @@ def handle_edit_save_download(edit_clicks, save_clicks, is_editable, selected_ta
             return dash.no_update, dict(content=base64.b64encode(edited_df.to_csv(index=False).encode()), filename='edited_data.csv')
 
     return dash.no_update, dash.no_update
+
+
+
+def match_bundle(T5, Invoice_table):
+    matching_invoices = []
+    total_invoice_source_amt = 0
+    match_rule = None
+
+    for Invoice in Invoice_table:
+        for rule_index, rule in enumerate(rules, start=1):
+            if rule(T5, Invoice=Invoice):
+                invoice_amt = float(Invoice['inv_match_source_amt'])
+                remaining_amt = float(T5['fin_source_amt']) - total_invoice_source_amt
+
+                matching_invoices.append((Invoice, rule_index))
+                total_invoice_source_amt += invoice_amt
+                Invoice_table.remove(Invoice)
+                break  # Exit the inner loop after finding a match
+
+        if total_invoice_source_amt == float(T5['fin_source_amt']):
+            break
+
+    if total_invoice_source_amt == float(T5['fin_source_amt']):
+        return matching_invoices, match_rule
+    else:
+        return [], None
