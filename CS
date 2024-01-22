@@ -106,3 +106,15 @@ matching_invoices, match_rule = match_one_to_one(T5_data, Invoice_table_data, co
 
 print(f"Matching Invoices: {matching_invoices}")
 print(f"Matched Rule Index: {match_rule}")
+
+
+
+# Define your rules DataFrame
+data = {
+    'rule': ["T5['example_column'] == Invoice['example_column']", "T5['example_column'] == Invoice['example_column'] and Invoice['Company_ID'] == 1"],
+    'description': ["Example Common Rule", "Example Company-specific Rule for Company_ID = 1"],
+    'Rule_No': [1, 2],
+    'Company_ID': [None, 1]  # None for common rule, Company_ID for company-specific rule
+}
+
+rules_df = pd.DataFrame(data)
