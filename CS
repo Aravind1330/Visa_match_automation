@@ -1,58 +1,29 @@
-COMPANY_RULES = {
-    '3456': [
-        lambda T5, Invoice: T5['some_column'] == Invoice['some_column'] and T5['some_other_column'] == Invoice['some_other_column'],
-        # Add more rules for company 3456 if needed
-    ],
-    # Add more company-specific rules for other companies
-}
+def read_rules_file(self, rules_df):
+    common_rules = []
+    company_rules = {}
+    rule_descriptions = {}  # Added for rule descriptions
+    rule_numbers = {}  # Added for rule numbers
 
+    for i, row in rules_df.iterrows():
+        rule_string = row['rule']
+        rule_description = row['description']
+        rule_no = row['Rule_No']
+        company_id = row['Company_ID']
 
-    one_to_one_output_match, unmatched_t, unmatched_invoice = my_instance.process_one_to_one(T5, Invoice_table, rules, COMPANY_RULES, 'PATTERN')
+        rule = eval(f"lambda T5, Invoice: {rule_string}")
 
+        if company_id:
+            # Company-specific rule
+            if company_id not in company_rules:
+                company_rules[company_id] = []
 
+            company_rules[company_id].append(rule)
+        else:
+            # Common rule
+            common_rules.append(rule)
 
-    def match_one_to_one(self, T5, Invoice_table, rules, company_rules, check_type):
-        matching_invoices = None
-        match_rule = None
+        # Store rule descriptions and numbers
+        rule_descriptions[i + 1] = rule_description
+        rule_numbers[i + 1] = rule_no
 
-        company_id = T5.get('company_id', None)
-
-        if company_id is not None and company_id in company_rules:
-            company_specific_rules = company_rules[company_id]
-
-            for rule_index, rule in enumerate(company_specific_rules, start=len(rules) + 1):
-                for Invoice in Invoice_table:
-                    if rule(T5, Invoice=Invoice) and \
-                       abs(float(T5['T5_SOURCE_AMT'])) == abs(float(Invoice['INV_MATCH_SOURCE_AMT'])) and \
-                       T5['FIN_DEB_CRED_IND'] == Invoice['INV_DEB_CRED_IND']:
-                        matching_invoices = [Invoice]
-                        match_rule = rule_index
-                        break
-
-                if matching_invoices:
-                    return matching_invoices, match_rule
-
-        elif check_type == 'PATTERN':
-            for rule_index, rule in enumerate(rules, start=1):
-                for Invoice in Invoice_table:
-                    if rule(T5, Invoice=Invoice) and \
-                       abs(float(T5['T5_SOURCE_AMT'])) == abs(float(Invoice['INV_MATCH_SOURCE_AMT'])) and \
-                       T5['FIN_DEB_CRED_IND'] == Invoice['INV_DEB_CRED_IND']:
-                        matching_invoices = [Invoice]
-                        match_rule = rule_index
-                        break
-
-                if matching_invoices:
-                    return matching_invoices, match_rule
-
-        elif check_type == 'LENIENT':
-            for Invoice in Invoice_table:
-                if abs(float(T5['T5_SOURCE_AMT'])) == abs(float(Invoice['INV_MATCH_SOURCE'])):
-                    matching_invoices = [Invoice]
-                    match_rule = 27  # Adjust the rule number accordingly
-                    break
-
-            if matching_invoices:
-                return matching_invoices, match_rule
-
-        return None, None
+    return common_rules, company_rules, rule_descriptions, rule_numbers
