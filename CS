@@ -5,3 +5,54 @@ COMPANY_RULES = {
     ],
     # Add more company-specific rules for other companies
 }
+
+
+    one_to_one_output_match, unmatched_t, unmatched_invoice = my_instance.process_one_to_one(T5, Invoice_table, rules, COMPANY_RULES, 'PATTERN')
+
+
+
+    def match_one_to_one(self, T5, Invoice_table, rules, company_rules, check_type):
+        matching_invoices = None
+        match_rule = None
+
+        company_id = T5.get('company_id', None)
+
+        if company_id is not None and company_id in company_rules:
+            company_specific_rules = company_rules[company_id]
+
+            for rule_index, rule in enumerate(company_specific_rules, start=len(rules) + 1):
+                for Invoice in Invoice_table:
+                    if rule(T5, Invoice=Invoice) and \
+                       abs(float(T5['T5_SOURCE_AMT'])) == abs(float(Invoice['INV_MATCH_SOURCE_AMT'])) and \
+                       T5['FIN_DEB_CRED_IND'] == Invoice['INV_DEB_CRED_IND']:
+                        matching_invoices = [Invoice]
+                        match_rule = rule_index
+                        break
+
+                if matching_invoices:
+                    return matching_invoices, match_rule
+
+        elif check_type == 'PATTERN':
+            for rule_index, rule in enumerate(rules, start=1):
+                for Invoice in Invoice_table:
+                    if rule(T5, Invoice=Invoice) and \
+                       abs(float(T5['T5_SOURCE_AMT'])) == abs(float(Invoice['INV_MATCH_SOURCE_AMT'])) and \
+                       T5['FIN_DEB_CRED_IND'] == Invoice['INV_DEB_CRED_IND']:
+                        matching_invoices = [Invoice]
+                        match_rule = rule_index
+                        break
+
+                if matching_invoices:
+                    return matching_invoices, match_rule
+
+        elif check_type == 'LENIENT':
+            for Invoice in Invoice_table:
+                if abs(float(T5['T5_SOURCE_AMT'])) == abs(float(Invoice['INV_MATCH_SOURCE'])):
+                    matching_invoices = [Invoice]
+                    match_rule = 27  # Adjust the rule number accordingly
+                    break
+
+            if matching_invoices:
+                return matching_invoices, match_rule
+
+        return None, None
