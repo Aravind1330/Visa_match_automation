@@ -1,47 +1,18 @@
-def read_rules_file(self, rules_df):
-    common_rules = []
-    company_rules = {}
-    rule_descriptions = {}  # Added for rule descriptions
-    rule_numbers = {}  # Added for rule numbers
+from enum import Enum
+import pandas as pd
 
-    for i, row in rules_df.iterrows():
-        rule_string = row['rule']
-        rule_description = row['description']
-        rule_no = row['Rule_No']
-        company_id = row['Company_ID']
+# Define an enumeration for column headers
+class COLUMN_HEADER(Enum):
+    T5_SOURCE_AMT = 'T5_SOURCE_AMT'
+    FIN_DEB_CRED_IND = 'FIN_DEB_CRED_IND'
+    INV_MATCH_SOURCE_AMT = 'INV_MATCH_SOURCE_AMT'
+    INV_DEB_CRED_IND = 'INV_DEB_CRED_IND'
+    INV_MATCH_SOURCE = 'INV_MATCH_SOURCE'
+    Company_ID = 'Company_ID'  # Added for Company_ID
 
-        rule = eval(f"lambda T5, Invoice: {rule_string}")
-
-        if company_id:
-            # Company-specific rule
-            if company_id not in company_rules:
-                company_rules[company_id] = []
-
-            company_rules[company_id].append(rule)
-        else:
-            # Common rule
-            common_rules.append(rule)
-
-        # Store rule descriptions and numbers
-        rule_descriptions[i + 1] = rule_description
-        rule_numbers[i + 1] = rule_no
-
-    return common_rules, company_rules, rule_descriptions, rule_numbers
-
-
-
-
-
-
-
-
-
-
-
-def match_one_to_one(self, T5, Invoice_table, common_rules, company_rules, check_type, company_id):
+def match_one_to_one(T5, Invoice_table, common_rules, company_rules, check_type, company_id):
     matching_invoices = None
     match_rule = None
-    invoices_to_remove = []
 
     # Common rules
     if check_type == 'PATTERN':
@@ -82,3 +53,56 @@ def match_one_to_one(self, T5, Invoice_table, common_rules, company_rules, check
                 return matching_invoices, match_rule
 
     return None, None
+
+def read_rules_file(rules_df):
+    common_rules = []
+    company_rules = {}
+    rule_descriptions = {}
+    rule_numbers = {}
+
+    # Example common rule
+    common_rule_string = "T5['example_column'] == Invoice['example_column']"
+    common_rule = eval(f"lambda T5, Invoice: {common_rule_string}")
+    common_rules.append(common_rule)
+    rule_descriptions[1] = "Example Common Rule"
+    rule_numbers[1] = 1
+
+    # Example company-specific rule for Company_ID = 1
+    company_id_1_rule_string = "T5['example_column'] == Invoice['example_column'] and Invoice['Company_ID'] == 1"
+    company_id_1_rule = eval(f"lambda T5, Invoice: {company_id_1_rule_string}")
+    company_rules[1] = [company_id_1_rule]
+    rule_descriptions[2] = "Example Company-specific Rule for Company_ID = 1"
+    rule_numbers[2] = 2
+
+    return common_rules, company_rules, rule_descriptions, rule_numbers
+
+# Example data
+T5_data = {
+    COLUMN_HEADER.T5_SOURCE_AMT.value: 100.0,
+    COLUMN_HEADER.FIN_DEB_CRED_IND.value: 'CREDIT',
+    'example_column': 'example_value'
+}
+
+Invoice_table_data = [
+    {
+        COLUMN_HEADER.INV_MATCH_SOURCE_AMT.value: 100.0,
+        COLUMN_HEADER.INV_DEB_CRED_IND.value: 'CREDIT',
+        'example_column': 'example_value',
+        COLUMN_HEADER.Company_ID.value: 1  # Company-specific data
+    },
+    {
+        COLUMN_HEADER.INV_MATCH_SOURCE_AMT.value: 100.0,
+        COLUMN_HEADER.INV_DEB_CRED_IND.value: 'CREDIT',
+        'example_column': 'example_value',
+        COLUMN_HEADER.Company_ID.value: 2  # Different company
+    }
+]
+
+# Example usage
+common_rules, company_rules, rule_descriptions, rule_numbers = read_rules_file(rules_df)
+company_id_to_test = 1
+
+matching_invoices, match_rule = match_one_to_one(T5_data, Invoice_table_data, common_rules, company_rules, 'PATTERN', company_id_to_test)
+
+print(f"Matching Invoices: {matching_invoices}")
+print(f"Matched Rule Index: {match_rule}")
