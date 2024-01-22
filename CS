@@ -118,3 +118,11 @@ data = {
 }
 
 rules_df = pd.DataFrame(data)
+
+
+
+# Read T5 data from CSV
+t5_data = pd.read_csv('t5_data.csv')
+
+# Read Invoice table data from CSV
+invoice_table_data = pd.read_csv('invoice_data.csv')
