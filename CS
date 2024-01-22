@@ -27,3 +27,58 @@ def read_rules_file(self, rules_df):
         rule_numbers[i + 1] = rule_no
 
     return common_rules, company_rules, rule_descriptions, rule_numbers
+
+
+
+
+
+
+
+
+
+
+
+def match_one_to_one(self, T5, Invoice_table, common_rules, company_rules, check_type, company_id):
+    matching_invoices = None
+    match_rule = None
+    invoices_to_remove = []
+
+    # Common rules
+    if check_type == 'PATTERN':
+        for rule_index, rule in enumerate(common_rules, start=1):
+            for Invoice in Invoice_table:
+                if rule(T5, Invoice=Invoice) and \
+                   abs(float(T5[COLUMN_HEADER.T5_SOURCE_AMT.value])) == abs(float(Invoice[COLUMN_HEADER.INV_MATCH_SOURCE_AMT.value])) and \
+                   T5[COLUMN_HEADER.FIN_DEB_CRED_IND.value] == Invoice[COLUMN_HEADER.INV_DEB_CRED_IND.value]:
+                    matching_invoices = [Invoice]
+                    match_rule = rule_index
+                    break
+
+            if matching_invoices:
+                return matching_invoices, match_rule
+
+    elif check_type == 'LENIENT':
+        for Invoice in Invoice_table:
+            if abs(float(T5[COLUMN_HEADER.T5_SOURCE_AMT.value])) == abs(float(Invoice[COLUMN_HEADER.INV_MATCH_SOURCE.value])):
+                matching_invoices = [Invoice]
+                match_rule = 27  # Adjust the rule number accordingly
+                break
+
+        if matching_invoices:
+            return matching_invoices, match_rule
+
+    # Company-specific rules
+    if company_id in company_rules:
+        for rule_index, rule in enumerate(company_rules[company_id], start=len(common_rules)+1):
+            for Invoice in Invoice_table:
+                if rule(T5, Invoice=Invoice) and \
+                   abs(float(T5[COLUMN_HEADER.T5_SOURCE_AMT.value])) == abs(float(Invoice[COLUMN_HEADER.INV_MATCH_SOURCE_AMT.value])) and \
+                   T5[COLUMN_HEADER.FIN_DEB_CRED_IND.value] == Invoice[COLUMN_HEADER.INV_DEB_CRED_IND.value]:
+                    matching_invoices = [Invoice]
+                    match_rule = rule_index
+                    break
+
+            if matching_invoices:
+                return matching_invoices, match_rule
+
+    return None, None
