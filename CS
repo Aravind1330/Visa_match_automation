@@ -21,3 +21,18 @@ with pd.ExcelWriter('output_file.xlsx', engine='xlsxwriter') as writer:
 empty_w_rows['source_amt'] = empty_w_rows['signed_source_amt']
 # Conditionally update 'signed_source_amt' based on 'trans_type_code'
 empty_w_rows.loc[empty_w_rows['trans_type_code'] == 11, 'signed_source_amt'] *= -1
+
+
+
+
+
+
+
+
+# Merge the two DataFrames (df and empty_w_rows) into a single DataFrame
+merged_df = pd.concat([df, empty_w_rows], ignore_index=True)
+
+# Save the merged DataFrame to an Excel file with a gap of 2 lines after sheet 1
+with pd.ExcelWriter('output_file.xlsx', engine='xlsxwriter') as writer:
+    merged_df.iloc[:len(df)].to_excel(writer, sheet_name='Sheet1', index=False)
+    merged_df.iloc[len(df)+2:].to_excel(writer, sheet_name='Sheet1', startrow=len(df)+2, index=False)
