@@ -16,3 +16,6 @@ df = df.dropna(subset=['W'])
 with pd.ExcelWriter('output_file.xlsx', engine='xlsxwriter') as writer:
     df.to_excel(writer, sheet_name='Sheet1', index=False)
     empty_w_rows.to_excel(writer, sheet_name='Sheet2', index=False)
+
+
+empty_w_rows['source_amt'] = empty_w_rows['signed_source_amt']
