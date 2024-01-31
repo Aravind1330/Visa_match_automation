@@ -1,128 +1,18 @@
-from enum import Enum
 import pandas as pd
 
-# Define an enumeration for column headers
-class COLUMN_HEADER(Enum):
-    T5_SOURCE_AMT = 'T5_SOURCE_AMT'
-    FIN_DEB_CRED_IND = 'FIN_DEB_CRED_IND'
-    INV_MATCH_SOURCE_AMT = 'INV_MATCH_SOURCE_AMT'
-    INV_DEB_CRED_IND = 'INV_DEB_CRED_IND'
-    INV_MATCH_SOURCE = 'INV_MATCH_SOURCE'
-    Company_ID = 'Company_ID'  # Added for Company_ID
+# Assuming your CSV file is named 'your_file.csv'
+file_path = 'your_file.csv'
 
-def match_one_to_one(T5, Invoice_table, common_rules, company_rules, check_type, company_id):
-    matching_invoices = None
-    match_rule = None
+# Read the CSV file into a pandas DataFrame
+df = pd.read_csv(file_path)
 
-    # Common rules
-    if check_type == 'PATTERN':
-        for rule_index, rule in enumerate(common_rules, start=1):
-            for Invoice in Invoice_table:
-                if rule(T5, Invoice=Invoice) and \
-                   abs(float(T5[COLUMN_HEADER.T5_SOURCE_AMT.value])) == abs(float(Invoice[COLUMN_HEADER.INV_MATCH_SOURCE_AMT.value])) and \
-                   T5[COLUMN_HEADER.FIN_DEB_CRED_IND.value] == Invoice[COLUMN_HEADER.INV_DEB_CRED_IND.value]:
-                    matching_invoices = [Invoice]
-                    match_rule = rule_index
-                    break
+# Separate rows with empty values in column 'W'
+empty_w_rows = df[df['W'].isnull()]
 
-            if matching_invoices:
-                return matching_invoices, match_rule
+# Remove rows with empty values in column 'W' from the original DataFrame
+df = df.dropna(subset=['W'])
 
-    elif check_type == 'LENIENT':
-        for Invoice in Invoice_table:
-            if abs(float(T5[COLUMN_HEADER.T5_SOURCE_AMT.value])) == abs(float(Invoice[COLUMN_HEADER.INV_MATCH_SOURCE.value])):
-                matching_invoices = [Invoice]
-                match_rule = 27  # Adjust the rule number accordingly
-                break
-
-        if matching_invoices:
-            return matching_invoices, match_rule
-
-    # Company-specific rules
-    if company_id in company_rules:
-        for rule_index, rule in enumerate(company_rules[company_id], start=len(common_rules)+1):
-            for Invoice in Invoice_table:
-                if rule(T5, Invoice=Invoice) and \
-                   abs(float(T5[COLUMN_HEADER.T5_SOURCE_AMT.value])) == abs(float(Invoice[COLUMN_HEADER.INV_MATCH_SOURCE_AMT.value])) and \
-                   T5[COLUMN_HEADER.FIN_DEB_CRED_IND.value] == Invoice[COLUMN_HEADER.INV_DEB_CRED_IND.value]:
-                    matching_invoices = [Invoice]
-                    match_rule = rule_index
-                    break
-
-            if matching_invoices:
-                return matching_invoices, match_rule
-
-    return None, None
-
-def read_rules_file(rules_df):
-    common_rules = []
-    company_rules = {}
-    rule_descriptions = {}
-    rule_numbers = {}
-
-    # Example common rule
-    common_rule_string = "T5['example_column'] == Invoice['example_column']"
-    common_rule = eval(f"lambda T5, Invoice: {common_rule_string}")
-    common_rules.append(common_rule)
-    rule_descriptions[1] = "Example Common Rule"
-    rule_numbers[1] = 1
-
-    # Example company-specific rule for Company_ID = 1
-    company_id_1_rule_string = "T5['example_column'] == Invoice['example_column'] and Invoice['Company_ID'] == 1"
-    company_id_1_rule = eval(f"lambda T5, Invoice: {company_id_1_rule_string}")
-    company_rules[1] = [company_id_1_rule]
-    rule_descriptions[2] = "Example Company-specific Rule for Company_ID = 1"
-    rule_numbers[2] = 2
-
-    return common_rules, company_rules, rule_descriptions, rule_numbers
-
-# Example data
-T5_data = {
-    COLUMN_HEADER.T5_SOURCE_AMT.value: 100.0,
-    COLUMN_HEADER.FIN_DEB_CRED_IND.value: 'CREDIT',
-    'example_column': 'example_value'
-}
-
-Invoice_table_data = [
-    {
-        COLUMN_HEADER.INV_MATCH_SOURCE_AMT.value: 100.0,
-        COLUMN_HEADER.INV_DEB_CRED_IND.value: 'CREDIT',
-        'example_column': 'example_value',
-        COLUMN_HEADER.Company_ID.value: 1  # Company-specific data
-    },
-    {
-        COLUMN_HEADER.INV_MATCH_SOURCE_AMT.value: 100.0,
-        COLUMN_HEADER.INV_DEB_CRED_IND.value: 'CREDIT',
-        'example_column': 'example_value',
-        COLUMN_HEADER.Company_ID.value: 2  # Different company
-    }
-]
-
-# Example usage
-common_rules, company_rules, rule_descriptions, rule_numbers = read_rules_file(rules_df)
-company_id_to_test = 1
-
-matching_invoices, match_rule = match_one_to_one(T5_data, Invoice_table_data, common_rules, company_rules, 'PATTERN', company_id_to_test)
-
-print(f"Matching Invoices: {matching_invoices}")
-print(f"Matched Rule Index: {match_rule}")
-
-
-
-# Define your rules DataFrame
-data = {
-    'rule': ["T5['example_column'] == Invoice['example_column']", "T5['example_column'] == Invoice['example_column'] and Invoice['Company_ID'] == 1"],
-    'description': ["Example Common Rule", "Example Company-specific Rule for Company_ID = 1"],
-    'Rule_No': [1, 2],
-    'Company_ID': [None, 1]  # None for common rule, Company_ID for company-specific rule
-}
-
-rules_df = pd.DataFrame(data)
-
-
-
-# Read T5 data from CSV
-t5_data = pd.read_csv('t5_data.csv')
-
-# Read Invoice table data from CSV
-invoice_table_data = pd.read_csv('invoice_data.csv')
+# Save the modified DataFrame and the rows with empty values to the same Excel file
+with pd.ExcelWriter('output_file.xlsx', engine='xlsxwriter') as writer:
+    df.to_excel(writer, sheet_name='Sheet1', index=False)
+    empty_w_rows.to_excel(writer, sheet_name='Sheet2', index=False)
