@@ -19,3 +19,5 @@ with pd.ExcelWriter('output_file.xlsx', engine='xlsxwriter') as writer:
 
 
 empty_w_rows['source_amt'] = empty_w_rows['signed_source_amt']
+# Conditionally update 'signed_source_amt' based on 'trans_type_code'
+empty_w_rows.loc[empty_w_rows['trans_type_code'] == 11, 'signed_source_amt'] *= -1
