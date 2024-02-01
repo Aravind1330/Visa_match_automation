@@ -132,15 +132,15 @@ with pd.ExcelWriter('output_file.xlsx', engine='openpyxl') as writer:
     merged_df.iloc[:len(df)].to_excel(writer, sheet_name='Sheet1', index=False)
     merged_df.iloc[len(df)+2:].to_excel(writer, sheet_name='Sheet1', startrow=len(df)+2, index=False)
 
-    # Add 4 blank rows at the end of 'signed_source_amt' column
+  # Add 4 blank rows at the end of 'signed_source_amt' column
     total_rows_start = len(merged_df) + 2
     total_rows_end = total_rows_start + 4
-    writer.sheets['Sheet1'].write(total_rows_start, merged_df.columns.get_loc('signed_source_amt'), '', None)
-    writer.sheets['Sheet1'].write(total_rows_start + 1, merged_df.columns.get_loc('signed_source_amt'), '', None)
-    writer.sheets['Sheet1'].write(total_rows_start + 2, merged_df.columns.get_loc('signed_source_amt'), '', None)
-    writer.sheets['Sheet1'].write(total_rows_start + 3, merged_df.columns.get_loc('signed_source_amt'), '', None)
+    writer.sheets['Sheet1']['A' + str(total_rows_start)].value = None
+    writer.sheets['Sheet1']['A' + str(total_rows_start + 1)].value = None
+    writer.sheets['Sheet1']['A' + str(total_rows_start + 2)].value = None
+    writer.sheets['Sheet1']['A' + str(total_rows_start + 3)].value = None
 
     # Calculate the sum of 'signed_source_amt' considering positive and negative values
     total_sum = merged_df['signed_source_amt'].sum()
-    writer.sheets['Sheet1'].write(total_rows_end, merged_df.columns.get_loc('signed_source_amt'), 'Total', None)
-    writer.sheets['Sheet1'].write(total_rows_end, merged_df.columns.get_loc('signed_source_amt') + 1, total_sum)
+    writer.sheets['Sheet1']['A' + str(total_rows_end)].value = 'Total'
+    writer.sheets['Sheet1']['B' + str(total_rows_end)].value = total_sum
