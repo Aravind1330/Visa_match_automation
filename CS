@@ -120,6 +120,28 @@ with pd.ExcelWriter('output_file.xlsx', engine='xlsxwriter') as writer:
 
 
 
+import pandas as pd
+
+# Read CSV file
+input_file_path = 'your_input_file.csv'
+output_matched_file_path = 'matched_df.csv'
+output_unmatched_file_path = 'unmatched_df.csv'
+
+# Read CSV into a dataframe
+df = pd.read_csv(input_file_path)
+
+# Preprocess: Remove rows with 'mcc' column value of 0
+df = df[df['mcc'] != 0]
+
+# Split into matched and unmatched dataframes
+matched_df = df[df['invoice'].notnull()]
+unmatched_df = df[df['invoice'].isnull()]
+
+# Save matched and unmatched dataframes to CSV files
+matched_df.to_csv(output_matched_file_path, index=False)
+unmatched_df.to_csv(output_unmatched_file_path, index=False)
+
+print("Preprocessing and Splitting Completed. Check {} and {} for the results.".format(output_matched_file_path, output_unmatched_file_path))
 
 
 
