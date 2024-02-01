@@ -68,3 +68,47 @@ with pd.ExcelWriter('output_file.xlsx', engine='xlsxwriter') as writer:
     # Write the rounded sum to the Excel file with 2 decimal places
     writer.sheets['Sheet1'].write(total_rows_end, merged_df.columns.get_loc('signed_source_amt'), 'Total', None)
     writer.sheets['Sheet1'].write(total_rows_end, merged_df.columns.get_loc('signed_source_amt') + 1, round(total_sum, 2))
+
+
+
+
+
+
+
+
+
+# Calculate the sum for the original DataFrame (df)
+df_sum = df['signed_source_amt'].sum()
+
+# Calculate the sum for the empty_w_rows DataFrame
+empty_w_rows_sum = empty_w_rows['signed_source_amt'].sum()
+
+# Calculate the total sum by adding the sums from df and empty_w_rows
+total_sum = df_sum + empty_w_rows_sum
+
+# Save the original DataFrame to an Excel file with a gap of 2 lines after sheet 1
+with pd.ExcelWriter('output_file.xlsx', engine='xlsxwriter') as writer:
+    df.to_excel(writer, sheet_name='Sheet1', index=False)
+    empty_w_rows.to_excel(writer, sheet_name='Sheet2', index=False)
+
+    # Add 4 blank rows at the end of 'signed_source_amt' column in Sheet1
+    total_rows_start = len(df) + 2
+    total_rows_end = total_rows_start + 4
+    writer.sheets['Sheet1'].write(total_rows_start, df.columns.get_loc('signed_source_amt'), '', None)
+    writer.sheets['Sheet1'].write(total_rows_start + 1, df.columns.get_loc('signed_source_amt'), '', None)
+    writer.sheets['Sheet1'].write(total_rows_start + 2, df.columns.get_loc('signed_source_amt'), '', None)
+    writer.sheets['Sheet1'].write(total_rows_start + 3, df.columns.get_loc('signed_source_amt'), '', None)
+
+    # Write the rounded sum of 'signed_source_amt' from df to Sheet1
+    writer.sheets['Sheet1'].write(total_rows_end, df.columns.get_loc('signed_source_amt'), 'Total', None)
+    writer.sheets['Sheet1'].write(total_rows_end, df.columns.get_loc('signed_source_amt') + 1, round(df_sum, 2))
+
+    # Write the rounded sum of 'signed_source_amt' from empty_w_rows to Sheet2
+    writer.sheets['Sheet2'].write(total_rows_end, empty_w_rows.columns.get_loc('signed_source_amt'), 'Total', None)
+    writer.sheets['Sheet2'].write(total_rows_end, empty_w_rows.columns.get_loc('signed_source_amt') + 1, round(empty_w_rows_sum, 2))
+
+    # Write the rounded total sum to both sheets
+    writer.sheets['Sheet1'].write(total_rows_end, df.columns.get_loc('signed_source_amt') + 3, 'Total', None)
+    writer.sheets['Sheet1'].write(total_rows_end, df.columns.get_loc('signed_source_amt') + 4, round(total_sum, 2))
+    writer.sheets['Sheet2'].write(total_rows_end, empty_w_rows.columns.get_loc('signed_source_amt') + 3, 'Total', None)
+    writer.sheets['Sheet2'].write(total_rows_end, empty_w_rows.columns.get_loc('signed_source_amt') + 4, round(total_sum, 2))
