@@ -59,3 +59,12 @@ with pd.ExcelWriter('output_file.xlsx', engine='xlsxwriter') as writer:
     total_sum = merged_df['signed_source_amt'].sum()
     writer.sheets['Sheet1'].write(total_rows_end, merged_df.columns.get_loc('signed_source_amt'), 'Total', None)
     writer.sheets['Sheet1'].write(total_rows_end, merged_df.columns.get_loc('signed_source_amt') + 1, total_sum)
+
+
+
+ # Calculate the sum of 'signed_source_amt' considering positive and negative values
+    total_sum = merged_df['signed_source_amt'].sum()
+
+    # Write the rounded sum to the Excel file with 2 decimal places
+    writer.sheets['Sheet1'].write(total_rows_end, merged_df.columns.get_loc('signed_source_amt'), 'Total', None)
+    writer.sheets['Sheet1'].write(total_rows_end, merged_df.columns.get_loc('signed_source_amt') + 1, round(total_sum, 2))
