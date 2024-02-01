@@ -51,3 +51,11 @@ with pd.ExcelWriter('output_file.xlsx', engine='xlsxwriter') as writer:
     writer.sheets['Sheet1'].write(total_rows_end, merged_df.columns.get_loc('signed_source_amt'), 'Total', None)
     writer.sheets['Sheet1'].write_formula(total_rows_end, merged_df.columns.get_loc('signed_source_amt') + 1,
                                           f'SUM({writer.sheets["Sheet1"].get_name()}!{merged_df.columns.get_loc("signed_source_amt") + 1}:{merged_df.columns.get_loc("signed_source_amt") + 1})')
+
+
+
+
+  # Calculate the sum of 'signed_source_amt' considering positive and negative values
+    total_sum = merged_df['signed_source_amt'].sum()
+    writer.sheets['Sheet1'].write(total_rows_end, merged_df.columns.get_loc('signed_source_amt'), 'Total', None)
+    writer.sheets['Sheet1'].write(total_rows_end, merged_df.columns.get_loc('signed_source_amt') + 1, total_sum)
