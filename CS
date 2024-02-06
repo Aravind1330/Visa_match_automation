@@ -9,8 +9,17 @@
         worksheet.write(0, col_num, value, header_format)
 
 
+ # Get the xlsxwriter workbook and worksheet objects
+    workbook  = writer.book
+    worksheet = writer.sheets['Sheet1']
 
-    # Apply the header format to the header row for empty_w_rows
-    empty_w_rows_sheet = workbook.add_worksheet('empty_w_rows')
+    # Define the format for the header cells (light blue color)
+    header_format = workbook.add_format({'bg_color': '#add8e6'})
+
+    # Apply the header format to the header rows
+    for col_num, value in enumerate(merged_df.columns.values):
+        worksheet.write(0, col_num, value, header_format)
+
+    # Apply the header format to the second set of column names (from empty_w_rows)
     for col_num, value in enumerate(empty_w_rows.columns.values):
-        empty_w_rows_sheet.write(0, col_num, value, header_format)
+        worksheet.write(0, col_num + len(df.columns), value, header_format)
