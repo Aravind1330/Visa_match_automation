@@ -7,3 +7,10 @@
     # Apply the header format to the header row
     for col_num, value in enumerate(merged_df.columns.values):
         worksheet.write(0, col_num, value, header_format)
+
+
+
+    # Apply the header format to the header row for empty_w_rows
+    empty_w_rows_sheet = workbook.add_worksheet('empty_w_rows')
+    for col_num, value in enumerate(empty_w_rows.columns.values):
+        empty_w_rows_sheet.write(0, col_num, value, header_format)
