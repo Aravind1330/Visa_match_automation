@@ -1,9 +1,9 @@
-    workbook = writer.book
-    sheet = writer.sheets['Sheet1']
-    
-    # Define light blue fill
-    light_blue_fill = PatternFill(start_color='ADD8E6', end_color='ADD8E6', fill_type='solid')
-    
-    # Set light blue fill for column names
-    for cell in sheet['1']:
-        cell.fill = light_blue_fill
+    workbook  = writer.book
+    worksheet = writer.sheets['Sheet1']
+
+    # Define the format for the header cells (light blue color)
+    header_format = workbook.add_format({'bg_color': '#add8e6'})
+
+    # Apply the header format to the header row
+    for col_num, value in enumerate(merged_df.columns.values):
+        worksheet.write(0, col_num, value, header_format)
