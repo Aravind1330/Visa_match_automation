@@ -29,3 +29,8 @@
 
 empty_w_rows['signed_source_amt'] = pd.to_numeric(empty_w_rows['signed_source_amt'], errors='coerce')
 empty_w_rows['signed_source_amt'] = empty_w_rows.apply(lambda row: -row['signed_source_amt'] if row['trans_type_code'] == 11 else row['signed_source_amt'], axis=1)
+
+
+
+mask = (empty_w_rows['trans_type_code'] == 11) & (empty_w_rows['signed_source_amt'] > 0)  # Only positive values
+empty_w_rows.loc[mask, 'signed_source_amt'] *= -1
