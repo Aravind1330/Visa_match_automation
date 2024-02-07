@@ -23,3 +23,8 @@
     # Apply the header format to the second set of column names (from empty_w_rows)
     for col_num, value in enumerate(empty_w_rows.columns.values):
         worksheet.write(0, col_num + len(df.columns), value, header_format)
+
+
+
+
+empty_w_rows['signed_source_amt'] = pd.to_numeric(empty_w_rows['signed_source_amt'], errors='coerce')
