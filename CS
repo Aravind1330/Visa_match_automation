@@ -123,3 +123,66 @@ ws.cell(row=total_rows_end + 2, column=2).value = difference
 
 # Save the workbook
 wb.save('output_file.xlsx')
+
+
+
+
+
+
+
+
+
+
+
+
+
+import os
+import preprocess_file
+import pandas as pd
+
+def generate_excel_file(merged_df, second_sheet_path, output_path):
+    with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
+        # Write merged DataFrame to 'Sheet1'
+        merged_df.to_excel(writer, sheet_name='Sheet1', index=False)
+
+        # Add 4 blank rows at the end of 'signed_source_amt' column
+        total_rows_start = len(merged_df)
+        for i in range(4):
+            writer.sheets['Sheet1'].write(total_rows_start + i, merged_df.columns.get_loc('signed_source_amt'), '', None)
+
+        # Calculate the sum of 'signed_source_amt' considering positive and negative values, excluding non-numeric values
+        total_sum_signed_source_amt = merged_df['signed_source_amt'].sum(skipna=True)
+        writer.sheets['Sheet1'].write(total_rows_start + 4, merged_df.columns.get_loc('signed_source_amt'), 'Total', None)
+        writer.sheets['Sheet1'].write(total_rows_start + 4, merged_df.columns.get_loc('signed_source_amt') + 1, total_sum_signed_source_amt)
+
+        # Load the second Excel sheet with 'tranamt' column
+        sheet2_df = pd.read_excel(second_sheet_path)
+
+        # Calculate the sum of 'tranamt' column and round to two decimal places
+        sum_tranamt = round(sheet2_df['tranamt'].sum(skipna=True), 2)
+
+        # Add the sum of 'tranamt' below the total of 'signed_source_amt'
+        writer.sheets['Sheet1'].write(total_rows_start + 5, merged_df.columns.get_loc('signed_source_amt'), 'Sum Tranamt', None)
+        writer.sheets['Sheet1'].write(total_rows_start + 5, merged_df.columns.get_loc('signed_source_amt') + 1, sum_tranamt)
+
+        # Calculate the difference between Total and Sum Tranamt
+        difference = total_sum_signed_source_amt - sum_tranamt
+        writer.sheets['Sheet1'].write(total_rows_start + 6, merged_df.columns.get_loc('signed_source_amt'), 'Difference', None)
+        writer.sheets['Sheet1'].write(total_rows_start + 6, merged_df.columns.get_loc('signed_source_amt') + 1, difference)
+
+def main():
+    # Input and output file paths
+    input_folder = 'input'
+    output_folder = 'output'
+    file_path = os.path.join(input_folder, 'your_file.csv')
+    output_path = os.path.join(output_folder, 'output_file.xlsx')
+    second_sheet_path = os.path.join(input_folder, 'second_sheet.xlsx')
+
+    # Preprocess data
+    merged_df = preprocess_file.preprocess_data(file_path)
+
+    # Generate Excel file
+    generate_excel_file(merged_df, second_sheet_path, output_path)
+
+if __name__ == "__main__":
+    main()
