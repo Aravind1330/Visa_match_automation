@@ -34,3 +34,92 @@ empty_w_rows['signed_source_amt'] = empty_w_rows.apply(lambda row: -row['signed_
 
 mask = (empty_w_rows['trans_type_code'] == 11) & (empty_w_rows['signed_source_amt'] > 0)  # Only positive values
 empty_w_rows.loc[mask, 'signed_source_amt'] *= -1
+
+
+
+
+
+
+
+
+
+import pandas as pd
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill
+
+# Assuming your CSV file is named 'your_file.csv'
+file_path = 'your_file.csv'
+
+# Read the CSV file into a pandas DataFrame
+df = pd.read_csv(file_path)
+
+# Separate rows with empty values in column 'W'
+empty_w_rows = df[df['W'].isnull()]
+
+# Remove duplicates from empty_w_rows based on subset of columns 'a' and 'b'
+empty_w_rows = empty_w_rows.drop_duplicates(subset=['a', 'b'])
+
+# Convert 'signed_source_amt' to the appropriate numeric type, handling errors
+empty_w_rows['signed_source_amt'] = pd.to_numeric(empty_w_rows['signed_source_amt'], errors='coerce')
+
+# Conditionally update 'signed_source_amt' based on 'trans_type_code'
+empty_w_rows.loc[empty_w_rows['trans_type_code'] == 11, 'signed_source_amt'] *= -1
+
+# Copy values from 'signed_source_amt' to 'source_amt' in the empty_w_rows DataFrame
+empty_w_rows.loc[:, 'source_amt'] = empty_w_rows['signed_source_amt']
+
+# Remove rows with empty values in column 'W' from the original DataFrame
+df = df.dropna(subset=['W'])
+
+# Merge the two DataFrames (df and empty_w_rows) into a single DataFrame
+merged_df = pd.concat([df, empty_w_rows], ignore_index=True)
+
+# Initialize a workbook
+wb = Workbook()
+
+# Create a worksheet
+ws = wb.active
+ws.title = 'Sheet1'
+
+# Set font size to 8 for the entire sheet
+for row in ws.iter_rows():
+    for cell in row:
+        cell.font = Font(size=8)
+
+# Add 4 blank rows at the end of 'signed_source_amt' column
+total_rows_start = len(merged_df)
+total_rows_end = total_rows_start + 4
+
+# Apply light blue color to column names
+for col_idx, col_name in enumerate(merged_df.columns):
+    cell = ws.cell(row=1, column=col_idx+1)
+    cell.value = col_name
+    cell.fill = PatternFill(start_color="ADD8E6", end_color="ADD8E6", fill_type="solid")
+    cell.font = Font(size=8)
+
+# Calculate the sum of 'signed_source_amt' considering positive and negative values, excluding non-numeric values
+total_sum_signed_source_amt = merged_df['signed_source_amt'].sum(skipna=True)
+
+# Write 'Total' and its value
+ws.cell(row=total_rows_end, column=1).value = 'Total'
+ws.cell(row=total_rows_end, column=2).value = total_sum_signed_source_amt
+
+# Load the second Excel sheet with 'tranamt' column
+sheet2_df = pd.read_excel('second_sheet.xlsx')  # Provide the correct file name
+
+# Calculate the sum of 'tranamt' column and round to two decimal places
+sum_tranamt = round(sheet2_df['tranamt'].sum(skipna=True), 2)
+
+# Write 'Sum Tranamt' and its value
+ws.cell(row=total_rows_end + 1, column=1).value = 'Sum Tranamt'
+ws.cell(row=total_rows_end + 1, column=2).value = sum_tranamt
+
+# Calculate the difference between Total and Sum Tranamt
+difference = total_sum_signed_source_amt - sum_tranamt
+
+# Write 'Difference' and its value
+ws.cell(row=total_rows_end + 2, column=1).value = 'Difference'
+ws.cell(row=total_rows_end + 2, column=2).value = difference
+
+# Save the workbook
+wb.save('output_file.xlsx')
