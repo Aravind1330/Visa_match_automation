@@ -295,3 +295,4 @@ def preprocess_data(file_path):
 RIGHT([File Name], LEN([File Name]) - 8)
 CONTAINS([File Name], [Extracted Substring])
 {FIXED [File Keys] : MIN([Category])}
+{ FIXED [File Name] : MAX([File ID]) }
