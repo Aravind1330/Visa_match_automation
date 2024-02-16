@@ -289,3 +289,8 @@ def preprocess_data(file_path):
     merged_df = pd.concat([df, empty_w_rows], ignore_index=True)
 
     return merged_df
+
+
+
+RIGHT([File Name], LEN([File Name]) - 8)
+CONTAINS([File Name], [Extracted Substring])
