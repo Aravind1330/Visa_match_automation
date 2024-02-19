@@ -297,3 +297,7 @@ CONTAINS([File Name], [Extracted Substring])
 {FIXED [File Keys] : MIN([Category])}
 { FIXED [File Name] : MAX([File ID]) }
 REPLACE(REPLACE([Your Column], "_reprocess", ""), "_file", "")
+
+
+IF [Category] = 'error' OR [Category] = 'fileerror' OR [Category] = 'parser' THEN 'Above' END
+IF [Category] = 'completed' THEN 'Below' END
