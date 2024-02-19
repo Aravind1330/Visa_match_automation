@@ -301,3 +301,9 @@ REPLACE(REPLACE([Your Column], "_reprocess", ""), "_file", "")
 
 IF [Category] = 'error' OR [Category] = 'fileerror' OR [Category] = 'parser' THEN 'Above' END
 IF [Category] = 'completed' THEN 'Below' END
+
+
+
+IF [Category] = 'error' OR [Category] = 'fileerror' OR [Category] = 'parser' THEN 'Above'
+ELSEIF [Category] = 'completed' THEN 'Below'
+END
