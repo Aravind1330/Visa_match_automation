@@ -296,3 +296,4 @@ RIGHT([File Name], LEN([File Name]) - 8)
 CONTAINS([File Name], [Extracted Substring])
 {FIXED [File Keys] : MIN([Category])}
 { FIXED [File Name] : MAX([File ID]) }
+REPLACE([Your Column], "_reprocess", "")
