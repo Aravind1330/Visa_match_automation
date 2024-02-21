@@ -518,3 +518,6 @@ result = df_filtered.groupby(['fin_acct_num (masked)', 'posting_month']).size().
 
 # Display the result
 print(result)
+
+
+result = df_filtered.groupby(['fin_acct_num (masked)', 'posting_month']).agg(transaction_count=('fin_source_amt', 'count'), volume_amount=('fin_source_amt', 'sum')).reset_index()
