@@ -615,3 +615,10 @@ with pd.ExcelWriter('output_file.xlsx', engine='openpyxl') as writer:
 # Save the workbook
 wb.save('output_file.xlsx')
 
+
+
+    # Set light blue color for column headings
+    for cell in ws[1]:
+        cell.font = Font(color="FFFFFF", bold=True)
+        cell.fill = PatternFill(start_color='00CCFF', end_color='00CCFF', fill_type='solid')
+
