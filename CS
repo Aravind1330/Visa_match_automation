@@ -495,3 +495,26 @@ plt.xlabel('Merchant Category')
 plt.ylabel('Transaction Amount')
 plt.xticks(rotation=90)
 plt.show()
+
+
+
+
+
+import pandas as pd
+
+# Assuming your data is stored in a CSV file named 'transactions.csv'
+# Load the data into a pandas DataFrame
+df = pd.read_csv('transactions.csv')
+
+# Parse the posting date to extract the month
+df['fin_posting_dt'] = pd.to_datetime(df['fin_posting_dt'], format='%d/%m/%Y')
+df['posting_month'] = df['fin_posting_dt'].dt.to_period('M')
+
+# Filter transactions where the source amount is greater than 5000
+df_filtered = df[df['fin_source_amt'] > 5000]
+
+# Group by masked account number and posting month, and count transactions
+result = df_filtered.groupby(['fin_acct_num (masked)', 'posting_month']).size().reset_index(name='transaction_count')
+
+# Display the result
+print(result)
