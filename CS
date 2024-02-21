@@ -367,3 +367,131 @@ fig = model.plot(forecast_future)
 
 # Show plot
 fig.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+import pandas as pd
+
+# Load data
+data = pd.read_csv("your_data.csv")
+
+# Display basic information about the dataset
+print("Data shape:", data.shape)
+print("\nColumns:", data.columns)
+print("\nData types:\n", data.dtypes)
+print("\nHead of the data:\n", data.head())
+
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Summary statistics of numerical variables
+print("\nSummary statistics of numerical variables:\n", data.describe())
+
+# Distribution of numerical variables
+plt.figure(figsize=(10, 6))
+sns.histplot(data['fin_source_amt'], bins=20, kde=True)
+plt.title('Distribution of Transaction Amount')
+plt.xlabel('Transaction Amount')
+plt.ylabel('Frequency')
+plt.show()
+
+# Distribution of categorical variables
+plt.figure(figsize=(10, 6))
+sns.countplot(data['fin_debit_credit_ind'])
+plt.title('Distribution of Debit/Credit Indication')
+plt.xlabel('Debit/Credit Indication')
+plt.ylabel('Count')
+plt.show()
+
+# Relationship between variables
+plt.figure(figsize=(10, 6))
+sns.scatterplot(x='fin_source_amt', y='fin_billing_amt', data=data)
+plt.title('Relationship between Source Amount and Billing Amount')
+plt.xlabel('Source Amount')
+plt.ylabel('Billing Amount')
+plt.show()
+
+# Temporal patterns in transaction data
+plt.figure(figsize=(14, 6))
+sns.lineplot(x='fin_posting_dt', y='fin_source_amt', data=data)
+plt.title('Transaction Amount Over Time')
+plt.xlabel('Posting Date')
+plt.ylabel('Transaction Amount')
+plt.show()
+
+
+# Distribution of Transaction Amount by Transaction Type
+plt.figure(figsize=(10, 6))
+sns.boxplot(x='fin_debit_credit_ind', y='fin_source_amt', data=data)
+plt.title('Transaction Amount by Debit/Credit Indication')
+plt.xlabel('Debit/Credit Indication')
+plt.ylabel('Transaction Amount')
+plt.show()
+
+# Transaction Amount Over Time by Supplier
+plt.figure(figsize=(14, 6))
+sns.lineplot(x='fin_posting_dt', y='fin_source_amt', hue='fin_orig_supplier_nm', data=data)
+plt.title('Transaction Amount Over Time by Supplier')
+plt.xlabel('Posting Date')
+plt.ylabel('Transaction Amount')
+plt.legend(title='Supplier', bbox_to_anchor=(1.05, 1), loc='upper left')
+plt.show()
+
+# Monthly Total Transaction Amount
+data['month_year'] = data['fin_posting_dt'].dt.to_period('M')
+monthly_total = data.groupby('month_year')['fin_source_amt'].sum()
+plt.figure(figsize=(12, 6))
+monthly_total.plot(kind='line', marker='o')
+plt.title('Monthly Total Transaction Amount')
+plt.xlabel('Month')
+plt.ylabel('Total Transaction Amount')
+plt.show()
+
+# Transaction Frequency by Account
+plt.figure(figsize=(10, 6))
+sns.histplot(data['trans_count'], bins=20, kde=True)
+plt.title('Distribution of Transaction Frequency by Account')
+plt.xlabel('Transaction Frequency')
+plt.ylabel('Count')
+plt.show()
+
+# Correlation Heatmap
+plt.figure(figsize=(12, 8))
+sns.heatmap(data.corr(), annot=True, cmap='coolwarm', fmt=".2f", linewidths=0.5)
+plt.title('Correlation Heatmap')
+plt.show()
+
+# Transaction Amount Distribution by Currency
+plt.figure(figsize=(10, 6))
+sns.boxplot(x='fin_billing_curr_cd', y='fin_source_amt', data=data)
+plt.title('Transaction Amount by Currency')
+plt.xlabel('Billing Currency')
+plt.ylabel('Transaction Amount')
+plt.show()
+
+# Transaction Amount Outliers
+plt.figure(figsize=(10, 6))
+sns.boxplot(y='fin_source_amt', data=data)
+plt.title('Transaction Amount Outliers')
+plt.ylabel('Transaction Amount')
+plt.show()
+
+# Transaction Amount by Merchant Category
+plt.figure(figsize=(12, 6))
+sns.boxplot(x='fin_supplier_nm', y='fin_source_amt', data=data)
+plt.title('Transaction Amount by Merchant Category')
+plt.xlabel('Merchant Category')
+plt.ylabel('Transaction Amount')
+plt.xticks(rotation=90)
+plt.show()
