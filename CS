@@ -307,3 +307,63 @@ IF [Category] = 'completed' THEN 'Below' END
 IF [Category] = 'error' OR [Category] = 'fileerror' OR [Category] = 'parser' THEN 'Above'
 ELSEIF [Category] = 'completed' THEN 'Below'
 END
+
+
+
+
+import pandas as pd
+from fbprophet import Prophet
+
+# Load data
+data = pd.read_csv("your_data.csv")
+
+# Data Preprocessing
+# Assuming data preprocessing involves handling missing values and dropping unnecessary columns
+data.dropna(inplace=True)
+data.drop(columns=['fin_record_key', 'fin_acct_num (masked)', 'fin_ticket_num', 'fin_purch_id',
+                   'fin_auth_nbr', 'fin_region_id', 'fin_processor_id', 'fin_member_bank_id',
+                   'mem_member_bank_name', 'fin_company_id', 'fin_trans_type',
+                   'com_company_name', 'fin orig_trans _ref_num', 'fin_sector_type_cd',
+                   'fin_source_curr_cd', 'fin_comm_file_id', 'fin_file_id', 'fin_merch__catg_cd',
+                   'fin_purch_id_format', 'fin_trans_file_load_dt', 'fin_trans_ref_num',
+                   'issuer_id and Name', 'company_id and name'], inplace=True)
+
+# Feature Engineering
+# Convert date columns to datetime format
+data['fin_posting_dt'] = pd.to_datetime(data['fin_posting_dt'])
+data['fin_trans_dt'] = pd.to_datetime(data['fin_trans_dt'])
+
+# Date Features
+data['posting_day'] = data['fin_posting_dt'].dt.day
+data['posting_month'] = data['fin_posting_dt'].dt.month
+data['posting_year'] = data['fin_posting_dt'].dt.year
+data['trans_day'] = data['fin_trans_dt'].dt.day
+data['trans_month'] = data['fin_trans_dt'].dt.month
+data['trans_year'] = data['fin_trans_dt'].dt.year
+
+# Transaction Frequency
+data['trans_count'] = data.groupby('fin_acct_num')['fin_source_amt'].transform('count')
+
+# Transaction Lag Features
+data['prev_trans_amt'] = data.groupby('fin_acct_num')['fin_source_amt'].shift(1)
+
+# Model Training
+train_size = int(len(data) * 0.8)
+train_data, test_data = data[:train_size], data[train_size:]
+
+model = Prophet()
+model.fit(train_data.rename(columns={"fin_posting_dt": "ds", "fin_source_amt": "y"}))
+
+# Model Evaluation
+future = model.make_future_dataframe(periods=len(test_data))
+forecast = model.predict(future)
+
+# Forecasting for the next 5 years
+future_years = model.make_future_dataframe(periods=5*365)
+forecast_future = model.predict(future_years)
+
+# Plot forecast
+fig = model.plot(forecast_future)
+
+# Show plot
+fig.show()
