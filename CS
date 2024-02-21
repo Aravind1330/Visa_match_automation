@@ -527,3 +527,91 @@ result = df_filtered.groupby(['fin_acct_num (masked)', 'posting_month']).agg(tra
 print("<font size='2'>")
 print(result)
 print("</font>")
+
+
+
+
+
+
+import pandas as pd
+from openpyxl.styles import Font, Color
+from openpyxl.styles.colors import ColorChoice
+from openpyxl.utils.dataframe import dataframe_to_rows
+
+# Assuming your CSV file is named 'your_file.csv'
+file_path = 'your_file.csv'
+
+# Read the CSV file into a pandas DataFrame
+df = pd.read_csv(file_path)
+
+# Separate rows with empty values in column 'W'
+empty_w_rows = df[df['W'].isnull()]
+
+# Remove duplicates from empty_w_rows based on subset of columns 'a' and 'b'
+empty_w_rows = empty_w_rows.drop_duplicates(subset=['a', 'b'])
+
+# Convert 'signed_source_amt' to the appropriate numeric type, handling errors
+empty_w_rows['signed_source_amt'] = pd.to_numeric(empty_w_rows['signed_source_amt'], errors='coerce')
+
+# Conditionally update 'signed_source_amt' based on 'trans_type_code'
+empty_w_rows.loc[empty_w_rows['trans_type_code'] == 11, 'signed_source_amt'] *= -1
+
+# Copy values from 'signed_source_amt' to 'source_amt' in the empty_w_rows DataFrame
+empty_w_rows.loc[:, 'source_amt'] = empty_w_rows['signed_source_amt']
+
+# Remove rows with empty values in column 'W' from the original DataFrame
+df = df.dropna(subset=['W'])
+
+# Merge the two DataFrames (df and empty_w_rows) into a single DataFrame
+merged_df = pd.concat([df, empty_w_rows], ignore_index=True)
+
+# Save the merged DataFrame to an Excel file with a gap of 2 lines after sheet 1
+with pd.ExcelWriter('output_file.xlsx', engine='openpyxl') as writer:
+    # Write DataFrame to Excel file
+    merged_df.iloc[:len(df)].to_excel(writer, sheet_name='Sheet1', index=False)
+    merged_df.iloc[len(df):].to_excel(writer, sheet_name='Sheet1', startrow=len(df), index=False)
+
+    # Accessing the workbook and worksheet
+    wb = writer.book
+    ws = writer.sheets['Sheet1']
+
+    # Set font size to 8 for all cells
+    for row in ws.iter_rows():
+        for cell in row:
+            cell.font = Font(size=8)
+
+    # Set light blue color for column headings
+    for cell in ws[1]:
+        cell.font = Font(color="00CCFF", bold=True)
+
+    # Add 4 blank rows at the end of 'signed_source_amt' column
+    total_rows_start = len(merged_df)
+    total_rows_end = total_rows_start + 4
+    ws.cell(row=total_rows_start, column=merged_df.columns.get_loc('signed_source_amt')).value = ''
+    ws.cell(row=total_rows_start + 1, column=merged_df.columns.get_loc('signed_source_amt')).value = ''
+    ws.cell(row=total_rows_start + 2, column=merged_df.columns.get_loc('signed_source_amt')).value = ''
+    ws.cell(row=total_rows_start + 3, column=merged_df.columns.get_loc('signed_source_amt')).value = ''
+
+    # Calculate the sum of 'signed_source_amt' considering positive and negative values, excluding non-numeric values
+    total_sum_signed_source_amt = merged_df['signed_source_amt'].sum(skipna=True)
+    ws.cell(row=total_rows_end, column=merged_df.columns.get_loc('signed_source_amt')).value = 'Total'
+    ws.cell(row=total_rows_end, column=merged_df.columns.get_loc('signed_source_amt') + 1).value = total_sum_signed_source_amt
+
+    # Load the second Excel sheet with 'tranamt' column
+    sheet2_df = pd.read_excel('second_sheet.xlsx')  # Provide the correct file name
+
+    # Calculate the sum of 'tranamt' column and round to two decimal places
+    sum_tranamt = round(sheet2_df['tranamt'].sum(skipna=True), 2)
+
+    # Add the sum of 'tranamt' below the total of 'signed_source_amt'
+    ws.cell(row=total_rows_end + 1, column=merged_df.columns.get_loc('signed_source_amt')).value = 'Sum Tranamt'
+    ws.cell(row=total_rows_end + 1, column=merged_df.columns.get_loc('signed_source_amt') + 1).value = sum_tranamt
+
+    # Calculate the difference between Total and Sum Tranamt
+    difference = total_sum_signed_source_amt - sum_tranamt
+    ws.cell(row=total_rows_end + 2, column=merged_df.columns.get_loc('signed_source_amt')).value = 'Difference'
+    ws.cell(row=total_rows_end + 2, column=merged_df.columns.get_loc('signed_source_amt') + 1).value = difference
+
+# Save the workbook
+wb.save('output_file.xlsx')
+
