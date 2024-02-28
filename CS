@@ -622,3 +622,16 @@ wb.save('output_file.xlsx')
         cell.font = Font(color="FFFFFF", bold=True)
         cell.fill = PatternFill(start_color='00CCFF', end_color='00CCFF', fill_type='solid')
 
+
+
+
+
+SELECT DISTINCT A.*, B.COMPANY_NM, B.ISSUER_NM
+FROM CDSLTAP1.TCOSUB_CTA_ACCT A
+LEFT OUTER JOIN CDSLTAP1.TCOLKP_COMPANY B 
+    ON A.REGION_ID = B.REGION_ID
+    AND A.PROCESSOR_ID = B.PROCESSOR_ID
+    AND A.MEMBER_BANK_ID = B.MEMBER_BANK_ID
+    AND A.COMPANY_ID = B.COMPANY_ID
+WHERE A.REGION_ID = 6;
+
