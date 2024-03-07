@@ -635,6 +635,8 @@ LEFT OUTER JOIN CDSLTAP1.TCOLKP_COMPANY B
     AND A.COMPANY_ID = B.COMPANY_ID
 WHERE A.REGION_ID = 6;
 
-    # Load the second Excel sheet with 'tranamt' column using openpyxl with password
-    wb = load_workbook(filename='second_sheet.xlsx', read_only=True, password='your_password')  # Provide the correct file name and password
-    sheet2_df = pd.DataFrame(wb['Sheet1'].values)
+
+    # Load the second Excel sheet with 'tranamt' column (assuming the sheet name is 'Sheet2' and it's password-protected)
+    password = 'your_password'
+    with pd.ExcelFile('second_sheet.xlsx', engine='openpyxl', password=password) as xls:
+        sheet2_df = pd.read_excel(xls, sheet_name='Sheet2')
