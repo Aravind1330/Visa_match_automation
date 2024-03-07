@@ -638,8 +638,8 @@ WHERE A.REGION_ID = 6;
 
 
 
-    # Load the second Excel sheet with 'tranamt' column (assuming the sheet name is 'Sheet2' and it's password-protected)
-    password = 'your_password'
-    with pd.ExcelFile('second_sheet.xlsx', engine='openpyxl') as xls:
-        wb = openpyxl.load_workbook(xls, read_only=True, data_only=True, keep_links=False, keep_vba=False, password=password)
-        sheet2_df = pd.read_excel(wb, sheet_name='Sheet2')
+    # Set font size to 8 for all cells in Sheet1
+    sheet = writer.sheets['Sheet1']
+    for row in sheet.iter_rows():
+        for cell in row:
+            cell.font = cell.font.copy(size=8)
