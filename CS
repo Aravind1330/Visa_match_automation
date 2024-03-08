@@ -659,3 +659,10 @@ WHERE A.REGION_ID = 6;
     # Set font size to 8 for column names after the gap
     for col_num, value in enumerate(merged_df.columns.values):
         worksheet.write(len(df) + 2, col_num, value, cell_format)
+
+
+
+    # Set blue background color for column header row after the gap
+    blue_format = workbook.add_format({'font_size': 8, 'bg_color': '#b8cce4'})
+    for col_num, value in enumerate(merged_df.columns.values):
+        worksheet.write(len(df) + 2, col_num, value, blue_format)
