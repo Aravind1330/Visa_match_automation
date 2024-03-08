@@ -666,3 +666,10 @@ WHERE A.REGION_ID = 6;
     blue_format = workbook.add_format({'font_size': 8, 'bg_color': '#b8cce4'})
     for col_num, value in enumerate(merged_df.columns.values):
         worksheet.write(len(df) + 2, col_num, value, blue_format)
+
+
+
+    # Add 4 blank rows after the initial data
+    total_rows_end = len(merged_df) + 4
+    for i in range(4):
+        writer.sheets['Sheet1'].write(len(df) + i, 0, '', None)
