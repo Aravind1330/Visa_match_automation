@@ -673,3 +673,5 @@ WHERE A.REGION_ID = 6;
     total_rows_end = len(merged_df) + 4
     for i in range(4):
         writer.sheets['Sheet1'].write(len(df) + i, 0, '', None)
+   # Write the sum of 'signed_source_amt' directly to that column
+    worksheet.write(total_rows_end, merged_df.columns.get_loc('signed_source_amt') + 1, total_sum_signed_source_amt, cell_format)
