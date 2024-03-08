@@ -649,3 +649,13 @@ WHERE A.REGION_ID = 6;
     header_format = workbook.add_format({'font_size': 8, 'bold': True})
     for col_num, value in enumerate(merged_df.columns.values):
         worksheet.write(0, col_num, value, header_format)
+
+
+
+    # Set font size to 8 for the entire sheet
+    cell_format = workbook.add_format({'font_size': 8})
+    worksheet.set_column(0, len(merged_df.columns) - 1, None, cell_format)
+
+    # Set font size to 8 for column names after the gap
+    for col_num, value in enumerate(merged_df.columns.values):
+        worksheet.write(len(df) + 2, col_num, value, cell_format)
