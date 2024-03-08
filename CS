@@ -637,9 +637,10 @@ WHERE A.REGION_ID = 6;
 
 
 
+ # Get the workbook and worksheet objects
+    workbook = writer.book
+    worksheet = writer.sheets['Sheet1']
 
-    # Set font size to 8 for all cells in Sheet1
-    sheet = writer.sheets['Sheet1']
-    for row in sheet.iter_rows():
-        for cell in row:
-            cell.font = cell.font.copy(size=8)
+    # Set font size to 8 for the entire sheet
+    cell_format = workbook.add_format({'font_size': 8})
+    worksheet.set_column(0, len(merged_df.columns) - 1, None, cell_format)
