@@ -894,3 +894,58 @@ process_files(input_folder1, input_folder2, output_folder)
 
     # Save the processed DataFrame to an Excel file
     processed_df.to_excel(output_file_path, index=False)
+
+
+
+
+
+
+
+
+
+
+    # Create a Pandas Excel writer using XlsxWriter as the engine
+    with pd.ExcelWriter(output_file_path, engine='xlsxwriter') as writer:
+        # Write the processed DataFrame to the Excel file
+        processed_df.to_excel(writer, sheet_name='Sheet1', index=False)
+
+        # Access the XlsxWriter workbook and worksheet objects
+        workbook = writer.book
+        worksheet = writer.sheets['Sheet1']
+
+        # Add 4 blank rows after the initial data
+        total_rows_end = len(processed_df) + 4
+        for i in range(4):
+            worksheet.write(len(processed_df) + i, 0, '', None)
+
+        # Calculate the sum of 'signed_source_amt' considering positive and negative values, excluding non-numeric values
+        total_sum_signed_source_amt = processed_df['signed_source_amt'].sum(skipna=True)
+        worksheet.write(total_rows_end, processed_df.columns.get_loc('signed_source_amt'), 'Total', None)
+        worksheet.write(total_rows_end, processed_df.columns.get_loc('signed_source_amt') + 1, total_sum_signed_source_amt)
+
+        # Load the second Excel sheet with 'tranamt' column
+        sheet2_df = pd.read_excel('second_sheet.xlsx')  # Provide the correct file name
+
+        # Calculate the sum of 'tranamt' column and round to two decimal places
+        sum_tranamt = round(sheet2_df['tranamt'].sum(skipna=True), 2)
+
+        # Add the sum of 'tranamt' below the total of 'signed_source_amt'
+        worksheet.write(total_rows_end + 1, processed_df.columns.get_loc('signed_source_amt'), 'Sum Tranamt', None)
+        worksheet.write(total_rows_end + 1, processed_df.columns.get_loc('signed_source_amt') + 1, sum_tranamt)
+
+        # Calculate the difference between Total and Sum Tranamt
+        difference = total_sum_signed_source_amt - sum_tranamt
+        worksheet.write(total_rows_end + 2, processed_df.columns.get_loc('signed_source_amt'), 'Difference', None)
+        worksheet.write(total_rows_end + 2, processed_df.columns.get_loc('signed_source_amt') + 1, difference)
+
+        # Set font size to 8 for the entire sheet
+        cell_format = workbook.add_format({'font_size': 8})
+        worksheet.set_column(0, len(processed_df.columns) - 1, None, cell_format)
+
+        # Set font size to 8 and fill color for column names after the gap
+        header_format = workbook.add_format({'font_size': 8, 'bold': True, 'bg_color': '#b8cce4'})
+        for col_num, value in enumerate(processed_df.columns.values):
+            worksheet.write(len(processed_df) + 4, col_num, value, header_format)
+
+        # Write the sum of 'signed_source_amt' directly to that column
+        worksheet.write(total_rows_end, processed_df.columns.get_loc('signed_source_amt') + 1, total_sum_signed_source_amt, cell_format)
