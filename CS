@@ -889,3 +889,8 @@ def process_files(input_folder1, input_folder2, output_folder):
 
 # Process files from the folders
 process_files(input_folder1, input_folder2, output_folder)
+
+
+
+    # Save the processed DataFrame to an Excel file
+    processed_df.to_excel(output_file_path, index=False)
