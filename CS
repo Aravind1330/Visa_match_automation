@@ -805,3 +805,87 @@ output_folder = 'output_files'
 
 # Process files from the folders
 process_files(input_folder1, input_folder2, output_folder)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import pandas as pd
+
+# Function to preprocess DataFrame
+def preprocess_data(df):
+    # Separate rows with empty values in column 'W'
+    empty_w_rows = df[df['W'].isnull()]
+
+    # Remove duplicates from empty_w_rows based on subset of columns 'a' and 'b'
+    empty_w_rows = empty_w_rows.drop_duplicates(subset=['a', 'b'])
+
+    # Convert 'signed_source_amt' to the appropriate numeric type, handling errors
+    empty_w_rows['signed_source_amt'] = pd.to_numeric(empty_w_rows['signed_source_amt'], errors='coerce')
+
+    # Conditionally update 'signed_source_amt' based on 'trans_type_code'
+    empty_w_rows.loc[empty_w_rows['trans_type_code'] == 11, 'signed_source_amt'] *= -1
+
+    # Copy values from 'signed_source_amt' to 'source_amt' in the empty_w_rows DataFrame
+    empty_w_rows['source_amt'] = empty_w_rows['signed_source_amt']
+
+    # Remove rows with empty values in column 'W' from the original DataFrame
+    df = df.dropna(subset=['W'])
+
+    # Merge the two DataFrames (df and empty_w_rows) into a single DataFrame
+    merged_df = pd.concat([df, empty_w_rows], ignore_index=True)
+    
+    return merged_df
+
+# Function to process each file
+def process_file(input_file_path, output_file_path):
+    # Read the CSV or Excel file into a pandas DataFrame
+    if input_file_path.endswith('.csv'):
+        df = pd.read_csv(input_file_path)
+    elif input_file_path.endswith('.xlsx'):
+        df = pd.read_excel(input_file_path)
+    else:
+        print(f'Unsupported file format for {input_file_path}')
+        return
+    
+    # Preprocess the DataFrame
+    merged_df = preprocess_data(df)
+
+    # Save the processed DataFrame to an Excel file
+    with pd.ExcelWriter(output_file_path, engine='xlsxwriter') as writer:
+        merged_df.to_excel(writer, sheet_name='Sheet1', index=False)
+
+# You can define the other functions here, if necessary
+
+# Define input and output folders
+input_folder1 = 'input_folder1'
+input_folder2 = 'input_folder2'
+output_folder = 'output_files'
+
+# Function to process files from two folders
+def process_files(input_folder1, input_folder2, output_folder):
+    # Iterate through files in folder 1
+    for i in range(1, 11):
+        file_name = f'file{i}.csv'
+        input_file_path = os.path.join(input_folder1, file_name)
+        output_file_path = os.path.join(output_folder, f'output_file_{i}.xlsx')
+        process_file(input_file_path, output_file_path)
+
+    # Iterate through files in folder 2
+    for i in range(1, 11):
+        file_name = f'file{i}.xlsx'
+        input_file_path = os.path.join(input_folder2, file_name)
+        output_file_path = os.path.join(output_folder, f'output_file_{i + 10}.xlsx')
+        process_file(input_file_path, output_file_path)
+
+# Process files from the folders
+process_files(input_folder1, input_folder2, output_folder)
