@@ -949,3 +949,12 @@ process_files(input_folder1, input_folder2, output_folder)
 
         # Write the sum of 'signed_source_amt' directly to that column
         worksheet.write(total_rows_end, processed_df.columns.get_loc('signed_source_amt') + 1, total_sum_signed_source_amt, cell_format)
+
+
+
+
+    # Apply custom formats to specific columns
+    for column, fmt in column_formats.items():
+        column_index = merged_df.columns.get_loc(column)
+        worksheet.set_column(column_index, column_index, None, cell_format)
+        worksheet.set_column(column_index, column_index, None, {'num_format': fmt})
