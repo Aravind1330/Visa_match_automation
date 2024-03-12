@@ -953,8 +953,6 @@ process_files(input_folder1, input_folder2, output_folder)
 
 
 
-    # Apply custom formats to specific columns
-    for column, fmt in column_formats.items():
-        column_index = merged_df.columns.get_loc(column)
-        worksheet.set_column(column_index, column_index, None, cell_format)
-        worksheet.set_column(column_index, column_index, None, {'num_format': fmt})
+    # Set the 'ticket number' column format to text ('@')
+    ticket_number_column = merged_df.columns.get_loc('ticket number')
+    worksheet.set_column(ticket_number_column, ticket_number_column, None, {'num_format': '@'})
