@@ -953,6 +953,6 @@ process_files(input_folder1, input_folder2, output_folder)
 
 
 
-    # Set the 'ticket number' column format to text ('@')
-    ticket_number_column = merged_df.columns.get_loc('ticket number')
-    worksheet.set_column(ticket_number_column, ticket_number_column, None, {'num_format': '@'})
+# Set the format for the ticket number column to prevent it from appearing in exponential form
+    ticket_number_format = workbook.add_format({'num_format': '0'})
+    worksheet.set_column(merged_df.columns.get_loc('ticket_number'), merged_df.columns.get_loc('ticket_number'), None, ticket_number_format)
