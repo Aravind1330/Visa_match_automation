@@ -969,3 +969,112 @@ process_files(input_folder1, input_folder2, output_folder)
     # Set the password for the output file
     writer.book._xlsx_file.fileheader.filename = 'output_file.xlsx'
     writer.book._xlsx_file.write_encrypted_file("YourPassword")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# config.py
+
+# File paths
+CSV_FILE_PATH = 'your_file.csv'
+SECOND_SHEET_FILE_PATH = 'second_sheet.xlsx'
+OUTPUT_FILE_PATH = 'output_file.xlsx'
+
+
+# preprocess.py
+import pandas as pd
+from config import CSV_FILE_PATH
+
+def preprocess_data():
+    # Read the CSV file into a pandas DataFrame
+    df = pd.read_csv(CSV_FILE_PATH)
+
+    # Separate rows with empty values in column 'W'
+    empty_w_rows = df[df['W'].isnull()]
+
+    # Remove duplicates from empty_w_rows based on subset of columns 'a' and 'b'
+    empty_w_rows = empty_w_rows.drop_duplicates(subset=['a', 'b'])
+
+    # Convert 'signed_source_amt' to the appropriate numeric type, handling errors
+    empty_w_rows['signed_source_amt'] = pd.to_numeric(empty_w_rows['signed_source_amt'], errors='coerce')
+
+    # Conditionally update 'signed_source_amt' based on 'trans_type_code'
+    empty_w_rows.loc[empty_w_rows['trans_type_code'] == 11, 'signed_source_amt'] *= -1
+
+    # Copy values from 'signed_source_amt' to 'source_amt' in the empty_w_rows DataFrame
+    empty_w_rows.loc[:, 'source_amt'] = empty_w_rows['signed_source_amt']
+
+    # Remove rows with empty values in column 'W' from the original DataFrame
+    df = df.dropna(subset=['W'])
+
+    # Merge the two DataFrames (df and empty_w_rows) into a single DataFrame
+    merged_df = pd.concat([df, empty_w_rows], ignore_index=True)
+
+    return merged_df
+
+
+
+# main.py
+import pandas as pd
+from preprocess import preprocess_data
+from config import OUTPUT_FILE_PATH, SECOND_SHEET_FILE_PATH
+
+def main():
+    # Preprocess the data
+    merged_df = preprocess_data()
+
+    # Save the merged DataFrame to an Excel file with a gap of 4 lines after sheet 1
+    with pd.ExcelWriter(OUTPUT_FILE_PATH, engine='xlsxwriter') as writer:
+        merged_df.iloc[:len(df)].to_excel(writer, sheet_name='Sheet1', index=False)
+        merged_df.iloc[len(df):].to_excel(writer, sheet_name='Sheet1', startrow=len(df) + 4, index=False)
+
+        # Add 4 blank rows after the initial data
+        total_rows_end = len(merged_df) + 4
+        for i in range(4):
+            writer.sheets['Sheet1'].write(len(df) + i, 0, '', None)
+
+        # Calculate the sum of 'signed_source_amt' considering positive and negative values, excluding non-numeric values
+        total_sum_signed_source_amt = merged_df['signed_source_amt'].sum(skipna=True)
+
+        # Load the second Excel sheet with 'tranamt' column
+        sheet2_df = pd.read_excel(SECOND_SHEET_FILE_PATH)
+
+        # Calculate the sum of 'tranamt' column and round to two decimal places
+        sum_tranamt = round(sheet2_df['tranamt'].sum(skipna=True), 2)
+
+        # Write the sum of 'signed_source_amt' directly to the same column
+        signed_source_amt_column = merged_df.columns.get_loc('signed_source_amt')
+        writer.sheets['Sheet1'].write(total_rows_end, signed_source_amt_column, total_sum_signed_source_amt)
+
+        # Add the label "Sum Tranamt" to the left of the 'signed_source_amt' column
+        writer.sheets['Sheet1'].write(total_rows_end, signed_source_amt_column - 1, 'Sum Tranamt', None)
+
+        # Add the sum of 'tranamt' below the total of 'signed_source_amt'
+        writer.sheets['Sheet1'].write(total_rows_end + 1, signed_source_amt_column, sum_tranamt)
+
+        # Calculate the difference between Total and Sum Tranamt
+        difference = total_sum_signed_source_amt - sum_tranamt
+
+        # Write the difference to the left side of the 'signed_source_amt' column
+        writer.sheets['Sheet1'].write(total_rows_end + 2, signed_source_amt_column - 1, 'Difference', None)
+        writer.sheets['Sheet1'].write(total_rows_end + 2, signed_source_amt_column, difference)
+
+        # Set the password for the output file
+        writer.book.use_zip64()
+        writer.book.set_password('YourPassword')
+
+if __name__ == "__main__":
+    main()
