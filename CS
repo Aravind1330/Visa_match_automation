@@ -967,4 +967,5 @@ process_files(input_folder1, input_folder2, output_folder)
 
 
     # Set the password for the output file
-    writer.book._archive.setpassword("YourPassword")
+    writer.book._xlsx_file.fileheader.filename = 'output_file.xlsx'
+    writer.book._xlsx_file.write_encrypted_file("YourPassword")
