@@ -956,3 +956,11 @@ process_files(input_folder1, input_folder2, output_folder)
 # Set the format for the ticket number column to prevent it from appearing in exponential form
     ticket_number_format = workbook.add_format({'num_format': '0'})
     worksheet.set_column(merged_df.columns.get_loc('ticket_number'), merged_df.columns.get_loc('ticket_number'), None, ticket_number_format)
+
+
+
+    # Add the label "Sum Tranamt" to the left of the 'signed_source_amt' column
+    writer.sheets['Sheet1'].write(total_rows_end, signed_source_amt_column - 1, 'Sum Tranamt', None)
+
+    # Add the sum of 'tranamt' below the total of 'signed_source_amt'
+    writer.sheets['Sheet1'].write(total_rows_end + 1, signed_source_amt_column, sum_tranamt)
