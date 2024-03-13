@@ -964,3 +964,7 @@ process_files(input_folder1, input_folder2, output_folder)
 
     # Add the sum of 'tranamt' below the total of 'signed_source_amt'
     writer.sheets['Sheet1'].write(total_rows_end + 1, signed_source_amt_column, sum_tranamt)
+
+
+    # Set the password for the output file
+    writer.book._archive.setpassword("YourPassword")
