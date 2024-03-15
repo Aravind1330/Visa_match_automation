@@ -1078,3 +1078,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+Hello team, my account has been disabled, and I need assistance in retrieving it as I have forgotten my password. Could you please help me with this matter?
