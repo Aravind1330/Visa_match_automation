@@ -1181,3 +1181,57 @@ def save_to_excel(matched_df, unmatched_df, vids_sum, empty_invoices_sum, total,
         worksheet.write(total_rows_start + 2, matched_df.columns.get_loc('Source Amount_T14') + 1, Trans_amt)
         worksheet.write(total_rows_start + 3, matched_df.columns.get_loc('Source Amount_T14'), 'Difference between both', None)
         worksheet.write(total_rows_start + 3, matched_df.columns.get_loc('Source Amount_T14') + 1, diff)
+
+
+
+
+
+
+
+def save_to_excel(matched_df, unmatched_df, vids_sum, empty_invoices_sum, total, Trans_amt, diff, output_path):
+    with pd.ExcelWriter(output_path, engine='xlsxwriter') as writer:
+        matched_df.to_excel(writer, sheet_name='Sheet1', index=False)
+        unmatched_df.to_excel(writer, sheet_name='Sheet1', startrow=len(matched_df) + 2, index=False)
+
+        total_rows_start = len(matched_df) + 2
+        total_rows_end = total_rows_start + 4
+        
+        worksheet = writer.sheets['Sheet1']
+        
+        # Add 4 blank rows at the end of 'Source Amount_T14' column
+        for i in range(4):
+            worksheet.write(total_rows_start + i, matched_df.columns.get_loc('Source Amount_T14'), None)
+
+        # Calculate the sum of 'Source Amount_T14'
+        total_sum = matched_df['Source Amount_T14'].sum()
+
+        # Write the rounded sum to the Excel file with 2 decimal places
+        worksheet.write(total_rows_end, matched_df.columns.get_loc('Source Amount_T14'), 'Total of Matching Recon', None)
+        worksheet.write(total_rows_end, matched_df.columns.get_loc('Source Amount_T14') + 1, round(total_sum, 2))
+        worksheet.write(total_rows_start + 2, matched_df.columns.get_loc('Source Amount_T14'), 'Total of CitiBank Travel Transactions', None)
+        worksheet.write(total_rows_start + 2, matched_df.columns.get_loc('Source Amount_T14') + 1, Trans_amt)
+        Difference = total_sum - Trans_amt
+        worksheet.write(total_rows_start + 3, matched_df.columns.get_loc('Source Amount_T14'), 'Difference between both', None)
+        worksheet.write(total_rows_start + 3, matched_df.columns.get_loc('Source Amount_T14') + 1, Difference)
+
+        # Get the workbook and worksheet objects
+        workbook = writer.book
+        worksheet = writer.sheets['Sheet1']
+
+        # Set font size to 8 for the entire sheet
+        cell_format = workbook.add_format({'font_size': 8})
+        worksheet.set_column(0, len(matched_df.columns) - 1, None, cell_format)
+
+        # Set blue background color for column header row after the gap
+        header_format = workbook.add_format({'font_size': 8, 'bg_color': '#b8cce4'})
+        for col_num, value in enumerate(matched_df.columns.values):
+            worksheet.write(0, col_num, value, header_format)
+
+        # Set blue background color for column header row after the gap
+        blue_format = workbook.add_format({'font_size': 8, 'bg_color': '#b8cce4'})
+        for col_num, value in enumerate(matched_df.columns.values):
+            worksheet.write(len(df) + 2, col_num, value, blue_format)
+
+        # Set the format for the ticket number column to prevent it from appearing in exponential form
+        ticket_number_format = workbook.add_format({'num_format': '0', 'font_size': 8})
+        worksheet.set_column(matched_df.columns.get_loc('Ticket Number'), matched_df.columns.get_loc('Ticket Number'), None, ticket_number_format)
