@@ -1289,3 +1289,20 @@ def save_to_excel(merged_df, total_sum, Trans_amt, output_path):
         # Set the format for the ticket number column to prevent it from appearing in exponential form
         ticket_number_format = workbook.add_format({'num_format': '0', 'font_size': 8})
         worksheet.set_column(merged_df.columns.get_loc('Ticket Number'), merged_df.columns.get_loc('Ticket Number'), None, ticket_number_format)
+
+
+
+        # Add 4 blank rows between matched/unmatched data and the totals
+        worksheet = writer.sheets['Sheet1']
+        for row in range(len(matched_df) + 2, len(matched_df) + 6):
+            for col in range(len(matched_df.columns)):
+                worksheet.write(row, col, None)
+
+        # Write totals and difference to the Excel file
+        total_rows_start = len(matched_df) + 6
+        worksheet.write(total_rows_start, 0, 'Total Sum:', None)
+        worksheet.write(total_rows_start, 1, round(vids_sum, 2))
+        worksheet.write(total_rows_start + 1, 0, 'Transaction Amount (Trans_amt):', None)
+        worksheet.write(total_rows_start + 1, 1, round(Trans_amt, 2))
+        worksheet.write(total_rows_start + 2, 0, 'Difference:', None)
+        worksheet.write(total_rows_start + 2, 1, round(diff, 2))
