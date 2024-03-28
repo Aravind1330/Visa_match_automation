@@ -1438,3 +1438,10 @@ def save_to_excel(matched_df, unmatched_df, vids_sum, empty_invoices_sum, total,
         worksheet.write(total_rows_start + 2, matched_df.columns.get_loc('Source Amount_T14') + 1, Trans_amt)
         worksheet.write(total_rows_start + 3, matched_df.columns.get_loc('Source Amount_T14'), 'Difference between both', None)
         worksheet.write(total_rows_start + 3, matched_df.columns.get_loc('Source Amount_T14') + 1, diff)
+
+
+
+
+        print(f"File '{output_filename}' generated successfully.")
+    except Exception as e:
+        print(f"Error processing files '{csv_file}' and '{excel_file}': {e}")
