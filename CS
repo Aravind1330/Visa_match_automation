@@ -1798,36 +1798,38 @@ def decrypt_excel(encrypted_path, password):
         office_file.decrypt(decrypted_workbook)
     return decrypted_workbook
 
-def process_files(csv_folder, excel_folder, output_folder, password):
-    csv_files = os.listdir(csv_folder)
-    excel_files = os.listdir(excel_folder)
+def process_files(csv_file, encrypted_excel, output_excel, password):
+    # Read CSV file
+    vids = pd.read_csv(csv_file)
 
-for csv_file in csv_files:
-    matching_excel_file = next((file for file in excel_files if file[-2:] == csv_file[-2:]), None)
-    if matching_excel_file:
-        csv_path = os.path.join(csv_folder, csv_file)
-        excel_path = os.path.join(excel_folder, matching_excel_file)
-        output_path = os.path.join(output_folder, f"output_{csv_file[-2:]}.xlsx")
+    # Decrypt Excel file
+    decrypted_workbook = decrypt_excel(encrypted_excel, password)
+    df = pd.read_excel(decrypted_workbook)
 
-                # Read CSV file
-                vids = pd.read_csv(csv_path)
+    # Preprocess data
+    matched_df, unmatched_df = preprocess.preprocess_data(vids, df)
 
-                # Decrypt Excel file
-                decrypted_workbook = decrypt_excel(excel_path, password)
-                df = pd.read_excel(decrypted_workbook)
+    # Calculate sums
+    vids_sum, empty_invoices_sum, total, Trans_amt, diff = preprocess.calculate_sums(matched_df, unmatched_df, df)
 
-                # Preprocess data
-                matched_df, unmatched_df = preprocess.preprocess_data(vids, df)
-
-                # Calculate sums
-                vids_sum, empty_invoices_sum, total, Trans_amt, diff = preprocess.calculate_sums(matched_df, unmatched_df, df)
-
-                # Save to Excel
-                preprocess.save_to_excel(matched_df, unmatched_df, vids_sum, empty_invoices_sum, total, Trans_amt, diff, output_path)
+    # Save to Excel
+    preprocess.save_to_excel(matched_df, unmatched_df, vids_sum, empty_invoices_sum, total, Trans_amt, diff, output_excel)
 
 def main():
     config = read_config('config.yml')
-    process_files(config['input_folders']['csv_folder'], config['input_folders']['excel_folder'], config['output_folder'], config['password'])
+
+    csv_files_folder = config['file_paths']['csv_files_folder']
+    excel_files_folder = config['file_paths']['excel_files_folder']
+    output_folder = config['file_paths']['output_folder']
+
+    for file in os.listdir(csv_files_folder):
+        if file.endswith(".csv"):
+            csv_file = os.path.join(csv_files_folder, file)
+            corresponding_excel = os.path.join(excel_files_folder, file.replace(".csv", ".xlsx"))
+            output_excel = os.path.join(output_folder, file.replace(".csv", "_output.xlsx"))
+            if os.path.exists(corresponding_excel):
+                process_files(csv_file, corresponding_excel, output_excel, config['password'])
 
 if __name__ == "__main__":
     main()
+
