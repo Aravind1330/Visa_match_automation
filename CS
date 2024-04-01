@@ -1770,3 +1770,64 @@ def save_to_excel(matched_df, unmatched_df, vids_sum, empty_invoices_sum, total,
         worksheet.write(total_rows_start + 2, matched_df.columns.get_loc('Source Amount_T14') + 1, Trans_amt)
         worksheet.write(total_rows_start + 3, matched_df.columns.get_loc('Source Amount_T14'), 'Difference between both', None)
         worksheet.write(total_rows_start + 3, matched_df.columns.get_loc('Source Amount_T14') + 1, diff)
+
+
+
+
+
+
+
+import os
+import pandas as pd
+import msoffcrypto
+import preprocess
+import xlsxwriter
+import io
+import yaml
+
+def read_config(config_path):
+    with open(config_path, 'r') as file:
+        config = yaml.safe_load(file)
+    return config
+
+def decrypt_excel(encrypted_path, password):
+    with open(encrypted_path, 'rb') as file:
+        office_file = msoffcrypto.OfficeFile(file)
+        office_file.load_key(password=password)
+        decrypted_workbook = io.BytesIO()
+        office_file.decrypt(decrypted_workbook)
+    return decrypted_workbook
+
+def process_files(csv_folder, excel_folder, output_folder, password):
+    csv_files = os.listdir(csv_folder)
+    excel_files = os.listdir(excel_folder)
+
+for csv_file in csv_files:
+    matching_excel_file = next((file for file in excel_files if file[-2:] == csv_file[-2:]), None)
+    if matching_excel_file:
+        csv_path = os.path.join(csv_folder, csv_file)
+        excel_path = os.path.join(excel_folder, matching_excel_file)
+        output_path = os.path.join(output_folder, f"output_{csv_file[-2:]}.xlsx")
+
+                # Read CSV file
+                vids = pd.read_csv(csv_path)
+
+                # Decrypt Excel file
+                decrypted_workbook = decrypt_excel(excel_path, password)
+                df = pd.read_excel(decrypted_workbook)
+
+                # Preprocess data
+                matched_df, unmatched_df = preprocess.preprocess_data(vids, df)
+
+                # Calculate sums
+                vids_sum, empty_invoices_sum, total, Trans_amt, diff = preprocess.calculate_sums(matched_df, unmatched_df, df)
+
+                # Save to Excel
+                preprocess.save_to_excel(matched_df, unmatched_df, vids_sum, empty_invoices_sum, total, Trans_amt, diff, output_path)
+
+def main():
+    config = read_config('config.yml')
+    process_files(config['input_folders']['csv_folder'], config['input_folders']['excel_folder'], config['output_folder'], config['password'])
+
+if __name__ == "__main__":
+    main()
