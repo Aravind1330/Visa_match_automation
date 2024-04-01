@@ -1833,3 +1833,7 @@ def main():
 if __name__ == "__main__":
     main()
 
+
+
+        # Set font size to 8 for the entire sheet
+        worksheet.set_column(0, len(matched_df.columns) - 1, None, cell_format)
