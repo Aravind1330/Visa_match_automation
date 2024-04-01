@@ -1836,4 +1836,5 @@ if __name__ == "__main__":
 
 
         # Set font size to 8 for the entire sheet
-        worksheet.set_column(0, len(matched_df.columns) - 1, None, cell_format)
+        for row_num in range(total_rows_end + 1):
+            worksheet.set_row(row_num, None, cell_format)
