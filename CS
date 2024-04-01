@@ -1835,6 +1835,44 @@ if __name__ == "__main__":
 
 
 
+import pandas as pd
+import xlsxwriter
+
+def save_to_excel(matched_df, unmatched_df, vids_sum, empty_invoices_sum, total, Trans_amt, diff, output_path):
+    # Create a cell format with font size 8
+    cell_format = {'font_size': 8}
+
+    with pd.ExcelWriter(output_path, engine='xlsxwriter') as writer:
+        # Write matched_df and unmatched_df to Excel
+        matched_df.to_excel(writer, sheet_name='Sheet1', index=False)
+        unmatched_df.to_excel(writer, sheet_name='Sheet1', startrow=len(matched_df) + 2, index=False)
+
+        # Add blank rows
+        total_rows_start = len(matched_df) + 2
+        total_rows_end = total_rows_start + 4
+        worksheet = writer.sheets['Sheet1']
+        for row in range(total_rows_start, total_rows_end):
+            for col in range(len(matched_df.columns)):
+                worksheet.write(row, col, None)
+
+        # Calculate total sum and write to Excel
+        total_sum = matched_df['Source Amount_T14'].sum()
+        worksheet.write(total_rows_end, matched_df.columns.get_loc('Source Amount_T14'), 'Total of Matching Recon', None)
+        worksheet.write(total_rows_end, matched_df.columns.get_loc('Source Amount_T14') + 1, round(total_sum, 2))
+        
+        # Write total of CitiBank Travel Transactions and difference between both
+        worksheet.write(total_rows_start + 2, matched_df.columns.get_loc('Source Amount_T14'), 'Total of CitiBank Travel Transactions', None)
+        worksheet.write(total_rows_start + 2, matched_df.columns.get_loc('Source Amount_T14') + 1, Trans_amt)
+        worksheet.write(total_rows_start + 3, matched_df.columns.get_loc('Source Amount_T14'), 'Difference between both', None)
+        worksheet.write(total_rows_start + 3, matched_df.columns.get_loc('Source Amount_T14') + 1, diff)
+
         # Set font size to 8 for the entire sheet
         for row_num in range(total_rows_end + 1):
             worksheet.set_row(row_num, None, cell_format)
+
+        # Set column names of matched and unmatched data in blue
+        header_format = writer.book.add_format({'font_size': 8, 'bg_color': '#b8cce4', 'bold': True})
+        for col_num, value in enumerate(matched_df.columns):
+            worksheet.write(0, col_num, value, header_format)
+            worksheet.write(len(matched_df) + 2, col_num, value, header_format)
+
