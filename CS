@@ -1975,36 +1975,16 @@ def save_to_excel(matched_df, unmatched_df, vids_sum, empty_invoices_sum, total,
 
 
 def save_to_excel(matched_df, unmatched_df, vids_sum, empty_invoices_sum, total, Trans_amt, diff, output_path):
-    # Create a Pandas Excel writer using xlsxwriter as the engine
     with pd.ExcelWriter(output_path, engine='xlsxwriter') as writer:
-        # Write matched_df and unmatched_df to Excel
+        # Set font size to 8 for the entire sheet
+        workbook = writer.book
+        cell_format = workbook.add_format({'font_size': 8})
+        worksheet = writer.sheets['Sheet1']
+        worksheet.set_column(0, len(matched_df.columns) - 1, None, cell_format)
+
+        # Write dataframes to Excel
         matched_df.to_excel(writer, sheet_name='Sheet1', index=False)
         unmatched_df.to_excel(writer, sheet_name='Sheet1', startrow=len(matched_df) + 2, index=False)
-
-        # Get the xlsxwriter workbook and worksheet objects
-        workbook = writer.book
-        worksheet = writer.sheets['Sheet1']
-
-        # Create a cell format with font size 8
-        cell_format = workbook.add_format({'font_size': 8})
-
-        # Replace NaN and infinity values with default value or leave them blank
-        matched_df.replace([np.nan, np.inf, -np.inf], 'NA', inplace=True)
-        unmatched_df.replace([np.nan, np.inf, -np.inf], 'NA', inplace=True)
-
-        # Set font size to 8 for the entire sheet
-        for col_num, value in enumerate(matched_df.columns.values):
-            worksheet.write(0, col_num, value, cell_format)
-
-        for idx in range(len(matched_df) + 1):
-            for col_num in range(len(matched_df.columns)):
-                cell_value = matched_df.iloc[idx, col_num]
-                worksheet.write(idx + 1, col_num, cell_value if cell_value != 'NA' else '', cell_format)
-
-        for idx in range(len(unmatched_df) + 1):
-            for col_num in range(len(unmatched_df.columns)):
-                cell_value = unmatched_df.iloc[idx, col_num]
-                worksheet.write(idx + len(matched_df) + 3, col_num, cell_value if cell_value != 'NA' else '', cell_format)
 
         # Add blank rows
         total_rows_start = len(matched_df) + 2
@@ -2013,13 +1993,12 @@ def save_to_excel(matched_df, unmatched_df, vids_sum, empty_invoices_sum, total,
             for col in range(len(matched_df.columns)):
                 worksheet.write(row, col, None, cell_format)
 
-        # Calculate total sum and write to Excel
+        # Calculate sums and write to Excel
         total_sum = matched_df['Source Amount_T14'].sum()
         worksheet.write(total_rows_end, matched_df.columns.get_loc('Source Amount_T14'), 'Total of Matching Recon', cell_format)
         worksheet.write(total_rows_end, matched_df.columns.get_loc('Source Amount_T14') + 1, round(total_sum, 2), cell_format)
-        
-        # Write total of CitiBank Travel Transactions and difference between both
         worksheet.write(total_rows_start + 2, matched_df.columns.get_loc('Source Amount_T14'), 'Total of CitiBank Travel Transactions', cell_format)
         worksheet.write(total_rows_start + 2, matched_df.columns.get_loc('Source Amount_T14') + 1, Trans_amt, cell_format)
+        Difference = total_sum - Trans_amt
         worksheet.write(total_rows_start + 3, matched_df.columns.get_loc('Source Amount_T14'), 'Difference between both', cell_format)
-        worksheet.write(total_rows_start + 3, matched_df.columns.get_loc('Source Amount_T14') + 1, diff, cell_format)
+        worksheet.write(total_rows_start + 3, matched_df.columns.get_loc('Source Amount_T14') + 1, Difference, cell_format)
