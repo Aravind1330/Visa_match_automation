@@ -2002,3 +2002,16 @@ def save_to_excel(matched_df, unmatched_df, vids_sum, empty_invoices_sum, total,
         Difference = total_sum - Trans_amt
         worksheet.write(total_rows_start + 3, matched_df.columns.get_loc('Source Amount_T14'), 'Difference between both', cell_format)
         worksheet.write(total_rows_start + 3, matched_df.columns.get_loc('Source Amount_T14') + 1, Difference, cell_format)
+
+
+
+
+
+
+SELECT *
+FROM cdsitap1.TCOODS_CARDTRANS
+WHERE region_id = '3'
+  AND PROCESSOR_ID = 12
+  AND MEMBER_BANK_ID IN (10021528, another_member_bank_id, ...)
+  AND COMPANY_ID IN (9000033803, another_company_id, ...)
+  AND TRANSACTION_DATE BETWEEN '2024-01-26' AND '2024-03-10';
