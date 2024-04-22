@@ -2085,3 +2085,46 @@ def save_to_excel(matched_df, unmatched_df, vids_sum, empty_invoices_sum, total,
         worksheet.write(total_rows_end + 1, matched_df.columns.get_loc('Source Amount_T14'), vids_sum, cell_format)
         worksheet.write(total_rows_end + 2, matched_df.columns.get_loc('Source Amount_T14') - 1, 'Difference', cell_format)
         worksheet.write(total_rows_end + 2, matched_df.columns.get_loc('Source Amount_T14'), diff, cell_format)
+
+
+
+
+
+
+
+
+
+
+
+
+def save_to_excel(matched_df, unmatched_df, vids_sum, empty_invoices_sum, total, Trans_amt, diff, output_path):
+    with pd.ExcelWriter(output_path, engine='xlsxwriter') as writer:
+        # Create a new Excel sheet
+        workbook = writer.book
+        worksheet = workbook.add_worksheet('Sheet1')
+
+        # Set font size to 8 for the entire sheet
+        cell_format = workbook.add_format({'font_size': 8})
+        worksheet.set_column(0, len(matched_df.columns) - 1, None, cell_format)
+
+        # Write dataframes to Excel
+        matched_df.to_excel(writer, sheet_name='Sheet1', index=False)
+        unmatched_df.to_excel(writer, sheet_name='Sheet1', startrow=len(matched_df) + 2, index=False)
+
+        # Add blank rows
+        total_rows_start = len(matched_df) + 2
+        total_rows_end = total_rows_start + 4
+        for row in range(total_rows_start, total_rows_end):
+            for col in range(len(matched_df.columns)):
+                worksheet.write(row, col, None, cell_format)
+
+        # Calculate and write the sum of the values
+        total_sum = sum(matched_df['Source Amount_T14'])
+        vids_difference = total_sum - vids_sum
+
+        worksheet.write(total_rows_end, matched_df.columns.get_loc('Source Amount_T14') - 1, 'Total', cell_format)
+        worksheet.write(total_rows_end, matched_df.columns.get_loc('Source Amount_T14'), round(total_sum, 2), cell_format)
+        worksheet.write(total_rows_end + 1, matched_df.columns.get_loc('Source Amount_T14') - 1, 'Vids', cell_format)
+        worksheet.write(total_rows_end + 1, matched_df.columns.get_loc('Source Amount_T14'), vids_sum, cell_format)
+        worksheet.write(total_rows_end + 2, matched_df.columns.get_loc('Source Amount_T14') - 1, 'Difference', cell_format)
+        worksheet.write(total_rows_end + 2, matched_df.columns.get_loc('Source Amount_T14'), diff, cell_format)
