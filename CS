@@ -2015,3 +2015,20 @@ WHERE region_id = '3'
   AND MEMBER_BANK_ID IN (10021528, another_member_bank_id, ...)
   AND COMPANY_ID IN (9000033803, another_company_id, ...)
   AND TRANSACTION_DATE BETWEEN '2024-01-26' AND '2024-03-10';
+
+
+
+
+
+
+
+
+
+
+# Write labels and values under 'Source Amount_T14' column
+        worksheet.write(total_rows_start, matched_df.columns.get_loc('Source Amount_T14'), 'Total of Matching Recon', cell_format)
+        worksheet.write(total_rows_start, matched_df.columns.get_loc('Source Amount_T14') + 1, round(vids_sum, 2), cell_format)
+        worksheet.write(total_rows_start + 1, matched_df.columns.get_loc('Source Amount_T14'), 'Total of CitiBank Travel Transactions', cell_format)
+        worksheet.write(total_rows_start + 1, matched_df.columns.get_loc('Source Amount_T14') + 1, Trans_amt, cell_format)
+        worksheet.write(total_rows_start + 2, matched_df.columns.get_loc('Source Amount_T14'), 'Difference between both', cell_format)
+        worksheet.write(total_rows_start + 2, matched_df.columns.get_loc('Source Amount_T14') + 1, diff, cell_format)
