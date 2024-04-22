@@ -2166,7 +2166,5 @@ def save_to_excel(matched_df, unmatched_df, vids_sum, empty_invoices_sum, total,
 
 
 
-        worksheet.set_column(0, len(matched_df.columns) - 1, None, cell_format)
- 
-        # Remove all borders
-        cell_format.set_border(0)
+        cell_format = workbook.add_format({'font_size': 8, 'border': 0})
+        worksheet.set_column(0, len(matched_df.columns) - 1, 8, cell_format)
