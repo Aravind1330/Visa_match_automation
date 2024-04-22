@@ -2162,3 +2162,12 @@ def save_to_excel(matched_df, unmatched_df, vids_sum, empty_invoices_sum, total,
         diff_row = vids_row + 1
         worksheet.write(diff_row, matched_df.columns.get_loc('Source Amount_T14') - 1, 'Difference', cell_format)
         worksheet.write(diff_row, matched_df.columns.get_loc('Source Amount_T14'), diff, cell_format)
+
+
+
+
+
+        # Set column widths to 8 for all columns
+        for col in range(len(matched_df.columns)):
+            worksheet.set_column(col, col, 8)
+
