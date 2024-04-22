@@ -2036,3 +2036,13 @@ WHERE region_id = '3'
         total_sum = sum(values)
         worksheet.write(total_rows_end, matched_df.columns.get_loc('Source Amount_T14'), 'Total Sum', cell_format)
         worksheet.write(total_rows_end, matched_df.columns.get_loc('Source Amount_T14') + 1, round(total_sum, 2), cell_format)
+
+
+
+
+
+
+        workbook = writer.book
+        cell_format = workbook.add_format({'font_size': 8})
+        worksheet = writer.sheets['Sheet1']
+        worksheet.set_column(0, len(matched_df.columns) - 1, None, cell_format)
