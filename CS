@@ -2167,16 +2167,7 @@ def save_to_excel(matched_df, unmatched_df, vids_sum, empty_invoices_sum, total,
 
 
 
-        # Set column widths to 8 for all columns
-        for col in range(len(matched_df.columns)):
-            worksheet.set_column(col, col, 8)
-
-        # Set font size to 8 for all cell values
-        for row_num in range(len(matched_df) + len(unmatched_df)):
-            for col_num in range(len(matched_df.columns)):
-                worksheet.write(row_num, col_num, matched_df.iloc[row_num, col_num], cell_format)
-
-        # Set font size to 8 for column headers
-        header_format = workbook.add_format({'font_size': 8, 'bold': False})
+        # Set column widths based on the length of the column headers
         for col_num, value in enumerate(matched_df.columns.values):
-            worksheet.write(0, col_num, value, header_format)
+            column_width = max(len(str(value)), len(str(matched_df.iloc[:, col_num].max()))) + 2
+            worksheet.set_column(col_num, col_num, column_width)
