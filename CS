@@ -2026,9 +2026,13 @@ WHERE region_id = '3'
 
 
 # Write labels and values under 'Source Amount_T14' column
-        worksheet.write(total_rows_start, matched_df.columns.get_loc('Source Amount_T14'), 'Total of Matching Recon', cell_format)
-        worksheet.write(total_rows_start, matched_df.columns.get_loc('Source Amount_T14') + 1, round(vids_sum, 2), cell_format)
-        worksheet.write(total_rows_start + 1, matched_df.columns.get_loc('Source Amount_T14'), 'Total of CitiBank Travel Transactions', cell_format)
-        worksheet.write(total_rows_start + 1, matched_df.columns.get_loc('Source Amount_T14') + 1, Trans_amt, cell_format)
-        worksheet.write(total_rows_start + 2, matched_df.columns.get_loc('Source Amount_T14'), 'Difference between both', cell_format)
-        worksheet.write(total_rows_start + 2, matched_df.columns.get_loc('Source Amount_T14') + 1, diff, cell_format)
+        labels = ['Total of Matching Recon', 'Total of CitiBank Travel Transactions', 'Difference between both']
+        values = [vids_sum, Trans_amt, diff]
+        for i, (label, value) in enumerate(zip(labels, values), start=total_rows_start):
+            worksheet.write(i, matched_df.columns.get_loc('Source Amount_T14'), label, cell_format)
+            worksheet.write(i, matched_df.columns.get_loc('Source Amount_T14') + 1, round(value, 2), cell_format)
+
+        # Calculate and write the sum of the values
+        total_sum = sum(values)
+        worksheet.write(total_rows_end, matched_df.columns.get_loc('Source Amount_T14'), 'Total Sum', cell_format)
+        worksheet.write(total_rows_end, matched_df.columns.get_loc('Source Amount_T14') + 1, round(total_sum, 2), cell_format)
