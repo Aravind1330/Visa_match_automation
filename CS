@@ -2046,3 +2046,10 @@ WHERE region_id = '3'
         cell_format = workbook.add_format({'font_size': 8})
         worksheet = writer.sheets['Sheet1']
         worksheet.set_column(0, len(matched_df.columns) - 1, None, cell_format)
+
+
+
+        # Remove all borders
+        for row in range(total_rows_end + 1):
+            for col in range(len(matched_df.columns)):
+                worksheet.write_blank(row, col, None, cell_format)
