@@ -2168,3 +2168,16 @@ def save_to_excel(matched_df, unmatched_df, vids_sum, empty_invoices_sum, total,
 
         cell_format = workbook.add_format({'font_size': 8, 'border': 0})
         worksheet.set_column(0, len(matched_df.columns) - 1, 8, cell_format)
+
+
+
+
+        header_format = workbook.add_format({'font_size': 8, 'border': 0})
+        for col_num, value in enumerate(matched_df.columns.values):
+            worksheet.write(0, col_num, value, header_format)
+
+        # Set font size to 8 and remove all borders for cell values
+        cell_format = workbook.add_format({'font_size': 8, 'border': 0})
+        for row_num in range(1, len(matched_df) + len(unmatched_df) + 1):
+            for col_num in range(len(matched_df.columns)):
+                worksheet.write(row_num, col_num, matched_df.iloc[row_num - 1, col_num], cell_format)
