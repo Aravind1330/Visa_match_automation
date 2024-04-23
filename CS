@@ -2373,3 +2373,8 @@ def save_to_excel(matched_df, unmatched_df, vids_sum, empty_invoices_sum, total,
         worksheet.write(vids_row, matche
 
 
+
+
+        print(f"File saved successfully: {output_path}")
+    except Exception as e:
+        print(f"Error occurred while saving the file: {e}")
