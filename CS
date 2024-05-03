@@ -1,1 +1,18 @@
 
+Subject: Issue Found in Rule ID 3012 - Ticket Number Matching
+
+Hi XXX,
+
+I hope this email finds you well.
+
+We have identified an issue with Rule ID 3012 regarding the description, which states it should match a 13-digit ticket number. However, the rule string length is not specified, leading to matches occurring with ticket numbers of varying lengths (e.g., 5, 6, 7, 8, 9 digits).
+
+Could you please review this discrepancy? I've included the details of the rule in the table below for your reference:
+
+Rule ID	Description	Rule String Length
+3012	13-digit ticket number match	(Not defined)
+Your attention to this matter would be greatly appreciated.
+
+Best regards,
+
+[Your Name]
