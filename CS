@@ -16,3 +16,14 @@ Your attention to this matter would be greatly appreciated.
 Best regards,
 
 [Your Name]
+
+
+
+In the table below, I have outlined the details of the rule where for a 10-digit ticket number match, string values are specified in the ticket number column to ensure it matches only 10-digit ticket numbers. However, for 13-digit ticket numbers, string values are not specified, resulting in unexpected matches.
+
+Here's an example use case illustrating the issue we encountered:
+
+Ticket Number Type	Ticket Number
+T5	7867684
+Inv	7867684
+In this scenario, although the ticket number is only 7 digits long, it was erroneously matched by the 13-digit rule.
