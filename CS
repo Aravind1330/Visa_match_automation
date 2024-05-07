@@ -1,29 +1,16 @@
+Upon reviewing the data from March to April for EU ruleid 30, we've noticed a consistent pattern where matches are occurring seven days after the posting date and five days after the transaction date. I've attached a statistical breakdown to illustrate this trend.
 
-Subject: Issue Found in Rule ID 3012 - Ticket Number Matching
+[Attach Stats Image of Posting Date and Transaction Date]
 
-Hi XXX,
+Given this observation, I believe there's an opportunity to optimize our processes by reducing the matching time frame to 2-3 days. This adjustment won't affect any global rules and would meet the expectations of premium clients such as World Bank, who prioritize early matches.
 
-I hope this email finds you well.
+Below, I've outlined the rules associated with ruleid 30, highlighting the presence of date filters across all rules:
 
-We have identified an issue with Rule ID 3012 regarding the description, which states it should match a 13-digit ticket number. However, the rule string length is not specified, leading to matches occurring with ticket numbers of varying lengths (e.g., 5, 6, 7, 8, 9 digits).
+[Attach Ruleid 30 Date Filter Image]
 
-Could you please review this discrepancy? I've included the details of the rule in the table below for your reference:
+Implementing this minor adjustment could enhance efficiency and better serve our clients. Your thoughts on this potential optimization would be valuable.
 
-Rule ID	Description	Rule String Length
-3012	13-digit ticket number match	(Not defined)
-Your attention to this matter would be greatly appreciated.
+Looking forward to your feedback on this matter.
 
 Best regards,
-
 [Your Name]
-
-
-
-In the table below, I have outlined the details of the rule where for a 10-digit ticket number match, string values are specified in the ticket number column to ensure it matches only 10-digit ticket numbers. However, for 13-digit ticket numbers, string values are not specified, resulting in unexpected matches.
-
-Here's an example use case illustrating the issue we encountered:
-
-Ticket Number Type	Ticket Number
-T5	7867684
-Inv	7867684
-In this scenario, although the ticket number is only 7 digits long, it was erroneously matched by the 13-digit rule.
